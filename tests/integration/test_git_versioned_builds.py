@@ -318,7 +318,7 @@ def test_git_version_diff_uses_configured_content_dir(tmp_path: Path) -> None:
             "--new-version",
             "release/v2",
             "--git",
-            "--output",
+            "--output-format",
             "json",
         ],
         cwd=str(site_root),

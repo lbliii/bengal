@@ -7,13 +7,14 @@ from typing import Annotated
 
 from milo import Description
 
+from bengal.cli.format_options import format_description
 from bengal.cli.helpers.debug_reports import render_debug_report
 
 
 def debug_incremental(
     source: Annotated[str, Description("Source directory path")] = "",
     explain_page: Annotated[str, Description("Explain why a specific page was rebuilt")] = "",
-    output_format: Annotated[str, Description("Output format: console or json")] = "console",
+    output_format: Annotated[str, Description(format_description("console", "json"))] = "console",
     output_file: Annotated[str, Description("Output file (for JSON format)")] = "",
 ) -> dict:
     """Debug incremental build issues — cache state, rebuild reasons, phantom rebuilds."""
@@ -80,7 +81,7 @@ def debug_delta(
     source: Annotated[str, Description("Source directory path")] = "",
     baseline: Annotated[bool, Description("Compare against baseline (first) build")] = False,
     save_baseline: Annotated[bool, Description("Save current state as new baseline")] = False,
-    output_format: Annotated[str, Description("Output format: console or json")] = "console",
+    output_format: Annotated[str, Description(format_description("console", "json"))] = "console",
     output_file: Annotated[str, Description("Output file (for JSON format)")] = "",
 ) -> dict:
     """Compare builds and identify changes — added/removed pages, timing, config diffs."""
@@ -294,7 +295,9 @@ def debug_sandbox(
     validate_only: Annotated[bool, Description("Only validate syntax, don't render")] = False,
     list_directives: Annotated[bool, Description("List all available directives")] = False,
     help_directive: Annotated[str, Description("Get detailed help for a directive")] = "",
-    output_format: Annotated[str, Description("Output format: console, html, or json")] = "console",
+    output_format: Annotated[
+        str, Description(format_description("console", "json", "html"))
+    ] = "console",
 ) -> dict:
     """Test directives in isolation without building the entire site."""
     from pathlib import Path

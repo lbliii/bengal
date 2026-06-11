@@ -6,6 +6,8 @@ from typing import Annotated
 
 from milo import Description
 
+from bengal.cli.format_options import format_description
+
 
 def _active_theme_slug(site) -> str:
     config = site.config
@@ -649,7 +651,7 @@ def theme_debug(
 
 
 def theme_directives(
-    output_format: Annotated[str, Description("Output format: table or json")] = "table",
+    output_format: Annotated[str, Description(format_description("table", "json"))] = "table",
 ) -> dict:
     """List available MyST directives."""
     import json
@@ -684,7 +686,9 @@ def theme_test(
     content: Annotated[str, Description("Directive markdown content")] = "",
     file: Annotated[str, Description("Read content from file")] = "",
     validate_only: Annotated[bool, Description("Only validate syntax, don't render")] = False,
-    output_format: Annotated[str, Description("Output format: console, html, json")] = "console",
+    output_format: Annotated[
+        str, Description(format_description("console", "json", "html"))
+    ] = "console",
 ) -> dict:
     """Render a directive in isolation for testing."""
     import json

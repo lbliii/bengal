@@ -268,11 +268,19 @@ class BengalCLI(CLI):
             )
             sys.exit(1)
         self._add_arguments_from_schema(sub, schema, command_ref)
+        # Finding 25 (#387): keep the injected envelope ``--format`` argument
+        # parseable (it drives ``-o FILE`` serialization) but hide its help row
+        # on commands that already declare their own render-format flag, so
+        # ``--help`` never shows two competing format options.
+        from bengal.cli.format_options import is_render_format_param
+
+        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        owns_render_format = any(is_render_format_param(name) for name in properties)
         sub.add_argument(
             "--format",
             choices=["plain", "json", "table"],
             default="plain",
-            help="Output format",
+            help=argparse.SUPPRESS if owns_render_format else "Output format",
         )
 
     def _resolve_selected_command(self, tokens: list[str]) -> tuple[list[Any], Any] | None:
@@ -728,11 +736,14 @@ class BengalCLI(CLI):
 
     def _command_help_options(self, schema: dict[str, Any]) -> list[dict[str, Any]]:
         """Return template-friendly option entries from a Milo command schema."""
+        from bengal.cli.format_options import is_render_format_param
+
         options = [
             self._option_entry("-h, --help", "show this help message and exit"),
         ]
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
         required = set(schema.get("required", ())) if isinstance(schema, dict) else set()
+        owns_render_format = any(is_render_format_param(name) for name in properties)
         for name, spec in properties.items():
             if not isinstance(spec, dict):
                 continue
@@ -746,7 +757,13 @@ class BengalCLI(CLI):
                     f"{help_text} (default: {default})" if help_text else f"default: {default}"
                 )
             options.append(self._option_entry(flag, help_text))
-        options.append(self._option_entry("--format", "Output format (default: plain)"))
+        # Finding 25 (#387): the injected envelope ``--format`` flag (the
+        # ``-o FILE`` serialization knob) collides with a command's own
+        # render-format flag in ``--help``. Hide it on commands that already
+        # carry their own format flag so help shows exactly one format row; the
+        # argument itself stays parseable (see ``_add_selected_command_parser``).
+        if not owns_render_format:
+            options.append(self._option_entry("--format", "Output format (default: plain)"))
         return options
 
     @staticmethod

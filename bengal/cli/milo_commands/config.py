@@ -6,6 +6,8 @@ from typing import Annotated
 
 from milo import Description
 
+from bengal.cli.format_options import format_description
+
 
 def config_show(
     source: Annotated[str, Description("Source directory path")] = "",
@@ -13,7 +15,7 @@ def config_show(
     profile: Annotated[str, Description("Profile to load")] = "",
     origin: Annotated[bool, Description("Show which file contributed each config key")] = False,
     section: Annotated[str, Description("Show only specific section (e.g. site, build)")] = "",
-    output_format: Annotated[str, Description("Output format: yaml or json")] = "yaml",
+    output_format: Annotated[str, Description(format_description("yaml", "json"))] = "yaml",
 ) -> dict:
     """Display merged configuration with environment and profile resolution."""
     from pathlib import Path
@@ -382,7 +384,7 @@ def config_inspect(
     ] = "",
     list_sources: Annotated[bool, Description("List available configuration sources")] = False,
     find_issues: Annotated[bool, Description("Find potential configuration issues")] = False,
-    output_format: Annotated[str, Description("Output format: console or json")] = "console",
+    output_format: Annotated[str, Description(format_description("console", "json"))] = "console",
     traceback: Annotated[
         str, Description("Traceback verbosity: full | compact | minimal | off")
     ] = "",
