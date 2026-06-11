@@ -372,14 +372,17 @@ def build_page_context(
     # PERF: Use BuildContext cached lookup for O(1) instead of O(S) iteration
     section_snapshot: SectionSnapshot | None = None
 
-    if isinstance(resolved_section, SectionSnapshot):
-        # Already a snapshot
-        section_snapshot = resolved_section
-    elif resolved_section and build_context:
-        # O(1) cached lookup via BuildContext
+    if resolved_section is not None and build_context:
+        # O(1) cached lookup via BuildContext. Handles a live Section AND canonicalises a
+        # SectionSnapshot (the shard worker's page._section is a RenderPlan section whose
+        # regular_pages are body-free PageViews) to THIS build's snapshot section, so worker
+        # rendering matches the thread path — which always resolves through here.
         result = build_context.get_section_snapshot(resolved_section)
         if result != NO_SECTION:
             section_snapshot = result
+    elif isinstance(resolved_section, SectionSnapshot):
+        # No build_context to canonicalise against — use the resolved snapshot as-is.
+        section_snapshot = resolved_section
     elif snapshot and resolved_section:
         # Fallback: O(S) iteration (when no build_context available)
         for sec_snap in snapshot.sections:

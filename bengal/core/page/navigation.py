@@ -34,16 +34,23 @@ def _get_site_page_index(site: SiteContext) -> dict:
 
 
 def _get_section_page_index(section: SectionLike) -> dict:
-    """Return a lazily-built and cached page→index mapping for section.sorted_pages.
+    """Return a lazily-built and cached source_path→index mapping for section.sorted_pages.
 
-    sorted_pages is itself a @cached_property so the underlying list is stable;
-    we only rebuild when its length changes.
+    Keyed by ``source_path`` (a page's stable identity), not the page object: the shard
+    render path resolves ``page._section`` to a *snapshot* section whose ``sorted_pages`` are
+    PageSnapshots/PageViews, never the live ``page`` object, so object-identity keying would
+    miss every lookup there (and silently drop prev/next from the per-page JSON). source_path
+    is unique per page within a section, so this is identical to object keying on the live
+    path. sorted_pages is a @cached_property so the list is stable; rebuild only when its
+    length changes. The cache write is best-effort: a frozen section rejects assignment
+    (AttributeError on a frozen dataclass; TypeError from the SectionSnapshot's generated
+    __setattr__) — fine, the tiny index is just recomputed per call there.
     """
     sorted_pages = section.sorted_pages
     cached: dict | None = getattr(section, "_sorted_page_index_cache", None)
     if cached is None or len(cached) != len(sorted_pages):
-        cached = {p: i for i, p in enumerate(sorted_pages)}
-        with suppress(AttributeError):
+        cached = {p.source_path: i for i, p in enumerate(sorted_pages)}
+        with suppress(AttributeError, TypeError):
             section._sorted_page_index_cache = cached  # type: ignore[attr-defined]
     return cached
 
@@ -80,9 +87,15 @@ def get_next_in_section(page: PageLike, section: SectionLike | None) -> PageLike
     """Get the next page within the same section, respecting weight order."""
     if not section or not hasattr(section, "sorted_pages"):
         return None
+    # A section index page (_index/index) is the section's landing page, not a content
+    # sibling — it has no in-section prev/next. The live Section excludes it from
+    # sorted_pages (so the lookup below misses), but a snapshot section INCLUDES it, so guard
+    # explicitly to keep the two paths byte-identical.
+    if page.source_path.stem in ("_index", "index"):
+        return None
     try:
         sorted_pages = section.sorted_pages
-        idx = _get_section_page_index(section).get(page)
+        idx = _get_section_page_index(section).get(page.source_path)
         if idx is None:
             return None
         next_idx = idx + 1
@@ -100,9 +113,15 @@ def get_prev_in_section(page: PageLike, section: SectionLike | None) -> PageLike
     """Get the previous page within the same section, respecting weight order."""
     if not section or not hasattr(section, "sorted_pages"):
         return None
+    # A section index page (_index/index) is the section's landing page, not a content
+    # sibling — it has no in-section prev/next. The live Section excludes it from
+    # sorted_pages (so the lookup below misses), but a snapshot section INCLUDES it, so guard
+    # explicitly to keep the two paths byte-identical.
+    if page.source_path.stem in ("_index", "index"):
+        return None
     try:
         sorted_pages = section.sorted_pages
-        idx = _get_section_page_index(section).get(page)
+        idx = _get_section_page_index(section).get(page.source_path)
         if idx is None:
             return None
         prev_idx = idx - 1

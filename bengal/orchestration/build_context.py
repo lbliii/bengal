@@ -469,19 +469,27 @@ class BuildContext:
         if section is None:
             return NO_SECTION
 
-        # Already a SectionSnapshot - return as-is
-        if isinstance(section, SectionSnapshot):
-            return section
-
-        # No snapshot available - return sentinel
+        # No snapshot available - a SectionSnapshot is the best we have; otherwise sentinel.
         if self.snapshot is None:
-            return NO_SECTION
+            return section if isinstance(section, SectionSnapshot) else NO_SECTION
 
         # Get or build cached lookup maps
         section_maps = self.get_cached(
             "section_snapshot_maps",
             lambda: self._build_section_maps(),
         )
+
+        # CANONICALISE a SectionSnapshot to THIS build's snapshot section for the same path.
+        # On the shard render path, page._section resolves to a RenderPlan SectionSnapshot
+        # whose regular_pages are body-free PageViews (PageView exposes .date; the build
+        # snapshot's PageSnapshot does not), so using it verbatim makes an authored blog-list
+        # _index render its post-date <time> elements that the thread path omits. The thread
+        # path always resolves live sections to the build snapshot here; canonicalising the
+        # snapshot-typed input makes the worker match it byte-for-byte. Falls back to the
+        # input snapshot when the build has no matching section.
+        if isinstance(section, SectionSnapshot):
+            canonical = section_maps["by_path"].get(getattr(section, "path", None))
+            return canonical if canonical is not None else section
 
         # Try path lookup first (more specific)
         section_path = getattr(section, "path", None)
