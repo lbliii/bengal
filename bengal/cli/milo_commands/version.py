@@ -6,13 +6,17 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from milo import Description
 
+from bengal.cli.format_options import format_description
+
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def version_list(
     source: Annotated[str, Description("Source directory path")] = "",
-    output_format: Annotated[str, Description("Output format: table, json, yaml")] = "table",
+    output_format: Annotated[
+        str, Description(format_description("table", "json", "yaml"))
+    ] = "table",
 ) -> dict:
     """Display all configured documentation versions."""
     from pathlib import Path
@@ -262,7 +266,9 @@ def version_diff(
     new_version: Annotated[str, Description("New version ID or git ref")],
     source: Annotated[str, Description("Source directory path")] = "",
     git: Annotated[bool, Description("Compare git refs instead of folder versions")] = False,
-    output: Annotated[str, Description("Output format: summary, markdown, json")] = "summary",
+    output_format: Annotated[
+        str, Description(format_description("summary", "json", "markdown"))
+    ] = "summary",
 ) -> dict:
     """Compare documentation between two versions."""
     from pathlib import Path
@@ -326,7 +332,7 @@ def version_diff(
         differ = VersionDiffer(old_path, new_path)
         result = differ.diff(old_version, new_version)
 
-    if output == "json":
+    if output_format == "json":
         import json
 
         data = {
@@ -340,7 +346,7 @@ def version_diff(
             "unchanged_count": len(result.unchanged_pages),
         }
         cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
-    elif output == "markdown":
+    elif output_format == "markdown":
         cli.info(result.to_markdown())
     else:
         if result.has_changes:

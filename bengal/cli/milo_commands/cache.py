@@ -8,6 +8,8 @@ from typing import Annotated
 
 from milo import Description
 
+from bengal.cli.format_options import format_description
+
 
 def _resolve_config_arg(config: str) -> str | None:
     if not config:
@@ -20,7 +22,7 @@ def _resolve_config_arg(config: str) -> str | None:
 
 def cache_inputs(
     source: Annotated[str, Description("Source directory path")] = "",
-    output_format: Annotated[str, Description("Output format: plain or json")] = "plain",
+    output_format: Annotated[str, Description(format_description("plain", "json"))] = "plain",
     verbose: Annotated[bool, Description("Show source of each input pattern")] = False,
     config: Annotated[str, Description("Path to config file")] = "",
 ) -> dict:

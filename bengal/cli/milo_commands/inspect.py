@@ -6,6 +6,7 @@ from typing import Annotated, Any
 
 from milo import Description
 
+from bengal.cli.format_options import format_description
 from bengal.cli.helpers.debug_reports import render_debug_report
 
 
@@ -20,7 +21,7 @@ def inspect_page(
     diagnose: Annotated[
         bool, Description("Check for issues (broken links, missing assets)")
     ] = False,
-    output_format: Annotated[str, Description("Output format: console or json")] = "console",
+    output_format: Annotated[str, Description(format_description("console", "json"))] = "console",
 ) -> dict:
     """Explain how a page is built — source, template chain, dependencies, cache status."""
     import json
@@ -111,7 +112,7 @@ def inspect_links(
     exclude: Annotated[
         str, Description("URL patterns to exclude, comma-separated (regex supported)")
     ] = "",
-    output_format: Annotated[str, Description("Output format: console or json")] = "console",
+    output_format: Annotated[str, Description(format_description("console", "json"))] = "console",
     output_file: Annotated[str, Description("Output file (for JSON format)")] = "",
     max_concurrency: Annotated[int, Description("Maximum concurrent HTTP requests")] = 0,
     per_host_limit: Annotated[int, Description("Maximum concurrent requests per host")] = 0,
@@ -208,7 +209,7 @@ def inspect_links(
 def inspect_graph(
     source: Annotated[str, Description("Source directory path")] = "",
     output_format: Annotated[
-        str, Description("Output format: console, json, or mermaid")
+        str, Description(format_description("console", "json", "mermaid"))
     ] = "console",
     output_file: Annotated[str, Description("Output file for export")] = "",
 ) -> dict:
@@ -262,7 +263,9 @@ def inspect_graph(
 
 def inspect_perf(
     last: Annotated[int, Description("Show last N builds")] = 10,
-    output_format: Annotated[str, Description("Output format: table, json, or summary")] = "table",
+    output_format: Annotated[
+        str, Description(format_description("table", "json", "summary"))
+    ] = "table",
     compare: Annotated[bool, Description("Compare last two builds")] = False,
 ) -> dict:
     """Show build performance metrics."""
