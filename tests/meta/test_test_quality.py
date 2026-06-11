@@ -49,7 +49,8 @@ class TestNoWeakAssertions:
     @pytest.mark.parametrize(
         ("pattern", "description", "threshold"),
         [
-            (r"^\s*assert\s+True\s*$", "assert True", 10),  # Start with baseline, reduce over time
+            # honest true count incl. commented forms; reduce as #384 findings land
+            (r"^\s*assert\s+True\b", "assert True", 10),
             (r"^\s*assert\s+False\s*$", "assert False (always fails)", 0),
         ],
     )
