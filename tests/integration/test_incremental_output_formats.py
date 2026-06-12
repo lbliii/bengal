@@ -760,13 +760,17 @@ This is the API reference documentation.
 
     def test_asset_manifest_updated_on_css_change(self, tmp_path):
         """
-        asset-manifest.json updated when CSS changes.
+        asset-manifest.json reflects a CSS change across an incremental build.
 
         Scenario:
-        1. Build with CSS assets
+        1. Build with CSS assets (fingerprint = true always writes the manifest)
         2. Modify CSS content
         3. Incremental build
-        4. Assert: asset-manifest.json reflects changes
+        4. Assert: the manifest is preserved and the style.css fingerprint changed
+
+        Sits on the #130 incremental-manifest hot path: a never-written, stale,
+        emptied, or unchanged manifest must each fail here (the prior body gated
+        everything behind ``if manifest_path.exists()`` and asserted nothing).
         """
         # Setup test site with CSS
         content_dir = tmp_path / "content"
@@ -809,11 +813,16 @@ fingerprint = true
         output_dir = tmp_path / "public"
         manifest_path = output_dir / "asset-manifest.json"
 
-        if manifest_path.exists():
-            manifest_v1 = manifest_path.read_text()
+        # fingerprint = true always writes the manifest on a full build.
+        assert manifest_path.exists(), (
+            "full build with fingerprint=true must write asset-manifest.json"
+        )
+        assets_v1 = json.loads(manifest_path.read_text())["assets"]
+        assert "css/style.css" in assets_v1, "manifest must track the css/style.css logical asset"
+        style_output_v1 = assets_v1["css/style.css"]["output_path"]
 
-            # Modify CSS
-            css_path.write_text("""
+        # Modify CSS
+        css_path.write_text("""
 /* Version 2 - MODIFIED */
 :root {
     --color-primary: green;
@@ -821,16 +830,22 @@ fingerprint = true
 }
 """)
 
-            # Second build (incremental)
-            site2 = Site.from_config(tmp_path)
-            site2.build(BuildOptions(incremental=True))
+        # Second build (incremental)
+        site2 = Site.from_config(tmp_path)
+        site2.build(BuildOptions(incremental=True))
 
-            manifest_v2 = manifest_path.read_text()
+        assert manifest_path.exists(), (
+            "incremental build must not delete asset-manifest.json (#130)"
+        )
+        assets_v2 = json.loads(manifest_path.read_text())["assets"]
 
-            # Manifest should have changed (different fingerprint hashes)
-            # Note: This depends on whether fingerprints are included in manifest
-            if manifest_v1 != manifest_v2:
-                assert True  # Manifest was updated
-            else:
-                # Manifest might not include fingerprints directly
-                pass
+        # Entry set preserved across the incremental (no emptying/shrinking, #130/#314).
+        assert set(assets_v2) >= set(assets_v1), (
+            f"incremental must not drop manifest entries; v1={set(assets_v1)} v2={set(assets_v2)}"
+        )
+        # The CSS fingerprint output_path must actually change after the edit.
+        style_output_v2 = assets_v2["css/style.css"]["output_path"]
+        assert style_output_v2 != style_output_v1, (
+            f"style.css fingerprint should change after a CSS edit; "
+            f"v1={style_output_v1!r} v2={style_output_v2!r}"
+        )

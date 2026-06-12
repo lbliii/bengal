@@ -279,18 +279,16 @@ class TestTrackValidatorGetPage:
         """_get_page finds page by relative path."""
         # Clear any cached lookup maps (reset to None instead of deleting)
         mock_site._page_lookup_maps = None
-        # The _get_page function builds maps based on source_path relative to content root
-        # Our mock pages have source_path at content/intro.md
-        validator._get_page(mock_site, "intro.md")
-        # Since the mock sets up proper paths, this should find the page
-        assert True  # Mock may not be perfect
+        # The mock pages have source_path at content/intro.md; "intro.md" resolves
+        # to page1. Assert the returned identity so a regression that returns None
+        # or the wrong page fails here (the old `assert True` could not see it).
+        assert validator._get_page(mock_site, "intro.md") is mock_site.pages[0]
 
     def test_finds_page_without_extension(self, validator, mock_site):
-        """_get_page finds page when .md extension omitted."""
+        """_get_page finds page when .md extension omitted (Strategy 2 adds .md)."""
         mock_site._page_lookup_maps = None
-        validator._get_page(mock_site, "intro")
-        # Extension-less lookup should add .md
-        assert True  # Mock may not be perfect
+        # Extension-less lookup must auto-append .md and resolve to the same page.
+        assert validator._get_page(mock_site, "intro") is mock_site.pages[0]
 
     def test_returns_none_for_missing(self, validator, mock_site):
         """_get_page returns None for missing page."""
