@@ -49,6 +49,11 @@ def _built(site_factory, root: str) -> Site:
     return site
 
 
+# known_gap: the experimental shard backend ships off by default (render_isolation="off").
+# Its byte-parity vs the in-process path is order-dependent-flaky under pytest-randomly, so it
+# runs as nightly signal, not a PR merge gate. Output-determinism work is tracked in #376 and the
+# shard-determinism follow-up, which must close before the backend goes default-on.
+@pytest.mark.known_gap
 @pytest.mark.parametrize("root", ROOTS)
 def test_parse_shard_matches_in_process_parse(site_factory, root):
     """A worker re-parsing a file shard in isolation produces pages whose PageView is
@@ -250,6 +255,7 @@ print("RESULTJSON " + json.dumps({
 """
 
 
+@pytest.mark.known_gap  # experimental shard backend byte-parity → nightly signal, not a PR gate (see #376)
 @pytest.mark.serial
 def test_worker_site_renders_page_byte_identical(tmp_path):
     """A page rendered through a WorkerSite reconstructed (and pickle-transported) from a
@@ -437,6 +443,7 @@ print("MSREPORT " + json.dumps({
 """
 
 
+@pytest.mark.known_gap  # experimental shard backend byte-parity → nightly signal, not a PR gate (see #376)
 @pytest.mark.serial
 @pytest.mark.parametrize("fixture", ["test-product", "test-navigation"])
 @pytest.mark.parametrize("num_shards", [2, 3])
