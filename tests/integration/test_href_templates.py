@@ -9,58 +9,85 @@ Tests that templates using href produce correct output for:
 
 import pytest
 
+from bengal.rendering.template_engine import TemplateEngine
+
 
 @pytest.mark.bengal(testroot="test-basic")
 class TestHrefTemplateRendering:
     """Test href property in template rendering scenarios."""
 
     def test_page_href_in_template(self, site, build_site):
-        """Test that page.href works correctly in templates."""
-        # Create a simple template that uses href
-        template_content = """
-        <a href="{{ page.href }}">{{ page.title }}</a>
-        """
-        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
-        template_path = theme_templates_dir / "test_href.html"
-        template_path.parent.mkdir(parents=True, exist_ok=True)
-        template_path.write_text(template_content)
-
-        # Build site
+        """Rendering ``page.href`` emits the page's resolved href, not just builds."""
         build_site()
 
-        # Check that href was used correctly
-        # This is a basic smoke test - actual rendering happens in build
-        assert True  # If build succeeds, href works
+        page = next(p for p in site.pages if p.source_path.name != "_index.md")
+        engine = TemplateEngine(site)
+        rendered = engine.render_string('<a href="{{ page.href }}">x</a>', {"page": page})
+
+        # Discriminating: the rendered anchor must carry the page's *resolved*
+        # href. A shim regression returning "" or a wrong path fails here, where
+        # the old `assert True` only proved build_site() didn't raise.
+        assert page.href, "page.href should be non-empty"
+        assert f'<a href="{page.href}">' in rendered, (
+            f"rendered template should contain the resolved page.href; "
+            f"got {rendered!r} for href {page.href!r}"
+        )
+        # Shape: with no baseurl, a page href is a rooted, trailing-slashed path.
+        # Catches a wrong-but-consistent href (e.g. a missing leading slash).
+        assert page.href.startswith("/"), f"page.href should be rooted, got {page.href!r}"
+        assert page.href.endswith("/"), f"page.href should be a directory path, got {page.href!r}"
+
+
+@pytest.mark.bengal(testroot="test-navigation")
+class TestHrefSectionAndNavRendering:
+    """Test section.href and nav-item href in templates (needs a sectioned site)."""
 
     def test_section_href_in_template(self, site, build_site):
-        """Test that section.href works correctly in templates."""
-        # Create a template that uses section.href
-        template_content = """
-        <a href="{{ section.href }}">{{ section.title }}</a>
-        """
-        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
-        template_path = theme_templates_dir / "test_section_href.html"
-        template_path.parent.mkdir(parents=True, exist_ok=True)
-        template_path.write_text(template_content)
-
+        """Rendering ``section.href`` emits the section's resolved href."""
         build_site()
-        assert True  # If build succeeds, section.href works
+
+        # test-navigation has docs/ and blog/ sections.
+        assert site.sections, "test-navigation should discover sections"
+        section = site.sections[0]
+        engine = TemplateEngine(site)
+        rendered = engine.render_string('<a href="{{ section.href }}">x</a>', {"section": section})
+
+        # Discriminating: the rendered anchor must carry the section's resolved
+        # href. A shim regression returning "" or a wrong path fails here.
+        assert section.href, "section.href should be non-empty"
+        assert f'<a href="{section.href}">' in rendered, (
+            f"rendered template should contain the resolved section.href; "
+            f"got {rendered!r} for href {section.href!r}"
+        )
+        # Shape: a section href is a rooted, trailing-slashed directory path.
+        assert section.href.startswith("/"), f"section.href should be rooted, got {section.href!r}"
+        assert section.href.endswith("/"), (
+            f"section.href should be a directory path, got {section.href!r}"
+        )
 
     def test_nav_item_href_in_template(self, site, build_site):
-        """Test that nav item href works correctly in templates."""
-        # Create a template that uses nav item href
-        template_content = """
-        {% for item in get_nav_tree(page) %}
-          <a href="{{ item.href }}">{{ item.title }}</a>
-        {% endfor %}
-        """
-        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
-        template_path = theme_templates_dir / "test_nav_href.html"
-        template_path.parent.mkdir(parents=True, exist_ok=True)
-        template_path.write_text(template_content)
+        """Rendering a nav tree emits non-empty hrefs for every nav item."""
+        import re
 
         build_site()
-        assert True  # If build succeeds, nav item href works
+
+        # A deep page so get_nav_tree returns a populated tree.
+        page = next(p for p in site.pages if p.source_path.name not in ("_index.md", "index.md"))
+        engine = TemplateEngine(site)
+        template = (
+            "{% for item in get_nav_tree(page) %}"
+            '<a href="{{ item.href }}">{{ item.title }}</a>'
+            "{% endfor %}"
+        )
+        rendered = engine.render_string(template, {"page": page})
+
+        hrefs = re.findall(r'<a href="([^"]*)">', rendered)
+        # Discriminating: a nav item that resolves to an empty href would surface
+        # as href="" here and fail; the old `assert True` could not see it.
+        assert hrefs, "nav tree should emit at least one anchor with an href"
+        assert all(h.strip() for h in hrefs), (
+            f"every nav item href must be non-empty; got {hrefs!r}"
+        )
 
 
 @pytest.mark.bengal(testroot="test-basic", confoverrides={"site.baseurl": "/bengal"})
@@ -98,19 +125,17 @@ class TestHrefGitHubPagesDeployment:
             assert not section._path.startswith("/bengal/"), "_path should not include baseurl"
 
     def test_href_filter_works(self, site, build_site):
-        """Test that href filter works for manual paths."""
-        # Create a template using href filter
-        template_content = """
-        <a href="{{ '/about/' | href }}">About</a>
-        """
-        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
-        template_path = theme_templates_dir / "test_href_filter.html"
-        template_path.parent.mkdir(parents=True, exist_ok=True)
-        template_path.write_text(template_content)
-
+        """The ``href`` filter applies baseurl to a manual path (here, /bengal)."""
         build_site()
-        # If build succeeds, href filter works
-        assert True
+
+        engine = TemplateEngine(site)
+        rendered = engine.render_string("{{ '/about/' | href }}", {})
+
+        # Discriminating: with baseurl="/bengal" the filter must prefix it.
+        # A broken filter that returns the bare path or "" fails here.
+        assert rendered.strip() == "/bengal/about/", (
+            f"href filter should apply baseurl /bengal to /about/; got {rendered!r}"
+        )
 
 
 @pytest.mark.bengal(testroot="test-basic", confoverrides={"site.baseurl": ""})

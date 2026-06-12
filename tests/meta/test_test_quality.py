@@ -49,8 +49,9 @@ class TestNoWeakAssertions:
     @pytest.mark.parametrize(
         ("pattern", "description", "threshold"),
         [
-            # honest true count incl. commented forms; reduce as #384 findings land
-            (r"^\s*assert\s+True\b", "assert True", 10),
+            # honest true count incl. commented forms; #384 findings removed 7,
+            # re-baselined 10 -> 3. Adding a new `assert True` (even commented) trips this.
+            (r"^\s*assert\s+True\b", "assert True", 3),
             (r"^\s*assert\s+False\s*$", "assert False (always fails)", 0),
         ],
     )
@@ -102,14 +103,16 @@ class TestNoWeakAssertions:
         # Track count - should decrease over time
         total = sum(count for _, count in violations)
 
-        # Soft limit - warn if above threshold
-        THRESHOLD = 50  # Start tracking, reduce over time
+        # Ratchet: committed ceiling, drive down over time. A skip here would go
+        # green exactly when the suite is at its worst (#384 finding 13), so we
+        # assert instead -- adding a new bare `assert result` past the ceiling fails.
+        THRESHOLD = 8
 
-        if total > THRESHOLD:
-            pytest.skip(
-                f"Found {total} 'assert result' patterns (threshold: {THRESHOLD}). "
-                f"Files: {[str(f) for f, _ in violations[:5]]}"
-            )
+        assert total <= THRESHOLD, (
+            f"Found {total} 'assert result' patterns (ceiling: {THRESHOLD}). "
+            f"These assertions only check truthiness, not correctness:\n"
+            + "\n".join(f"  - {f} ({count})" for f, count in violations[:5])
+        )
 
 
 class TestMockUsagePatterns:
@@ -145,13 +148,15 @@ class TestMockUsagePatterns:
             for f, count in high_density_files[:10]:
                 print(f"  {count:3d} mocks: {f}")
 
-        # Soft threshold - don't fail, just track
-        TARGET_AVG = 10
-        if avg_density > TARGET_AVG:
-            pytest.skip(
-                f"Average mock density {avg_density:.1f} exceeds target {TARGET_AVG}. "
-                f"High-density files need refactoring."
-            )
+        # Ratchet: committed ceiling on average mock density, drive down over time.
+        # A skip on breach (#384 finding 13) would report green exactly when the
+        # suite is at its most mock-heavy, so we assert against the committed
+        # ceiling instead -- raising the average past it fails the build.
+        TARGET_AVG = 17
+        assert avg_density <= TARGET_AVG, (
+            f"Average mock density {avg_density:.1f} exceeds ceiling {TARGET_AVG}. "
+            f"High-density files need refactoring."
+        )
 
     def test_assert_called_patterns(self) -> None:
         """
@@ -180,8 +185,10 @@ class TestMockUsagePatterns:
 
         total = sum(count for _, count in violations)
 
-        # Track count - should decrease over time
-        THRESHOLD = 200  # Start tracking, reduce over time
+        # Ratchet: committed ceiling, drive down over time. A skip on breach
+        # (#384 finding 13) would go green exactly when implementation-coupled mock
+        # verification is at its worst, so we assert against the ceiling instead.
+        THRESHOLD = 184
 
         print(f"\nTotal .assert_called* patterns: {total}")
         if total > 0:
@@ -190,11 +197,10 @@ class TestMockUsagePatterns:
             for f, count in violations[:5]:
                 print(f"  {count:3d} calls: {f}")
 
-        if total > THRESHOLD:
-            pytest.skip(
-                f"Found {total} mock verification patterns (threshold: {THRESHOLD}). "
-                f"Consider using behavioral assertions instead."
-            )
+        assert total <= THRESHOLD, (
+            f"Found {total} mock verification patterns (ceiling: {THRESHOLD}). "
+            f"Consider using behavioral assertions instead."
+        )
 
 
 class TestHardeningProgress:
