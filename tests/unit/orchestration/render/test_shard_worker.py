@@ -30,19 +30,35 @@ if TYPE_CHECKING:
 ROOTS = ["test-basic", "test-taxonomy", "test-product", "test-navigation"]
 
 
-def _built(site_factory, root: str) -> Site:
-    """Build a fixture site once (sequential, quiet) — its parsed pages are the oracle."""
+def _reset_process_globals() -> None:
+    """Reset the process-global render caches a real shard worker never inherits.
+
+    A production shard worker is a fresh process, so its ``parse_shard`` leg starts
+    from empty process globals. In-process here, ``parse_shard`` shares the interpreter
+    with the oracle build AND with every prior test, so a leaked render-side cache (e.g.
+    the id(site)-keyed directive cache, or any BUILD_START-invalidated registry cache a
+    sibling suite warmed and left populated) can perturb the section-index child-cards
+    HTML on a reparse — flaking the parity assertion under pytest-randomly ordering
+    (issue #376). The oracle build already starts clean: a cold build fires
+    ``invalidate_for_reason(BUILD_START)`` before it parses. The bare ``parse_shard``
+    reparse does not, so we mirror that reset here to keep the two parses apples-to-apples.
+    """
     from bengal.cache import directive_cache
     from bengal.utils.cache_registry import clear_all_caches
 
-    # Start from clean process-global caches. The directive-cache is an id(site)-keyed
-    # singleton; a prior in-process test's site (or a recycled id()) can leave entries
-    # that poison this fixture's parse — e.g. child-cards on test-navigation's
-    # docs/_index.md rendering against a stale section, perturbing content_hash and
-    # flaking the parse-parity assertion under xdist ordering. The subprocess harnesses
-    # below already guard against this; the in-process oracle build must too.
     clear_all_caches()
     directive_cache.clear_cache()
+
+
+def _built(site_factory, root: str) -> Site:
+    """Build a fixture site once (sequential, quiet) — its parsed pages are the oracle."""
+    # Start from clean process-global caches so a prior in-process test's site (or a
+    # recycled id()) can't leave entries that poison this fixture's parse — e.g.
+    # child-cards on test-navigation's docs/_index.md rendering against a stale section,
+    # perturbing content_hash and flaking the parse-parity assertion under xdist ordering.
+    # The subprocess harnesses below already guard against this; the in-process oracle
+    # build must too. (See _reset_process_globals for the matching reparse-leg reset.)
+    _reset_process_globals()
 
     site = site_factory(root)
     site.build(BuildOptions(quiet=True, force_sequential=True))
@@ -58,6 +74,10 @@ def test_parse_shard_matches_in_process_parse(site_factory, root):
     content_dir = site.root_path / "content"
 
     files = discover_content_files(content_dir, site=site)
+    # Give the reparse the same clean process-global baseline the oracle build's parse
+    # phase ran under (a real shard worker is a fresh process); otherwise leaked render
+    # caches can perturb the reparse output only — the #376 flake.
+    _reset_process_globals()
     reparsed = parse_shard(files, site, content_dir=content_dir)
 
     in_proc = {p.source_path: p for p in site.pages}
@@ -103,6 +123,7 @@ def test_parse_shard_into_balanced_shards_covers_all_pages(site_factory):
     files = discover_content_files(content_dir, site=site)
 
     shards = partition_content_files(files, 3)
+    _reset_process_globals()  # clean baseline for the reparse leg (see #376)
     parsed_paths: list = []
     for shard in shards:
         shard_files = [files[i] for i in shard]
