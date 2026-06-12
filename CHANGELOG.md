@@ -1,3 +1,638 @@
+## [0.4.0] - 2026-06-12
+
+### Added
+
+- Autodoc now surfaces inherited members in the rendered output (#329). When
+  `include_inherited` is enabled, members synthesized from base classes already
+  carried `inherited_from`/`synthetic` metadata but it was never shown. `MemberView`
+  now exposes `is_inherited` and `inherited_from`, and the default theme renders an
+  "inherited from X" attribution badge that is visually distinct from native
+  members. The `include_inherited` default is unchanged (stays opt-in/off). (`#autodoc-inherited-member-badges`)
+- Autodoc now groups `@overload` definitions (#328). Multiple `typing.overload`
+  stubs plus the concrete implementation of a callable are collapsed into a single
+  documented member that lists every signature variant in source order, instead of
+  N+1 duplicate peers that all collide on one `#name` anchor. The implementation's
+  docstring is kept as the canonical description; an `overload` badge marks the
+  member and each signature variant is rendered. Grouping runs before member-order
+  sorting (so ordering stays stable and byte-reproducible) and applies to both class
+  methods and module-level functions. The grouped metadata round-trips through
+  `DocElement.to_dict`/`from_dict` and the content-hash stays stable. (`#autodoc-overload-grouping`)
+- Autodoc now cross-links symbol names to their documented pages (#327). A new
+  deterministic `SymbolResolver` service (`bengal/autodoc/symbol_resolver.py`) maps
+  qualified and simple symbol names to a real, page-aware URL: modules resolve to
+  their own page, while inline elements (classes, functions, methods rendered as
+  cards on a module page) resolve to that module page plus a stable `#Card` anchor,
+  so links never 404. Return types, parameter types, base classes, `See Also`
+  targets, and bare `Name` code spans in docstrings are linked when they resolve to
+  a documented symbol and degrade to plain text otherwise. Simple-name resolution is
+  ambiguity-safe — a name shared by two documented symbols resolves to neither (a
+  wrong link is worse than no link). The `See Also` section, previously dropped, now
+  renders on Python module and class output. xref runs at render time (via the
+  `xref_type` / `xref_docstring` template filters) so extraction and cache hashing
+  stay unchanged, and xref output is byte-identical across rebuilds. (`#autodoc-symbol-xref`)
+- Added a theming guide, `site/content/docs/theming/capabilities-vs-theme.md`
+  ("What Bengal Provides vs What Your Theme Provides"), documenting the
+  capability-vs-presentation boundary for theme authors. It diagrams the template
+  resolution / fallback chain (site `templates/` -> theme chain via `extends`,
+  child to parent -> the bundled `default` theme, always appended as the final
+  filesystem fallback -> library provider loaders; first match wins, else
+  `TemplateNotFoundError`) and explains the directive-vs-shortcode asymmetry:
+  directives are a fixed, core-registered set that always render through a Python
+  `render()` fallback even with zero theme templates (extensible only via plugins,
+  not themes), whereas shortcodes are an open set with no engine fallback — a
+  missing `shortcodes/{name}.html` passes the raw shortcode through (or errors in
+  strict mode), making the default theme's shortcode templates the de-facto
+  standard library. The page cross-links issues #335/#337/#338 as the path to
+  portable capability templates. Also corrected `theme-creation.md`, which claimed
+  the engine "automatically includes base CSS for all directives": that base CSS
+  actually lives in the default theme at
+  `bengal/themes/default/assets/css/components/`, so it is inherited only when a
+  theme extends `default` (or is layered over it) — a non-extending theme must
+  supply its own directive CSS. (`#capability-theme-boundary-docs`)
+- Added a CI architecture-contract gate: the `Lint & Type Check` workflow now runs
+  `lint-imports --config .importlinter` (new step in the `lint-and-type` job, feeding the
+  `lint-ok` branch-protection gate), so any violation of the Site/Page/Section import
+  contracts fails the build instead of only being catchable by running the linter locally.
+  Also cleaned up the `.importlinter` baseline so the gate exits green: removed three stale
+  `ignore_imports` entries that no longer matched any edge (the `bengal.core.site ->
+  bengal.orchestration.feature_detector` import was removed in `#245`, and neither
+  `bengal.core.page` nor `bengal.core.section.navigation` imports `bengal.core.site.context`),
+  and added the live deferred `bengal.core.site -> bengal.orchestration.content` edge that the
+  contract had been silently broken by. Tightened `RuntimePage._site` from `Any | None` to
+  `SiteContext | None` to match `Section`, keeping the read-only Site coupling surface explicit. (`#lint-imports-ci-gate`)
+- Added `tests/integration/test_nav_chrome_not_hoisted.py` — a discriminating guard that the
+  default theme's navigation active-state is rendered per page and never hoisted as page-invariant
+  chrome. It builds a multi-section site and asserts each section's page marks its own nav entry
+  active (`/docs/` → "Documentation", `/blog/` → "Blog") and not the other's, so any future
+  "render the chrome once" optimization (#348) that cached the page-scoped nav block as if it were
+  site-scoped would fail here instead of silently shipping stale navigation. Backed by the
+  investigation note `benchmarks/348-chrome-memoization-findings.md`. (`#nav-chrome-not-hoisted-guard`)
+- REST autodoc schema pages now render advanced OpenAPI constructs as structured
+  model documentation instead of dropping or flattening them (#285). `oneOf`,
+  `anyOf`, and `allOf` render as labeled composition blocks; polymorphic schemas
+  show their `discriminator` property and `value → schema` mapping; per-property
+  validation constraints (`format`, `pattern`, numeric `min`/`max`/`multipleOf`,
+  string `minLength`/`maxLength`, and array `minItems`/`maxItems`/`uniqueItems`)
+  render as chips; and `nullable`, `readOnly`, `writeOnly`, and `deprecated`
+  render as badges. Open and typed maps (`additionalProperties`) get their own
+  section, primitive schemas surface their constraints and example, and a
+  self-referential schema renders a bounded, readable "circular reference"
+  indicator rather than an empty box or runaway recursion. Schema catalog tiles
+  gained composition/discriminator/deprecated summary chips. Examples normalize a
+  singular `example`, a 3.1 `examples` list, and a named `examples` map into a
+  uniform rendering. The work is driven by additive normalization filters in
+  `bengal/rendering/template_functions/openapi.py`
+  (`schema_composition`/`schema_constraints`/`schema_flags`/
+  `schema_additional_properties`/`schema_examples`/`schema_ref`), so simple schemas
+  render byte-identically. The demo commerce spec marks server-assigned fields
+  `readOnly` and credentials `writeOnly` to exercise the new rendering. Covered by
+  unit tests for the normalization helpers (including circular-ref bounding and
+  malformed-input robustness), template/CSS contract tests, and an end-to-end
+  build of a fixture exercising every construct. (`#openapi-advanced-schema-rendering`)
+- REST autodoc catalog pages gained first-class navigation interactions (#287),
+  shipped as one lazy-loaded vanilla-JS enhancement (`api-catalog`, no npm). The
+  API landing catalog and the schema index now have client-side filtering: typing
+  in the filter box narrows endpoint cards and schema tiles by method/path/name,
+  collapses empty tag groups, and announces a no-results state via `aria-live`.
+  The left rail on the landing catalog and on the resource/schema/endpoint shells
+  is now a scroll-spy: it marks the active section (`aria-current` +
+  `.api-rail__link--active`) as you scroll and on direct hash navigation, honoring
+  `prefers-reduced-motion` (the smooth-scroll gap `toc.js` leaves open).
+  Operation paths gained copy buttons that ride the existing global `[data-copy]`
+  handler, so base URLs, operation paths, and code samples now copy consistently,
+  with a screen-reader announcement on copy. Filtering only toggles the `hidden`
+  attribute and never reorders or removes anchored nodes, so deep links and the
+  back button keep working; a hash navigation to a filtered-out section clears the
+  filter to reveal it. Everything degrades gracefully with JavaScript disabled —
+  rail links are real anchors and the filter input is simply inert. Covered by
+  template/CSS contract tests, an end-to-end build that asserts the hooks render
+  in output across the landing, tag, endpoint, and schema-index pages, and a
+  fingerprinted-asset check. (`#openapi-catalog-navigation`)
+- Added `benchmarks/probe_render_ceiling.py` — a process-isolation render *ceiling* probe that
+  answers the prerequisite question of the render-scaling epic (#343/#345) on any box, macOS
+  included: is the ~1.7x in-process free-threading plateau a fixable cross-thread coherency tax
+  or a hardware ceiling? It runs K single-threaded render builds concurrently as separate
+  processes (each with its own heap → zero cross-process refcount coherency) and compares
+  aggregate throughput to the in-process thread pool. If processes scale ~K toward the P-core
+  count while threads stay ~1.7x, the gap is pure coherency tax and software un-sharing can
+  recover it; if processes also plateau, the ceiling is hardware-bound. Must be run on an idle,
+  free-threaded (3.14t) box, median-of-N. No production code change. (`#render-ceiling-probe`)
+- Added `benchmarks/run_clean_box.sh` — a turnkey "measure clean" driver for the render-scaling
+  epic (#343/#344). On an idle Linux box with free-threaded 3.14t it bootstraps the toolchain,
+  refuses to run under load (the epic's prime invariant — one load-inflated number was already
+  retracted), reproduces the GIL=0/GIL=1 plateau, runs the process-isolation ceiling probe, and —
+  only if the probe says the plateau is a fixable coherency tax — stages the `py-spy --native`
+  attribution that names the dominant contended object. All results land as committable JSON under
+  `benchmarks/clean_box_results/` alongside the box's CPU topology and loadavg. No production code change. (`#render-clean-box-runbook`)
+- Added an **experimental, opt-in** isolated render backend that renders large
+  cold builds across separate-heap worker processes (`fork`). It is **off by
+  default** and gated behind `[build] render_isolation` (`off` | `auto` | `fork`),
+  with `render_isolation_threshold` (default 400) and `render_isolation_workers`
+  knobs. Cold CLI/CI builds only — the dev server and incremental builds keep the
+  in-process thread path, and the backend falls back to threads on any failure, so
+  it can never break a build. Rendered output is byte-identical to the thread path.
+  This lands the foundation (transport, partitioning, serial merge, crossover gate,
+  parity guard, benchmarking) for the heap-isolation epic; note the current
+  fork-after-parse backend is not yet a guaranteed end-to-end speedup (it can
+  regress very large builds via copy-on-write), which is why it stays opt-in. See
+  issue #350. (`#render-heap-isolation`)
+- Added `benchmarks/profile_render_native.py` and `benchmarks/PROFILE_RENDER_NATIVE.md` — a
+  deterministic single-build driver and runbook for native profiling of the free-threaded render
+  plateau (Step 0 gate of `plan/rfc-frozen-render-world.md`). The driver pins worker count, prints
+  the cpu/wall signature + render-phase time so the plateau is confirmable on any box, and is meant
+  to be wrapped by `py-spy --native` / `perf` on Linux to name the objects whose refcount/coherency
+  traffic dominates the 8-worker build. No production code change. (`#render-native-profiling-harness`)
+- Added an opt-in `reduce_taxonomy_from_metas` path to `assemble_render_plan` (epic #350
+  S13.4a, "barrier-owns-globals"): the barrier can now recompute the taxonomy structure and
+  the related-posts index *purely from the global PageView union* instead of from a
+  fully-built `site.taxonomies` / `page.related_posts`. `_reduce_taxonomies` reproduces
+  `TaxonomyOrchestrator.collect_taxonomies` byte-for-byte (first-writer display name,
+  `normalize_taxonomy_slug`, singular `category` frontmatter key, stable date-DESC ordering)
+  and `_reduce_related_index` reproduces `RelatedPostsOrchestrator.build_index` (limit=5),
+  closing the long-standing gap where the real worker map step (`shard_meta_from_live_pages`)
+  emits `related_pairs=()` and the assembled plan's `related_index` was therefore empty.
+
+  This is the first step toward a *small* shard-parallel build parent that never builds the
+  whole-site snapshot. It is off by default — `from_site` and every existing caller keep the
+  snapshot-sourced path, byte-unchanged. Proven in `tests/unit/snapshots/test_render_plan.py`
+  against the `from_site` oracle across N∈{1,2,3,5,7} shards and against the live site
+  (`site.taxonomies` / `page.related_posts`) as independent ground truth, plus discriminating
+  synthetic unit tests for the date-DESC sort, first-writer name, slug normalization, and the
+  generated/autodoc eligibility filter. (`#render-plan-barrier-taxonomy-reduce`)
+- Added `bengal/snapshots/render_plan.py` — the `RenderPlan` map/reduce contract for the
+  shard-parallel cold build (issue #350, Phase 2, saga S11). It defines an immutable,
+  unconditionally-picklable global render world — `PageView` (a 22-field, body-free view of a
+  page that substitutes for `PageSnapshot` in any page collection), `ShardPageMeta`/`XRefEntry`
+  (the per-shard map output), and the assembled `RenderPlan` (page-view map for `get_page`,
+  taxonomy, frozen xref index, related index, sections/menus, config) — built from per-shard
+  metadata via `assemble_render_plan`. It is the serializable foundation a separate-heap render
+  worker will read instead of the live mutable `Site` graph (S13), so the parsed page bodies
+  never cross the heap boundary. It has no caller yet and `render_isolation` stays `off`, so the
+  build is byte-identical. Proven by `tests/unit/snapshots/test_render_plan.py` (30 tests): pickle
+  round-trip + body/proxy/NavTree leak guard, shard-order-independence of the reduce, and
+  data-parity vs the live site (page-view map, taxonomy, xref index, related index, config). (`#render-plan-shard-contract`)
+- Sharded the generated pages in the COW-free shard render backend (issue #350, Phase 2, saga
+  S13.4e). Tag / tag-index / auto-archive pages used to render serially in the parent process
+  (~15–23% of render un-parallelized), so a shard build *lost* end-to-end on generated-heavy
+  sites. The parent now LPT-balances them across the same content-shard workers — populating the
+  reserved `RenderPlan.generated_page_assignments` field (previously empty scaffolding) — and each
+  worker renders its assigned slice in its own heap, against its `WorkerSite`. Because the tag-page
+  render context already re-resolves its post list from the immortalized snapshot +
+  `site.get_page_path_map()` and rebuilds a fresh `Paginator` from `per_page`, rendering against
+  the WorkerSite resolves listings to the worker's own `PageView`s — the same COW-free path content
+  pages use — so the bulk parallelizes without the Phase-1 shared-graph copy-on-write tax. Generated
+  pages inject live `Page`/`Section` refs + a `MappingProxyType` into their metadata (`_tags`/
+  `_posts`/`_paginator`), which land in `AccumulatedPageData.raw_metadata` and are unpicklable across
+  the worker→parent boundary; `transport.picklable_metadata` flattens them exactly as
+  `PageArtifact._freeze_json` would, so the result pickles while the rendered output (which never
+  reads `raw_metadata`) and the page-artifact cache stay byte-identical. `render_isolation` stays
+  `off` by default. Proven byte-identical across the *whole* output tree (not just `*.html`) on
+  test-taxonomy by `test_shard_full_output_byte_identical_excluding_nondeterminism` (self-calibrating
+  non-determinism exclusion, non-vacuous) plus 7 unit tests; measured on a 1431-page, 15%-generated
+  idle-box A/B as 0.88× (pre-S13.4e, S17) → 1.23× shard-vs-thread (render phase 8.5s → 5.2s). (`#shard-generated-page-rendering`)
+- Lay the foundation for an experimental shard-parallel cold build (issue #350,
+  Phase 2; gated off by default, no change to the default build path): a
+  deterministic pre-parse content-file sharder, a from-live-page map step, and
+  shard-worker parse + render legs, so each worker can parse and render its own
+  ~1/N of the corpus in its own heap (avoiding the copy-on-write tax that
+  regressed the Phase-1 fork-after-parse backend). (`#shard-parallel-build-foundation`)
+- Experimental COW-free shard-parallel render backend (`render_isolation=shard`, off by default): renders a cold build across separate-heap fork workers that each re-parse and render their own content shard, recovering the free-threading render plateau (~1.75x render-phase, ~+12% end-to-end on render-heavy content). Off by default — cold-build/CLI/CI only, render-heavy large sites; generated-page sharding (broad win) is still pending. (`#shard-render-backend`)
+- Added `bengal/orchestration/render/isolated/worker_site.py` — `build_worker_site`, which
+  reconstructs a real `bengal.core.site.Site` from a serializable `RenderPlan` (issue #350,
+  Phase 2, saga S13.3b) so a separate-heap shard worker can render its own freshly-parsed pages
+  without the live mutable `Site` graph. It builds an empty `Site` from the plan's config/root
+  (theme/config_service/page_cache rebuilt by `__post_init__` with no content discovery), then
+  assigns the plan's reduced state; `merge_shard_pages` forms the heterogeneous `site.pages`
+  (this worker's live pages ∪ body-free `PageView` stand-ins for the rest, in canonical order).
+  `RenderPlan` now also carries `build_time` (the default-theme footer reads `site.build_time`
+  directly, and it is not config-derivable). It has no caller yet and `render_isolation` stays
+  `off`, so the default build is byte-identical. Proven by a subprocess byte-parity test
+  (`test_worker_site_renders_page_byte_identical`) that renders the `test-basic` fixture through a
+  pickle-round-tripped plan and matches the in-process build exactly. (`#worker-site-from-render-plan`)
+- Extended `build_worker_site` (issue #350, Phase 2, sagas S13.3c+d) so a separate-heap shard
+  worker reconstructs the *full* render world from a `RenderPlan` and renders byte-identically to
+  the in-process build, not just the single-page surface S13.3b proved. It now assigns
+  `site.menu`/`menu_localized` from the plan (with `MenuItemSnapshot` gaining an `icon` field and
+  a `to_dict()` that byte-mirrors `MenuItem.to_dict`), ships the parent-built navigation trees
+  *view-ified* in a new `RenderPlanNavigation.nav_trees` and installs them via
+  `NavTreeCache.set_precomputed` (so the lock-free path never calls `NavTree.build`, which needs
+  live Sections), registers sections in the worker `ContentRegistry` (so `get_page_section`
+  resolves and section-index pages stop misrouting to the root-home tile branch), adds
+  `SectionSnapshot._path` (fixing breadcrumb ancestor detection), and orders `plan.pages` to the
+  live discovery walk (so `page.next`/`prev` are byte-stable). `render_isolation` stays `off` and
+  the path has no production caller yet, so the default build is unchanged. Proven by
+  `test_shard_build_is_byte_identical_to_in_process`, which renders every page of `test-product`
+  and `test-navigation` across N∈{2,3} disjoint shards (clean subprocess, pickle-round-tripped
+  plan) byte-identical to the in-process build; the unseeded `random_posts` widget page is
+  byte-excluded but overlay-checked. (`#worker-site-render-world-reconstruction`)
+- Added a repeatable manual visual-QA smoke checklist for the REST/OpenAPI autodoc
+  pages (`docs/rest-autodoc-visual-qa-checklist.md`), covering the landing catalog,
+  tag/resource, endpoint, schema-index, and schema-detail shells across light/dark
+  mode and mobile/tablet/laptop/wide viewports, with explicit pass criteria for
+  non-blank styled shells, rail reflow, scroll-spy plus hash/anchor routing,
+  light/dark readability, keyboard focus states, and filter-preserves-deep-links.
+  The checklist references the existing template-contract and end-to-end build
+  tests as the automated half; an in-tree headless-browser screenshot harness is
+  intentionally deferred to 0.5.x. (`#284`)
+- Theme libraries can now declare version governance in their
+  `get_library_contract()` -- a `contract_version` integer and a `requires`
+  mapping of distribution name to PEP 440 specifier (e.g. `{"kida": ">=0.9.0"}`).
+  Bengal enforces both during theme-library provider resolution at build start,
+  raising a clear `BengalConfigError` (code `C003`) with the installed version and
+  a fix command when a wheel was built against a newer contract or its required
+  distributions are skewed, instead of surfacing a `BengalRenderingError` on the
+  first rendered page. A `bengal[chirp]` extra pins `chirp-ui` alongside a
+  matching `kida-templates` range. The default-theme path, which declares no
+  governance fields, is unaffected (`#363`). (`#363`)
+- Added `.github/CODEOWNERS` to record review routing and approval ownership across public API, CLI/config, rendering/themes, orchestration, docs, and release/dependency surfaces. (`#394`)
+- The dev server now runs an HTTP serve-ability smoke check at startup (#398): once the server is listening it requests a known asset against the real serving setup and fails loudly with the buffer path, serving directory, and reason if it does not return 200, catching the #392-class serve-path failures before the first user request. (`#398`)
+- Added a live `bengal serve` HTTP integration test (#399) that boots a real dev-server subprocess on a temp site, drives concurrent content/CSS edits while continuously fetching referenced CSS/JS/favicon assets, asserts they stay reachable across rebuilds and buffer swaps, and verifies a broken save preserves the last-good output. (`#399`)
+- The dev server's double-buffer manager now warns loudly at construction when a served buffer path contains a hidden (dot-prefixed) component (#400), pinning the Pounce static-handler constraint (lbliii/pounce#74) at the integration boundary so a future hidden serving path fails visibly instead of as mysterious runtime 404s. (`#400`)
+
+### Changed
+
+- Theme-library provider resolution is now cached per `(site_root, theme_chain)`.
+  `resolve_theme_providers()` was previously called on two independent build paths
+  with no shared state — asset discovery and Kida engine loader/filter setup — and,
+  under the #350 shard-parallel render backend, once per worker-thread pipeline.
+  Each call did `importlib.import_module` plus convention-hook probing
+  (`get_library_contract` / `get_loader` / `static_path` / `register_filters`) for
+  every declared library, rebuilding the contract strictly more than twice per
+  build. A module-level `LRUCache` (RLock-backed, free-threading-safe under CPython
+  3.14t) now collapses all of these to a single resolution that every caller and
+  shard thread shares; the resolved tuple of frozen+slots providers is read-only
+  and safe to share. The cache is registered with the central cache registry
+  (invalidated on full rebuild / config change / build start) so theme.toml
+  `libraries` edits in long-lived dev-server/incremental processes re-resolve.
+  The default-theme happy path is unchanged: a theme that declares no libraries
+  caches the empty tuple `()` and short-circuits identically, keeping output
+  byte-identical (verified against baseline on the default-theme path). See #365. (`#cache-theme-provider-resolution`)
+- The bundled `default` theme no longer ships dead or demo-only assets: the
+  39-file `icons_backup/` directory, two orphaned holographic-card demo pages,
+  and several stale architecture/process docs are removed. The experimental
+  holographic-card CSS is no longer force-loaded on every site — it is now
+  included only when a page actually uses holo classes, via the existing CSS
+  feature detection. Pagination and table-of-contents active-state glow
+  animations now honor `prefers-reduced-motion`. (`#default-theme-stabilization`)
+- Render-time asset-dependency extraction now uses a fast single-pass scanner instead
+  of the stdlib `HTMLParser`, cutting per-page extraction ~4x (4.84 → 1.19 ms/page)
+  with a byte-identical dependency set (verified by an adversarial parity suite). The
+  post-render asset audit also memoizes existence checks. Benchmark docs were corrected
+  to committed baselines (the previous "256/373 pages/sec" figures were unbacked), and
+  the `gil_speedup` harness now reports a full per-phase ledger. (`#fast-asset-extraction`)
+- Warm incremental builds now update the provenance dependency reverse-map *incrementally*
+  on cache save instead of rebuilding it from every page's record. The old writer cold-read
+  ~every record file on a one-page edit (≈99% of provenance save), so on a 500-page blog the
+  provenance save dropped from ≈2.0s / 511 record reads to ≈11ms / 0 reads — a ~180x cut to
+  that phase, the dominant cost of the dev-loop save. The incremental result is byte-identical
+  to a full rebuild (gated by `tests/unit/build/provenance/test_delta_dependency_index.py`
+  across edit / add / delete / multi-consumer / same-hash / combined scenarios) and falls back
+  to the full rebuild on cold builds or any uncertainty. Set `BENGAL_PROVENANCE_DELTA_SAVE=0`
+  to force the full rebuild (rollback lever).
+
+  This also fixes a latent reverse-map bug: pages with identical inputs (e.g. empty taxonomy
+  pagination pages) share one content-addressed record, and the old builder listed only the
+  dedup winner — silently dropping the other pages from the reverse map (under-invalidation),
+  non-deterministically. The reverse map now lists every page that consumes an input. (`#incremental-dependency-index`)
+- OpenAPI autodoc consolidated tag pages now render full endpoint reference
+  sections with parameters, request bodies, responses, and request/response code
+  examples, and the default theme REST API layout has a denser modern explorer
+  presentation with scoped tabs, copy controls, and sidebar filtering. (`#openapi-autodoc-reference`)
+- Removed the dead pre-shell REST/OpenAPI layout CSS from the default theme's
+  `autodoc.css` (~1450 lines): the Mintlify explorer grid, the three-column
+  `.api-explorer` layout, the single-column `.api-reference` layout, the standalone
+  `.api-home` landing page, and the `.api-playground` bar. These layers were
+  superseded by the bespoke `.api-catalog-app` / `.openapi-app` shell, which now
+  owns every rendered REST page — verified by a zero-occurrence grep of all
+  issue-named legacy classes across the generated `bengal-demo-commerce` site and a
+  byte-stable live-class histogram before/after the change. Each deletion was
+  cross-checked against the emitted-class set so live shell selectors (and shared
+  typography/card groups) are preserved; structural rules (`#main-content` reset,
+  global `.breadcrumb__item`) are untouched. Two orphaned templates
+  (`partials/playground-bar.html`, the superseded `partials/endpoint-header.html`)
+  were also deleted, and a discriminating contract test now fails if any legacy
+  selector reappears. (`#openapi-css-legacy-residue-removed`)
+- OpenAPI autodoc now generates an individual three-column explorer page for
+  every endpoint by default (the `consolidate` option defaults to `false`), so
+  endpoint cards link to real pages instead of dead `#anchors` and schema pages
+  render their properties, enums, and examples. Untagged endpoints nest under a
+  synthetic `default` tag section so their page URL agrees with their section
+  placement. Set `consolidate: true` to keep the previous consolidated
+  reference-view behavior. (`#openapi-endpoint-pages`)
+- Retire the public `bengal.Page` and `bengal.core.Page` compatibility re-exports
+  plus the `Page.create_virtual()` compatibility constructor, and reduce internal
+  concrete `Page` coupling by routing page construction through page-like records
+  and the remaining SourcePage adapter boundary. Discovery now resolves i18n
+  metadata before creating `SourcePage` records instead of mutating adapted pages
+  afterward. Non-compatibility tests no longer use local `Page`-named doubles that
+  obscure the remaining production adapter/class boundary. The remaining adapter
+  now lazy-loads the legacy class so importing content discovery helpers does not
+  load `bengal.core.page`. Tests now import Page submodules directly and guard
+  against new package-root imports from `bengal.core.page`. Raw source access now
+  flows through a content-owned helper instead of requiring `_source` on the
+  `PageLike` protocol. Section access now flows through core section helpers
+  instead of requiring `_section` on `PageLike`, and directive link collection now
+  flows through rendering helpers instead of requiring `_directive_links`.
+  Parsed content caches now stay out of `PageLike`; AST, TOC, excerpt, and meta
+  description state are handled by compatibility/cache helpers while the legacy
+  mutable page adapter remains.
+  Section archive context now stays out of `PageLike`; existing section indexes
+  receive `_posts`, `_subsections`, `_paginator`, and `_page_num` through metadata
+  instead of mutable page slots.
+  Autodoc fallback tagging now stays out of `PageLike`; fallback template markers
+  are recorded through metadata instead of mutable page slots.
+  Pre-rendered virtual page HTML now stays out of `PageLike`; rendering helpers
+  own access to `prerendered_html` while the legacy mutable page adapter remains.
+  Legacy mutable page site context now stays out of `PageLike`; content discovery
+  and orchestration use page-site helpers while the compatibility adapter remains.
+  Analysis graph tests now use hashable page-like mocks instead of constructing
+  legacy mutable pages for graph-only behavior.
+  Cache query-index tests now use page-like fixtures instead of constructing
+  legacy mutable pages for index-only behavior.
+  Content-type, related-posts, and taxonomy-incremental orchestration tests now
+  use hashable page-like mocks instead of constructing legacy mutable pages.
+  Redirect postprocess tests now use local page-like fixtures instead of
+  constructing legacy mutable pages for alias behavior.
+  Render, taxonomy, section, and incremental orchestration tests now use the
+  shared page-like mock instead of constructing legacy mutable pages for
+  orchestrator inputs.
+  Nav-tree tests now use the shared page-like mock instead of constructing legacy
+  mutable pages for navigation behavior.
+  Section sorting, hashability, index-collision, page-like input, and versioning
+  tests now use shared page-like mocks instead of constructing legacy mutable
+  pages for hierarchy behavior.
+  Cascade and cascade-snapshot tests now use shared page-like mocks instead of
+  constructing legacy mutable pages for section cascade behavior.
+  Section ergonomic helper tests now use shared page-like mocks instead of
+  constructing legacy mutable pages for recent-page, content-page, and
+  tag-listing behavior.
+  Page visibility logic now has Page-package-independent helpers used by core
+  page caches and visibility tests, reducing dependence on legacy Page visibility
+  properties.
+  Page visibility tests now use shared page-like mocks and the visibility helper
+  API instead of constructing the legacy mutable Page adapter.
+  Href and section page URL tests now use shared page-like URL mocks backed by
+  rendering URL helpers instead of constructing the legacy mutable Page adapter.
+  Page URL cache-regression tests now assert the rendering URL helper cache names
+  through the shared page-like URL mock instead of constructing the legacy mutable
+  Page adapter.
+  The standalone section-navigation edge case now exercises navigation helpers
+  with a shared page-like mock instead of constructing the legacy mutable Page
+  adapter.
+  Navigation tests now build breadcrumb and parent assertions through section and
+  page navigation helpers with shared page-like mocks instead of constructing the
+  legacy mutable Page adapter.
+  Component model metadata-normalization tests now exercise `build_page_core()`
+  directly instead of constructing the legacy mutable Page adapter.
+  Computed page metadata tests no longer duplicate age, author, and series helper
+  coverage through the legacy mutable Page adapter.
+  Page metadata helper tests now cover generated, assigned-template,
+  content-type, and variant behavior through metadata helpers instead of the
+  legacy mutable Page adapter.
+  Page record migration tests now use the canonical SourcePage-backed test-page
+  adapter for bridge-retirement coverage instead of constructing the legacy
+  mutable Page adapter directly.
+  Hashability and deduplication tests now use source-path-hashable page-like
+  mocks instead of constructing the legacy mutable Page adapter for set and dict
+  identity behavior.
+  Obsolete legacy Page cached-property tests were removed; raw source,
+  word-count, reading-time, meta-description, and excerpt behavior is covered by
+  the content, computed-function, and rendering helper tests.
+  Obsolete legacy Page section-reference tests were removed; section helper,
+  registry, and virtual-section behavior is covered outside the mutable Page
+  descriptor surface.
+  PageInitializer tests now build pages through the canonical SourcePage-backed
+  test-page adapter instead of legacy mutable Page constructor keyword names.
+  Frontmatter integration tests now build pages through the canonical
+  SourcePage-backed test-page adapter, leaving the legacy mutable test-page
+  factory isolated to the shared compatibility helper.
+  The unused legacy mutable test-page factory was removed; tests now use
+  SourcePage-backed helpers or page-like mocks.
+  Production `page_from_source_page()` now returns a SourcePage-backed
+  `RuntimePage` from the core page compatibility boundary instead of constructing
+  the legacy mutable `Page` class.
+  The legacy mutable `Page` class module, `bengal.core.page.legacy`, has been
+  deleted; `bengal.core.page` remains a helper package and does not export
+  `Page`. (`#page-import-coupling`)
+- Strengthened page-record migration guardrails by adding parsed-state test helpers, routing more test setup through parsed-record adapters, and documenting the SourcePage-to-Page compatibility boundary for generated-page examples. (`#page-record-test-boundaries`)
+- The post-render asset audit (`find_missing_local_asset_references`) now scans output
+  HTML in parallel across a `WorkScope` for larger builds, with byte-identical findings
+  (per-file results are re-indexed to preserve document order; small sites stay serial).
+  On content-heavy sites — docs/autodoc with large pages — this audit was re-reading and
+  regex-scanning big rendered HTML serially and dominated the build (~47% of an autodoc
+  build); parallelizing it cut that phase ~5x (1.80s → 0.35s) and the overall autodoc build
+  ~1.7x (3.8s → 2.2s, ~26 → ~45 pages/s) on a 5P+6E machine. Unlike the render phase, this
+  work is per-file independent (read + regex on a thread-local string), so it scales with
+  free-threading rather than being bound by shared-object coherency cost. (`#parallel-asset-audit`)
+- Related-posts computation is dramatically faster on large sites. The candidate
+  filters (skip generated/home/section-index pages) and the deterministic
+  tie-break key are now computed once per build instead of for every
+  (page × tag × candidate) in the scoring loop. On a 4,288-page site this cut the
+  related-posts phase from ~24s to ~3s (~8×) with byte-identical output. See #350. (`#related-posts-cooccurrence-index`)
+- Per-page rendering is faster: `RuntimePage.metadata` is read hundreds of times per
+  page, and each read previously recomputed the section path relative to `content/`
+  via `Path.relative_to` before consulting its cache. The relative section path now is
+  memoized per site (invalidated when the section changes), eliminating ~265k
+  `Path.relative_to`/`pathlib` calls on a 300-page docs build and cutting single-thread
+  render time ~27% (13.4 → 9.7 ms/page, median of 5 sequential builds). Output is
+  byte-identical (verified by a timestamp-normalized full-tree comparison: HTML trees
+  hash-equal before/after). (`#render-metadata-section-path-memo`)
+- The experimental shard-render backend's byte-parity tests now run as nightly `known_gap` signal instead of gating every pull request. The backend remains opt-in and off by default (`render_isolation="off"`), and its byte-output is order-dependent-flaky under randomized test ordering, so a divergence in those tests was intermittently failing unrelated PRs. The functional shard tests (page bodies filled, all pages covered/rendered, cross-shard related content resolved) stay as merge gates; only the byte-equivalence/determinism checks were moved to the non-gating lane. The remaining shard output-determinism work is tracked and must close before the backend is ever enabled by default. (`#376`) (`#shard-parity-degate`)
+- Completed OpenAPI autodoc Phase 2. Endpoint pages now render a cross-endpoint
+  sidebar that marks the current endpoint with both an `--active` class and
+  `aria-current="page"`. The endpoint/schema templates were migrated from
+  Jinja-era `{% include %}` partials to Kida `{% def %}`/`{% slot %}` components
+  (`_components.html`, recursive `_schema.html`) with no change to rendered
+  output. Multi-tag endpoints are now cross-listed under every one of their tag
+  sections (previously a secondary tag that also owned its own endpoint silently
+  dropped the cross-listed ones), still backed by a single canonical page, and
+  their header tag chips link to the correct per-tag section URL. (`#openapi-autodoc-phase2`)
+- Default theme: corrected the experimental-CSS documentation (`EXPERIMENTAL.md`) to describe holo styles as feature-detected/opt-in via the CSS manifest rather than "loaded by default" — matching the opt-in behavior shipped in #367 (documentation only; no behavior change). (`#360`)
+- Decomposed the cross-reference index builder into focused per-page helpers and consolidated the two divergent anchor-collision branches into one warning site, preserving identical heading (keep-existing) and target-directive (precedence) resolution behavior. (`#380`)
+- Consolidated the four drifting free-threading/GIL-detection helpers into the
+  single canonical `bengal.utils.concurrency.is_gil_disabled()` (#381). The local
+  copies in the render orchestrator, dev-server build executor, and social-card
+  generator (two of which lacked the `sysconfig` fallback) now delegate to the
+  canonical check, so executor selection and build behavior stay consistent across
+  the build, dev-server, and render paths. (`#381`)
+- Tightened import-linter Contract 1 to track the `bengal.core.site -> bengal.rendering.template_functions.version_url` edge so the core/rendering boundary can no longer erode without CI signal. (`#383`)
+- Standardized the CLI render-format vocabulary (Finding 25): `json` is now the machine-readable token on every command, each command's `output_format` Description follows one phrasing template, and the injected envelope `--format` row is suppressed in `--help` on commands that already carry their own format flag — so `bengal inspect page --help` (and its siblings) show exactly one format option instead of two colliding ones. The `-o FILE` serialization path is unchanged. Genuinely-distinct human renders (config `yaml`, version/perf `table`, directive `html`, graph `mermaid`/`dot`) stay available and are allow-listed in `bengal/cli/format_options.py`. `bengal version diff` renames its `--output` format flag to `--output-format` for consistency with the other twelve render-format commands. (`#387`)
+- Refactored the dev-server rebuild pipeline: `BuildTrigger._execute_build` is now a thin strategy-dispatch shell delegating to named `_run_reactive_build`/`_run_warm_build` helpers, the double-buffer prepare/swap/resync invariant (including the #315 `asset-manifest.json` always-sync) is centralized in a `_DoubleBuffer` context manager, and the warm-build path now constructs the shared `BuildResult` instead of an inline per-build DTO (#390). Behavior is unchanged. (`#390`)
+
+### Removed
+
+- Removed the experimental in-repo `chirpui` bridge theme so Bengal bundles a
+  single stable `default` theme. The bridge shell (24 templates, a small Bengal
+  bridge stylesheet, a bridge JavaScript file, and a `libraries = ["chirp_ui"]`
+  `theme.toml`) only re-exposed the generic theme library asset contract through a
+  bundled slug. Component-library integration such as Chirp UI is now delivered
+  through external theme packages (for example the chirp_theme package) using the
+  same library-provider contract, which remains covered by the provider and
+  metadata contract-shape tests. (`#remove-chirpui-bridge`)
+- Removed six permanently-skipped "classic fallback" theme tests that encoded an abandoned design and relied on config keys the schema does not accept. (`#382`)
+- Removed dead code and stale metadata (empty `bengal.experimental` package, false `bengal.build.__all__` entries, the unused `AutodocTracker.get_affected_autodoc_pages` method) and fixed a stale import that aborted collection of the build-initialization test module. (`#386`)
+
+### Fixed
+
+- CLI help, bare command groups, `--version`, and ordinary single-command
+  execution now avoid full Milo parser construction. Bengal resolves only the
+  selected command schema unless a full-tree built-in mode such as `--llms-txt`,
+  completions, or MCP needs the entire command registry. (`#cli-help-startup`)
+- The dev server no longer lets `asset-manifest.json` drift between its two output
+  buffers. The double buffer seeds the next staging buffer from the active one
+  using only the previous build's changed outputs, but the asset manifest describes
+  the *currently served* buffer and is never rewritten on a content-only rebuild —
+  so it never appeared in the changed-output delta and could fall a generation
+  behind. A buffer that became active carrying a stale manifest could omit entries
+  for assets it actually held (`asset_url` failing to resolve them) and make
+  `inspect_asset_outputs` mis-report completeness — the residual dev-server
+  mechanism behind #130's intermittent "unstyled, fixed by restart" symptom that
+  the build-API fix (#313) did not cover. `prepare_delta_staging` now takes an
+  `always_sync` set and the dev server passes `asset-manifest.json`, so the manifest
+  is re-seeded from the active buffer on every rebuild and both buffers stay
+  consistent. Adds the first dev-server-realistic buffer/swap/delta integration
+  harness. (#315) (`#dev-server-manifest-buffer-sync`)
+- Fixed a dev-server (`bengal serve`) crash where serving a static asset (CSS/JS/font) could
+  abort the worker with `BlockingIOError: [Errno 35] Resource temporarily unavailable`. The dev
+  server disables compression so live-reload streams immediately, which makes Pounce advertise
+  its zero-copy `pounce.sendfile` extension; Pounce 0.7.1's sendfile path runs `os.sendfile` in
+  a thread executor without handling `EAGAIN` on the non-blocking socket, so a full send buffer
+  crashed the transfer (seen on macOS + free-threaded CPython 3.14t). Bengal now opts out of the
+  `pounce.sendfile` extension for dev static serving, falling back to chunked ASGI body writes
+  that respect async backpressure. The production-like preview server keeps compression (and so
+  never advertised sendfile) and is unaffected. Tracked upstream as
+  [lbliii/pounce#72](https://github.com/lbliii/pounce/issues/72). (`#dev-server-sendfile-eagain`)
+- Fixed a directive render-cache key collision in the Patitas backend. The
+  structural fingerprint only recursed through `block.children` and probed a
+  hand-picked attribute list, so directives whose bodies were lists, tables, or
+  fenced code (which patitas stores in `.items`/`.head`/`.body` and source
+  offsets) collapsed onto one cache key — the first render's HTML was then served
+  for all later ones. On versioned sites (where the directive cache is enabled)
+  this could render stale, duplicated directive output. The key now walks every
+  declared slot across each node's MRO, so distinct directives can no longer
+  collide. (`#directive-cache-key-collision`)
+- Cleared the dogfood-site health blockers that were obscuring REST autodoc QA
+  (#288). The `important` admonition (a standard docutils/MyST type) is now
+  registered, fixing the H201 "Unknown directive" error and the cascading
+  "PosixPath is not JSON serializable" error it triggered. Six icon names
+  referenced by docs content (`external`, `languages`, `python`, `robot`,
+  `stethoscope`, `arrows`) now resolve: `external` was aliased to a non-existent
+  `arrow-square-out` (in both `ICON_MAP` and `theme.yaml`) despite `external.svg`
+  existing, and the other five gained aliases to existing theme SVGs. The
+  `/docs/content/i18n/` URL collision is resolved by renaming the standalone
+  `i18n.md` to `multilingual.md` so it no longer collides with the canonical
+  `i18n/` section index. Thirty-one real broken navigation links across the docs
+  were corrected (the dominant bug was relative `./sibling` / `.md`-suffixed links
+  that don't resolve under pretty URLs — corrected to the `../sibling/` form), and
+  the stale `/assets/css/style.css` reference in two self-contained demo HTML files
+  was removed. Build health quality rose from 60% (Fair) to 80% (Good); broken
+  internal links dropped from 43 to 9 — the remaining nine are illustrative example
+  paths inside autodoc'd Python docstrings (e.g. the link-validator module's own
+  docstring demonstrates `./sibling.md`) and one shortcode-syntax example, not real
+  navigation, and are left as documented false positives. Added guard tests for the
+  admonition registry and icon aliases. (`#dogfood-health-blockers`)
+- Incremental builds no longer shrink the asset manifest when only some assets are
+  reprocessed. `_write_asset_manifest` rebuilt `asset-manifest.json` from just the
+  assets processed that run, so editing a single asset (a *partial* asset
+  incremental) dropped every unchanged entry — leaving a manifest with one entry.
+  That re-introduced the #130 failure class: a small-but-complete manifest makes
+  `inspect_asset_outputs` report a vacuously "complete" tree, blinding the
+  incremental reprocess safety net so a later missing CSS/JS output goes
+  unrecovered until a full rebuild. Incremental builds now *merge* — prior entries
+  whose output file still exists are carried forward, then the run's freshly
+  processed assets are overlaid (current entries win). Full builds still rebuild
+  from scratch, so they stay orphan-free. (#314) (`#incremental-asset-manifest-partial-merge`)
+- Incremental builds no longer corrupt the asset manifest. When a build had no
+  assets to process (e.g. a content-only edit during `bengal serve`), the asset
+  phase overwrote `asset-manifest.json` with an empty manifest. A present-but-empty
+  manifest makes the output-integrity check (`inspect_asset_outputs`) report a
+  vacuously "complete" asset tree (manifest present, zero entries, zero missing),
+  which blinded the incremental reprocess safety net on later builds — so if a CSS
+  or JS output went missing it was never regenerated until a full rebuild
+  (restart). The asset phase now preserves the existing manifest when there is
+  nothing to reprocess (the output tree is unchanged, so the manifest is still
+  accurate); the empty baseline is only written when no prior manifest exists.
+  Adds theme-provided-CSS hot-reload regression coverage. (#130) (`#incremental-asset-manifest-preserved`)
+- Warm parsed-cache hits now reuse cached text metrics, AST persistence reuses the Patitas document parsed during TOC rendering instead of parsing the page a second time, excerpt generation avoids scanning full HTML bodies after it has enough plain-text words, generated-page caches miss conservatively when member content hashes are unavailable while reusing page-level content hashes when present, provenance caches persist a read-only dependency index for conservative data/template detector lookups, page provenance records capture render-observed template/data inputs for that index, provenance/build-cache recovery is more observable, output cache keys are normalized, and Patitas exposes a tested parser-level batch TOC primitive for future render batching. (`#parsed-cache-warm-optimizations`)
+- Builds are now byte-reproducible: identical content produces identical output
+  across repeated builds and across worker counts. Three sources of
+  thread/hash-dependent output were eliminated — related-posts now break score ties
+  by a stable key, tag listings sort ties deterministically, and tag accent colors
+  use a stable digest instead of Python's per-process-randomized `hash()`. This makes
+  parallel (free-threaded) output trustworthy for caching, CDNs, and version control. (`#reproducible-builds`)
+- Fixed a latent bug where the internal taxonomy snapshot (`SiteSnapshot.taxonomy`)
+  was always empty because `_snapshot_taxonomies` mis-iterated the `{name, slug,
+  pages}` term dict, leaving the renderer's lock-free tag-page fast path dead. Tag
+  pages now resolve through the corrected snapshot with byte-identical output, and
+  per-language tag pages under i18n `share_taxonomies = false` correctly list only
+  their own language's posts. (`#taxonomy-snapshot-populated`)
+- The shared test suite no longer leaks the active plugin registry between tests.
+  A build sets the `_active_registry` contextvar (`set_active_registry()`) but
+  never resets it, so any test that ran a build leaked its `FrozenPluginRegistry`
+  into the contextvar for every later test sharing the same `pytest-xdist` worker.
+  Under random test ordering this caused intermittent failures in
+  `test_active_plugin_registry_is_context_scoped`, which expects the ambient
+  registry to be `None`. The autouse `reset_bengal_state` fixture now clears the
+  contextvar before and after each test. (`#test-isolation-active-plugin-registry`)
+- Warm (incremental) builds now keep `rss.xml` and the prebuilt Lunr
+  `search-index.json` correct. Previously a warm no-op build only repaired
+  `sitemap.xml`, `robots.txt`, and the output-format artifacts when they went
+  missing; a deleted `rss.xml` or `search-index.json` was never regenerated, and
+  the no-op fast path could skip the build entirely without noticing they were
+  gone. Worse, RSS/Atom were gated behind `if not incremental`, so a normal
+  incremental content change (e.g. adding a dated post) left the feed stale until
+  a full rebuild.
+
+  `_missing_postprocess_artifacts` now lists `rss.xml` (when `generate_rss` is
+  enabled, honoring the i18n prefix path) and `search-index.json` (only when the
+  search backend is enabled + prebuilt, `index_json` is a configured site-wide
+  format, and the optional `lunr` package is importable — otherwise the build
+  would loop reporting a file it can never create). RSS/Atom feeds are now
+  regenerated on incremental builds alongside the sitemap (both are cheap and
+  correctness-critical); dev-server / serve-ready builds still restrict
+  post-processing via the task allow-list, so reload latency is unaffected.
+
+  Adds discriminating regression coverage: unit tests for the artifact list (with
+  config/availability guards and i18n path placement) and integration tests for
+  no-op feed/search-index repair plus warm-build content parity (RSS, sitemap,
+  baseurl change, and autodoc-source-edit page content matching a from-scratch
+  full build). Replaces the previously vacuous RSS incremental tests that asserted
+  against a `public/blog/index.xml` path the generator never writes and guarded
+  every assertion behind `if rss_path.exists():`. (`#warm-artifact-repair-rss-searchindex`)
+- Fixed a dev-server (`bengal serve`) bug where the theme would repeatedly "drop" to unstyled
+  HTML for long stretches while editing — every CSS/JS/font/icon request returning `404` even
+  though the files were present on disk. The double-buffer stages builds in `<root>/.bengal/staging`
+  and serves from whichever buffer is active after a swap; Pounce's static handler rejects any path
+  whose resolved absolute path contains a hidden (dot-prefixed) component, so whenever the
+  `.bengal/staging` buffer was the active one (≈half the time under rapid edits) it 404'd *every*
+  asset — while HTML kept loading (it is served by Bengal's own `_serve_static`, which has no such
+  restriction), producing the characteristic fully-rendered-but-unstyled page. Bengal now detects a
+  hidden serving directory and routes asset requests around Pounce to `_serve_static` (correct
+  content types, no HTML injection for non-HTML), so assets serve regardless of which buffer is
+  active. A live reproduction went from 53% of CSS requests 404ing to 0%. Also covers the rarer
+  case of a project rooted under a dot-directory. Tracked upstream as
+  [lbliii/pounce#74](https://github.com/lbliii/pounce/issues/74). (`#dev-server-hidden-buffer-asset-404`)
+- Use a notebook's first H1 heading as the page title when no explicit notebook
+  title is present, preserving the visible title after duplicate H1 stripping. (`#notebook-title-from-h1`)
+- The snapshot parse cache now keys on the parser version and resolved config hash, so a parser upgrade or a markdown/directive config change forces a full re-parse instead of silently replaying byte-stale parsed HTML on the next build. (`#377`)
+- Warm autodoc cache-hit builds no longer crash on a present-but-unreadable source file; both the warm and cold dependency-registration paths now share one OSError-guarded helper and degrade gracefully with an `autodoc_source_stat_failed` warning. (`#378`)
+- The rendered-output cache now resolves template/partial dependency keys against the site root (mirroring the parsed-content cache) instead of the process working directory, so a changed or deleted template dependency correctly invalidates the cached HTML. (`#379`)
+- Hardened the remaining vacuous test-quality guards from the assertion-hardening saga: the three sibling meta-guards that called `pytest.skip()` on threshold breach (going green exactly when the suite was at its worst) are now committed-ceiling ratchets that fail on regression, the four href-rendering integration tests now render `page.href`/`section.href`/nav-item `href`/the `href` filter and assert on the resolved output instead of `assert True`, the incremental asset-manifest test on the #130 hot path now asserts the manifest is written, its entry set preserved, and the `style.css` fingerprint changes after a CSS edit, and the two `TrackValidator._get_page` tests now assert the returned `Page` identity instead of discarding it (`#384`). (`#384`)
+- Silent exception swallows (`noqa: S110`/`S112`) across Bengal now carry a reason and, at meaningful subsystem boundaries, emit a `logger.debug` diagnostic; the asset-URL and autodoc health validators surface a nonzero skipped-file count instead of reporting a false all-clear, and a pre-commit guard now requires a justification on every such swallow. (`#385`)
+- The root `bengal --help` now lists `preview` under "Core workflow" and no longer advertises the hidden `health` legacy alias as a separate command, eliminating the stray "Other" section. A guard test keeps the curated help sections in sync with the live command registry. (`#387`)
+- Rewrote the custom-directives extension guide and quick-start to use the real public `bengal.parsing.backends.patitas.directives` API (the `DirectiveHandler` protocol, frozen `DirectiveOptions`, and `DirectiveRegistryBuilder`), replacing the nonexistent `bengal.directives` / `BengalDirective` / `DirectiveToken` symbols; a new docs-snippet import test guards the guide imports in CI. (`#388`)
+- Corrected docs accuracy: the README parser table now reflects real runtime availability (only Patitas is built-in, Python-Markdown needs `pip install markdown`, Mistune is a deprecated alias), the Philosophy section honestly describes the tracked-debt model instead of claiming zero compatibility shims, and the benchmarks page labels its render-light/warm-cache pages-per-second figures against the committed ~18–20 pages/s baseline. (`#389`)
+- Kida template render errors are now classified through the canonical `ErrorClassifier`: a `None` filter/function (`'NoneType' object is not callable`) reports `R015` instead of the mislabeled `R008`, keeping the live render path and the error-classifier in sync. (`#391`)
+- Fixed `PatitasParser.render_ast()` so round-tripping `parse_to_ast()` output (including headings, links, lists, and code blocks) renders HTML instead of raising `TypeError: Document.__init__() missing ... 'location'`, honoring the parser's `supports_ast=True` contract. (`#393`)
+- Shared documentation pages (under `_shared/`) now appear in every version-specific navigation tree (#395). Previously they were discovered and documented as shared but were silently absent from each version's NavTree, since they carry `version=None` and are not attached to any versioned section. (`#395`)
+- Autodoc members that do not get their own page (Python classes, functions, and
+  methods; CLI options) now receive an on-page anchor `href`
+  (`<parent-page>#<card>`) instead of a dangling `/api/<module>/<member>/` page
+  URL, so templates using `{{ child.href }}` no longer emit broken internal links. (`#401`)
+- The experimental shard render backend (`BENGAL_RENDER_ISOLATION=shard`) now emits per-page JSON output-format files for content pages that live inside a section, matching the default thread build. Previously a sectioned page's navigation lookup raised a `TypeError` against its frozen section snapshot inside the per-page JSON accumulator; the broad `except` swallowed it and silently dropped the whole page from accumulation, so its `index.json` was never written. The section page-index is now keyed by stable `source_path` (resolving live pages against snapshot sections) and a section index page correctly reports no in-section prev/next. (`#418`)
+- The experimental shard render backend now renders an authored `type: blog` section index (`content/<section>/_index.md`) byte-identically to the thread build — its post-listing `<time>` date elements no longer diverge. A worker's section listing is now canonicalised to the same build snapshot the thread path resolves through, instead of the RenderPlan's body-free `PageView`s (which exposed a `date` the thread path's `PageSnapshot` does not). (`#419`)
+
+
 ## [0.3.3] - 2026-05-23
 
 ### Added
