@@ -466,6 +466,7 @@ publish = { cmd = "uv publish", help = "Publish to PyPI" }
 changelog = { cmd = "towncrier build --yes", help = "Compile changelog.d fragments into CHANGELOG.md" }
 changelog-draft = { cmd = "towncrier build --draft", help = "Preview changelog from fragments (stdout)" }
 changelog-check = { cmd = "towncrier check --compare-with origin/main", help = "Verify branch adds a fragment (vs main)" }
+release-notes = { cmd = "python scripts/draft_release_notes.py", help = "Draft a user-facing site release page from CHANGELOG.md (--version/--theme/--bundle)" }
 release = { sequence = [
     "changelog",
     "dist",
