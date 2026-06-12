@@ -10,6 +10,13 @@ Convention hooks (all optional on the package):
     get_loader() -> Any         # returns a Kida/Jinja PackageLoader
     static_path() -> Path       # returns the package's static asset root
     register_filters(app) -> None  # registers filters/globals via an adapter
+    get_library_contract() -> Mapping  # assets/runtime + version governance
+
+The contract may also declare version governance fields that Bengal enforces at
+provider-resolution time (build start), not mid-render:
+    contract_version: int       # contract schema revision the library targets
+    requires: Mapping[str, str] # distribution -> PEP 440 specifier, e.g.
+                                # {"kida": ">=0.9.0"}
 
 Key Concepts:
 - Themes declare libraries in theme.toml: libraries = ["chirp_ui"]
@@ -40,6 +47,28 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 _ASSET_MODES = frozenset({"bundle", "link", "none"})
+
+# Theme-library contract version supported by this Bengal build.
+#
+# A theme library declares the contract revision it was built against via
+# ``contract_version`` in get_library_contract(). Bengal accepts any library
+# whose declared version is <= this value (older contracts are forward-readable;
+# a NEWER contract than Bengal understands is rejected at resolution time so the
+# failure surfaces at build start, not mid-render). Bump this when the contract
+# schema gains a backwards-incompatible field.
+SUPPORTED_CONTRACT_VERSION = 1
+
+# Maps the short requirement keys a library may use in its contract ``requires``
+# block to the actual installed distribution name queried via
+# importlib.metadata. This lets a contract write the ergonomic
+# ``requires = {"kida": ">=0.9.0"}`` while Bengal resolves the version of the
+# real ``kida-templates`` wheel. Unknown keys are treated as literal
+# distribution names.
+_REQUIREMENT_DISTRIBUTIONS = {
+    "kida": "kida-templates",
+    "kida-templates": "kida-templates",
+    "bengal": "bengal",
+}
 
 # Thread-safe cache for resolved theme-library providers.
 #
@@ -134,6 +163,13 @@ def resolve_provider(package_name: str) -> ThemeLibraryProvider:
     Probes the package module for get_library_contract(), get_loader(),
     static_path(), and register_filters(). Missing hooks produce None fields,
     not errors.
+
+    Before consuming the contract, applies the capability guard: a contract that
+    declares ``contract_version`` newer than this Bengal build, or whose
+    ``requires`` version specifiers are unsatisfied by the installed
+    distributions (e.g. a skewed ``kida-templates``), raises BengalConfigError
+    here -- at config/provider-resolution time -- rather than mid-render.
+
     Import failure or hook invocation errors raise BengalConfigError.
 
     Args:
@@ -179,6 +215,13 @@ def resolve_provider(package_name: str) -> ThemeLibraryProvider:
 
     contract_raw = _probe_hook(package_name, module, "get_library_contract")
     contract = _normalize_contract(package_name, contract_raw)
+
+    # Capability guard: validate the library's declared contract version and
+    # version requirements at resolution time (build start), so an incompatible
+    # wheel fails loudly here instead of producing a BengalRenderingError on the
+    # first page that touches a missing symbol.
+    _check_contract_version(package_name, contract.get("contract_version"))
+    _check_requirements(package_name, contract.get("requires"))
 
     loader = contract.get("loader") or contract.get("template_loader")
     if loader is None:
@@ -358,6 +401,160 @@ def _normalize_contract(package_name: str, contract_raw: Any) -> dict[str, Any]:
             ),
         )
     return dict(contract_raw)
+
+
+def _check_contract_version(package_name: str, raw_version: Any) -> None:
+    """Reject a library built against a contract Bengal cannot read.
+
+    Libraries declare ``contract_version`` (an integer) to pin the contract
+    schema revision they target. A library that omits it is treated as the v1
+    convention contract (backwards compatible). A library declaring a version
+    NEWER than this Bengal build understands is rejected here, at provider
+    resolution, with an actionable BengalConfigError -- never mid-render.
+    """
+    from bengal.errors import ErrorCode
+    from bengal.errors.exceptions import BengalConfigError
+
+    if raw_version is None:
+        return
+    if isinstance(raw_version, bool) or not isinstance(raw_version, int):
+        raise BengalConfigError(
+            f"Theme library '{package_name}': contract_version must be an integer, "
+            f"got {type(raw_version).__name__}",
+            code=ErrorCode.C004,
+            suggestion=(
+                "Return contract_version as a plain integer (e.g. contract_version=1) "
+                "from get_library_contract()."
+            ),
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+                returned_type=type(raw_version).__name__,
+            ),
+        )
+    if raw_version > SUPPORTED_CONTRACT_VERSION:
+        raise BengalConfigError(
+            f"Theme library '{package_name}' targets contract version {raw_version}, "
+            f"but this Bengal build supports up to {SUPPORTED_CONTRACT_VERSION}",
+            code=ErrorCode.C003,
+            suggestion=(
+                f"Upgrade Bengal so it understands theme-library contract version "
+                f"{raw_version}, or install a build of '{package_name}' that targets "
+                f"contract version {SUPPORTED_CONTRACT_VERSION} or lower."
+            ),
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+            ),
+        )
+
+
+def _check_requirements(package_name: str, raw_requires: Any) -> None:
+    """Validate the library's declared version requirements at build start.
+
+    A contract may declare ``requires`` as a mapping of distribution name to a
+    PEP 440 version specifier, e.g. ``{"kida": ">=0.9.0"}``. For each entry,
+    Bengal reads the INSTALLED version of the underlying distribution and
+    verifies it satisfies the specifier. A missing distribution or a skewed
+    version fails here with a BengalConfigError, instead of an ImportError or a
+    missing-symbol crash on the first rendered page.
+    """
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as installed_version
+
+    from packaging.specifiers import InvalidSpecifier, SpecifierSet
+    from packaging.version import InvalidVersion, Version
+
+    from bengal.errors import ErrorCode
+    from bengal.errors.exceptions import BengalConfigError
+
+    if raw_requires is None:
+        return
+    if not isinstance(raw_requires, Mapping):
+        raise BengalConfigError(
+            f"Theme library '{package_name}': requires must be a mapping of "
+            f"distribution name to version specifier, got {type(raw_requires).__name__}",
+            code=ErrorCode.C004,
+            suggestion=(
+                "Return requires as a dict like {'kida': '>=0.9.0'} from get_library_contract()."
+            ),
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+                returned_type=type(raw_requires).__name__,
+            ),
+        )
+
+    for req_name, spec_raw in raw_requires.items():
+        if not isinstance(req_name, str) or not req_name:
+            raise BengalConfigError(
+                f"Theme library '{package_name}': requires keys must be non-empty "
+                f"distribution names",
+                code=ErrorCode.C004,
+                suggestion="Use distribution names as keys, e.g. {'kida': '>=0.9.0'}.",
+                debug_payload=_theme_library_debug_payload(
+                    package_name, hook_name="get_library_contract"
+                ),
+            )
+        if not isinstance(spec_raw, str):
+            raise BengalConfigError(
+                f"Theme library '{package_name}': requires['{req_name}'] must be a "
+                f"version specifier string, got {type(spec_raw).__name__}",
+                code=ErrorCode.C004,
+                suggestion="Use a PEP 440 specifier string, e.g. '>=0.9.0,<1.0'.",
+                debug_payload=_theme_library_debug_payload(
+                    package_name,
+                    hook_name="get_library_contract",
+                    returned_type=type(spec_raw).__name__,
+                ),
+            )
+
+        try:
+            specifier = SpecifierSet(spec_raw)
+        except InvalidSpecifier as e:
+            raise BengalConfigError(
+                f"Theme library '{package_name}': requires['{req_name}'] is not a "
+                f"valid version specifier: {spec_raw!r}",
+                code=ErrorCode.C003,
+                suggestion="Use a PEP 440 specifier string, e.g. '>=0.9.0,<1.0'.",
+                debug_payload=_theme_library_debug_payload(
+                    package_name, hook_name="get_library_contract"
+                ),
+            ) from e
+
+        dist_name = _REQUIREMENT_DISTRIBUTIONS.get(req_name, req_name)
+        try:
+            found = installed_version(dist_name)
+        except PackageNotFoundError as e:
+            raise BengalConfigError(
+                f"Theme library '{package_name}' requires '{dist_name}' {spec_raw}, "
+                f"but '{dist_name}' is not installed",
+                code=ErrorCode.C003,
+                suggestion=(
+                    f"Install '{dist_name}{spec_raw}' in the build environment, or "
+                    f"install '{package_name}' via its Bengal extra so the pin is "
+                    "resolved for you."
+                ),
+                debug_payload=_theme_library_debug_payload(package_name),
+            ) from e
+
+        try:
+            satisfied = Version(found) in specifier
+        except InvalidVersion:
+            # An unparseable installed version is treated as a mismatch rather
+            # than crashing the guard itself.
+            satisfied = False
+        if not satisfied:
+            raise BengalConfigError(
+                f"Theme library '{package_name}' requires '{dist_name}' {spec_raw}, "
+                f"but version {found} is installed",
+                code=ErrorCode.C003,
+                suggestion=(
+                    f"Upgrade or downgrade '{dist_name}' to a version matching "
+                    f"{spec_raw}, e.g. `uv pip install '{dist_name}{spec_raw}'`."
+                ),
+                debug_payload=_theme_library_debug_payload(package_name),
+            )
 
 
 def _normalize_asset_root(
