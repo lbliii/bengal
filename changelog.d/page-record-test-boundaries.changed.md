@@ -1,1 +1,0 @@
-Strengthened page-record migration guardrails by adding parsed-state test helpers, routing more test setup through parsed-record adapters, and documenting the SourcePage-to-Page compatibility boundary for generated-page examples.
