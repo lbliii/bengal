@@ -6,7 +6,7 @@
 
 - [ ] Focused tests:
 - [ ] `poe proof-pr` or scoped equivalent:
-- [ ] Docs/examples/changelog updated or no-impact noted:
+- [ ] Docs/examples/changelog updated or no-impact noted: <!-- changelog.d/ fragment: lead with one user-facing sentence, then engineering detail (see docs/b-stack-changelog-strategy.md) -->
 
 ## Performance Evidence
 

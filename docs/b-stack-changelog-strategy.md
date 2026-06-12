@@ -46,6 +46,14 @@ Use the same six types everywhere (directory names = Towncrier `directory`):
 
 Body: one line or a short bullet list; **user-facing** wording (what changed for downstream users), not internal refactors.
 
+**Lead-sentence convention.** Start every fragment with a single sentence stating
+what changed *for the user* ("Autodoc now cross-links symbol names to their
+documented pages."), then add engineering detail in following sentences if it's
+worth recording. Two reasons: the first sentence is what a reader skims in
+`CHANGELOG.md`, and it gives the release-page distillation (below) a clean topic
+sentence to lift. The detail stays — fragments are the precise record — it just
+comes *after* the user-facing lead, not instead of it.
+
 ### Shared `[tool.towncrier]` shape
 
 Each repo should mirror this structure; only **`package`**, **`package_dir`**, and **`filename`** vary.
@@ -106,6 +114,35 @@ changelog-draft = { cmd = "towncrier build --draft", help = "Preview changelog f
 - **Performance claims:** Name the benchmark matrix row, exact command, Python
   build, machine/OS, baseline, current result, artifact path, and interpretation
   in the PR before repeating the claim in release notes.
+
+## Release pages (user-facing distillation)
+
+`CHANGELOG.md` is the **engineering record** — every change, in full detail, for
+people debugging or upgrading. It is intentionally dense and should stay that way.
+Repos that ship a documentation site (Bengal) additionally maintain a **distilled,
+user-facing release page** per version at `site/content/releases/<version>.md`:
+a key-theme hook, themed highlights with examples, *condensed* Added/Changed/Fixed
+lists, and upgrade notes. (The releases section auto-lists its children — adding the
+file is enough.)
+
+Keep these as **two artifacts**, do not collapse them. Distillation is a
+release-time, top-down editorial act — the theme and the highlight groupings only
+exist once you can see the whole release, so they cannot be authored fragment by
+fragment weeks apart. Writing the release page is therefore a **required cut step**,
+alongside `poe changelog` and the version bump.
+
+To bootstrap it, `scripts/draft_release_notes.py` turns the compiled `[version]`
+section of `CHANGELOG.md` (plus the previous release page as a style exemplar and,
+optionally, the milestone's closed issues) into a *first draft* you then edit:
+
+```bash
+uv run poe release-notes --version 0.4.0 --theme "Documentation generation grows up"
+# no Anthropic SDK/key? add --bundle to emit a paste-ready prompt instead.
+```
+
+The draft is a starting point, never final copy — review for accuracy and voice
+before shipping. The script never adds `anthropic` to Bengal's dependencies; it's
+an opt-in dev tool.
 
 ## Voice (brand)
 
