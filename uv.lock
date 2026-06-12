@@ -140,6 +140,10 @@ avif = [
     { name = "pillow" },
     { name = "pillow-avif-plugin" },
 ]
+chirp = [
+    { name = "chirp-ui" },
+    { name = "kida-templates" },
+]
 fast-images = [
     { name = "pyvips" },
 ]
@@ -208,10 +212,12 @@ requires-dist = [
     { name = "bengal-pounce", specifier = ">=0.7.1" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
+    { name = "chirp-ui", marker = "extra == 'chirp'", specifier = ">=0.9.0" },
     { name = "click", specifier = ">=8.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
     { name = "kida-templates", specifier = ">=0.9.0" },
+    { name = "kida-templates", marker = "extra == 'chirp'", specifier = ">=0.9.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "milo-cli", specifier = ">=0.3.1" },
     { name = "packaging", specifier = ">=23.0" },
@@ -232,7 +238,7 @@ requires-dist = [
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.21.0" },
     { name = "watchfiles", specifier = ">=0.20" },
 ]
-provides-extras = ["search", "images", "smartcrop", "avif", "fast-images", "gettext", "github", "notion", "rest", "all-sources"]
+provides-extras = ["search", "chirp", "images", "smartcrop", "avif", "fast-images", "gettext", "github", "notion", "rest", "all-sources"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -342,6 +348,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/1d/ec1a60bd1a10daa292d3cd6bb0b359a81607154fb8165f3ec95fe003b85c/cffi-2.0.0-cp314-cp314t-win32.whl", hash = "sha256:1fc9ea04857caf665289b7a75923f2c6ed559b8298a1b8c49e59f7dd95c8481e", size = 180487, upload-time = "2025-09-08T23:23:40.423Z" },
     { url = "https://files.pythonhosted.org/packages/bf/41/4c1168c74fac325c0c8156f04b6749c8b6a8f405bbf91413ba088359f60d/cffi-2.0.0-cp314-cp314t-win_amd64.whl", hash = "sha256:d68b6cef7827e8641e8ef16f4494edda8b36104d79773a334beaa1e3521430f6", size = 191726, upload-time = "2025-09-08T23:23:41.742Z" },
     { url = "https://files.pythonhosted.org/packages/ae/3a/dbeec9d1ee0844c679f6bb5d6ad4e9f198b1224f4e7a32825f47f6192b0c/cffi-2.0.0-cp314-cp314t-win_arm64.whl", hash = "sha256:0a1527a803f0a659de1af2e1fd700213caba79377e27e4693648c2923da066f9", size = 184195, upload-time = "2025-09-08T23:23:43.004Z" },
+]
+
+[[package]]
+name = "chirp-ui"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "kida-templates" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/de/76/1a9fb9f57c6940506ae1ffe325c20a34ac0aafac0ce464be91b3c662c98c/chirp_ui-0.9.0.tar.gz", hash = "sha256:93a231b975d209193028a62af033b016df74b0bf36419735ceb29c5c515c0329", size = 1818953, upload-time = "2026-05-14T13:50:27.355Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/3e/5f69d5fb857d33a2fda97387b41ec98d98c3de476bc02dee7d137d5f54d4/chirp_ui-0.9.0-py3-none-any.whl", hash = "sha256:a1a50567e7c4bb07df0b099cead79cd8c60332f9aa61e1cbc2036b1205db3517", size = 2011303, upload-time = "2026-05-14T13:50:25.166Z" },
 ]
 
 [[package]]

@@ -55,6 +55,17 @@ dependencies = [
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
 
+# Chirp flagship theme library (external Kida UI components).
+# Pins chirp-ui alongside the kida-templates contract version Bengal ships, so
+# `pip install bengal[chirp]` resolves a theme-library wheel whose Kida engine
+# matches Bengal's. The kida-templates lower bound is kept in lockstep with the
+# core `kida-templates>=0.9.0` dependency above; the theme-provider capability
+# guard (bengal/core/theme/providers.py) enforces this at build start.
+chirp = [
+    "chirp-ui>=0.9.0",
+    "kida-templates>=0.9.0",
+]
+
 
 # Image processing (RFC: hugo-inspired-features)
 # Note: Pillow is already a core dependency for social cards

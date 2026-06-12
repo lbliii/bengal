@@ -83,6 +83,50 @@ unless you return an absolute source path. Output paths must be relative and
 cannot contain `..`; Bengal namespaces them under the package name, such as
 `/assets/vendor_ui/vendor.css`.
 
+## Version Governance
+
+A theme library lives in a separate wheel from Bengal, so its Kida engine and
+Bengal's must stay in step. Declare your compatibility contract directly in
+`get_library_contract()` and Bengal enforces it **at build start** — not on the
+first rendered page:
+
+```python
+def get_library_contract():
+    return {
+        "contract_version": 1,
+        "requires": {
+            "kida": ">=0.9.0",
+            "bengal": ">=0.4.0",
+        },
+        "asset_root": static_path(),
+        # ... assets, runtime ...
+    }
+```
+
+| Field | Meaning |
+|-------|---------|
+| `contract_version` | Integer schema revision your contract targets. Bengal accepts any value up to the revision it ships (currently `1`); a higher value means the wheel was built against a newer Bengal and resolution fails with an upgrade message. Omit it to target the original `1` convention. |
+| `requires` | Mapping of distribution name to a PEP 440 specifier. Bengal reads the **installed** version of each distribution and fails if it falls outside the specifier. The short key `kida` resolves the installed `kida-templates` wheel. |
+
+If a requirement is unmet — for example a host has `kida-templates` skewed
+below the version your components need — Bengal raises a `BengalConfigError`
+(code `C003`) during provider resolution with the installed version and a fix
+command. This replaces the previous failure mode, where a mismatched wheel only
+surfaced as a `BengalRenderingError` on the first page that touched a missing
+Kida symbol.
+
+To save consumers from pinning by hand, publish a Bengal extra. The bundled
+`chirp_ui` library is installed with:
+
+```bash
+pip install "bengal[chirp]"
+```
+
+which resolves `chirp-ui` alongside a `kida-templates` range matched to Bengal's
+own. External libraries should ship an equivalent extra (or a `bengal` lower
+bound in their own dependencies) so the contract `requires` block is a
+last-line guard rather than the only one.
+
 ## Asset Modes
 
 | Mode | Build behavior | Tag behavior | Use when |
@@ -161,6 +205,9 @@ declarations.
 
 Bengal validates the contract while resolving the theme library:
 
+- `contract_version` must be an integer no higher than Bengal supports.
+- `requires` must be a mapping of distribution name to a PEP 440 specifier, and
+  every named distribution must be installed at a satisfying version.
 - `assets` entries need a non-empty path.
 - `mode` must be `bundle`, `link`, or `none`.
 - Runtime entries must be strings.

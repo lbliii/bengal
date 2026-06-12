@@ -352,6 +352,147 @@ class TestResolveProvider:
             resolve_provider("fake_ui")
 
 
+class TestContractCapabilityGuard:
+    """Install/config-time capability guard for theme-library contracts (#363).
+
+    The guard must fire at provider resolution (build start), not mid-render,
+    when a library declares an incompatible contract version or a version
+    requirement that the installed distributions do not satisfy. It must stay
+    silent on the happy path and on libraries that declare no governance fields.
+    """
+
+    def test_satisfied_requirement_resolves_silently(self):
+        """A requires entry matched by an installed distribution does NOT fire.
+
+        kida-templates is a core Bengal dependency, so a `>=0` pin is always
+        satisfiable; resolution proceeds normally.
+        """
+        mod = _make_library_module(
+            has_loader=True,
+            loader_value="loader",
+            library_contract={"requires": {"kida": ">=0"}},
+        )
+        with patch("bengal.core.theme.providers.importlib.import_module", return_value=mod):
+            provider = resolve_provider("good_ui")
+
+        assert provider.package == "good_ui"
+        assert provider.loader == "loader"
+
+    def test_skewed_kida_version_fires_at_resolution(self):
+        """An impossible kida pin fails at resolution with the installed version.
+
+        This is the #363 regression: a skewed kida wheel used to surface as a
+        BengalRenderingError on the first page; now it is a config-time error.
+        """
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            has_loader=True,
+            loader_value="loader",
+            library_contract={"requires": {"kida": ">=999.0.0"}},
+        )
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match=r"requires 'kida-templates' >=999\.0\.0"),
+        ):
+            resolve_provider("skewed_ui")
+
+    def test_missing_required_distribution_fires(self):
+        """A requires entry for an uninstalled distribution fails loudly."""
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={"requires": {"definitely-not-installed-xyz": ">=1.0"}},
+        )
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="is not installed"),
+        ):
+            resolve_provider("needs_missing")
+
+    def test_future_contract_version_fires(self):
+        """A contract version newer than Bengal supports is rejected early."""
+        from bengal.core.theme.providers import SUPPORTED_CONTRACT_VERSION
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={"contract_version": SUPPORTED_CONTRACT_VERSION + 1},
+        )
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="targets contract version"),
+        ):
+            resolve_provider("from_the_future")
+
+    def test_supported_contract_version_resolves_silently(self):
+        """A contract version Bengal supports does NOT fire."""
+        from bengal.core.theme.providers import SUPPORTED_CONTRACT_VERSION
+
+        mod = _make_library_module(
+            has_loader=True,
+            loader_value="loader",
+            library_contract={"contract_version": SUPPORTED_CONTRACT_VERSION},
+        )
+        with patch("bengal.core.theme.providers.importlib.import_module", return_value=mod):
+            provider = resolve_provider("current_ui")
+
+        assert provider.package == "current_ui"
+
+    def test_non_integer_contract_version_fires(self):
+        """contract_version must be a plain integer."""
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"contract_version": "1"})
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="contract_version must be an integer"),
+        ):
+            resolve_provider("stringy_version")
+
+    def test_non_mapping_requires_fires(self):
+        """requires must be a mapping of distribution -> specifier."""
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"requires": ["kida>=0.9.0"]})
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="requires must be a mapping"),
+        ):
+            resolve_provider("listy_requires")
+
+    def test_invalid_specifier_fires(self):
+        """A malformed PEP 440 specifier is rejected at resolution."""
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"requires": {"kida": "not a specifier"}})
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="not a valid version specifier"),
+        ):
+            resolve_provider("bad_spec")
+
+    def test_no_governance_fields_resolve_silently(self):
+        """A contract without contract_version/requires is unaffected (default path)."""
+        mod = _make_library_module(
+            has_loader=True,
+            loader_value="loader",
+            library_contract={"runtime": ["x"]},
+        )
+        with patch("bengal.core.theme.providers.importlib.import_module", return_value=mod):
+            provider = resolve_provider("plain_ui")
+
+        assert provider.package == "plain_ui"
+        assert provider.runtime == ("x",)
+
+    def test_default_theme_path_never_invokes_guard(self):
+        """A library with no contract at all resolves cleanly (default theme)."""
+        mod = _make_library_module()
+        with patch("bengal.core.theme.providers.importlib.import_module", return_value=mod):
+            provider = resolve_provider("contractless")
+
+        assert provider.package == "contractless"
+
+
 class TestResolveThemeProviders:
     """Tests for resolve_theme_providers() chain accumulation."""
 
