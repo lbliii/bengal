@@ -171,6 +171,34 @@ class TestConfigSnapshotFromDict:
         assert config.build.parallel is False
         assert config.build.max_workers == 4
 
+    def test_render_isolation_fields_wired_from_config(self):
+        """render_isolation* keys must be read from config, not silently defaulted (#446).
+
+        Discriminating: if the BuildSection(...) constructor stops reading these
+        keys, the default 'off'/400/None wins and these assertions fail.
+        """
+        config = ConfigSnapshot.from_dict(
+            {
+                "build": {
+                    "render_isolation": "auto",
+                    "render_isolation_threshold": 999,
+                    "render_isolation_workers": 3,
+                }
+            }
+        )
+
+        assert config.build.render_isolation == "auto"
+        assert config.build.render_isolation_threshold == 999
+        assert config.build.render_isolation_workers == 3
+
+    def test_render_isolation_defaults_when_absent(self):
+        """Absent render_isolation keys fall back to the documented defaults (#446)."""
+        config = ConfigSnapshot.from_dict({"build": {"output_dir": "dist"}})
+
+        assert config.build.render_isolation == "off"
+        assert config.build.render_isolation_threshold == 400
+        assert config.build.render_isolation_workers is None
+
     def test_theme_features_conversion(self):
         """Test theme features list is converted to tuple."""
         config = ConfigSnapshot.from_dict(

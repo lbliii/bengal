@@ -368,7 +368,32 @@ class TestConfigUnknownEntryAggregation:
         assert warning_events == ["unknown_config_summary"]
 
         _, kwargs = mock_logger.warning.call_args
-        assert kwargs["count"] == 4
-        assert "output_formats -> output" in kwargs["entries"]
+        # `output_formats` is a valid section (defaults.py) and must NOT warn (#446).
+        assert kwargs["count"] == 3
+        assert not any(entry.startswith("output_formats") for entry in kwargs["entries"]), kwargs[
+            "entries"
+        ]
         assert "generate_sitemap -> sitemap" in kwargs["entries"]
         assert "build.parallel_graph -> parallel" in kwargs["entries"]
+
+    def test_valid_sections_emit_no_unknown_warnings(self):
+        """The seven sections shipped in defaults.py must not warn as unknown (#446).
+
+        Discriminating: drop any of these names from KNOWN_SECTION_KEYS and this
+        test fails with an "unknown_config_summary" warning.
+        """
+        validator = ConfigValidator()
+        config = {
+            "output_formats": {},
+            "link_previews": {},
+            "document_application": {},
+            "external_refs": {},
+            "content_signals": {},
+            "connect_to_ide": {},
+            "structured_data": {},
+        }
+
+        with patch("bengal.config.validators.logger") as mock_logger:
+            validator.validate(config)
+
+        assert mock_logger.warning.call_count == 0, mock_logger.warning.call_args_list
