@@ -186,9 +186,14 @@ Lifecycle hook names currently emitted by builds:
 - `pre_snapshot`, `post_snapshot`
 - `pre_assets`, `post_assets`
 - `pre_render`, `post_render`
-- `pre_rendering`, `post_rendering`
+- `pre_rendering`, `post_rendering` (back-compat aliases of `pre_render`/`post_render`)
 - `pre_finalization`, `post_finalization`
 - `pre_health`, `post_health`
+
+`build_complete` is a teardown hook: it fires exactly once per build, even when
+a mid-build phase raises. Use it for cleanup (closing connections, writing a
+build summary) that must run regardless of build success or failure. The build
+error still propagates to the caller after your callback has run.
 
 ## How Discovery Works
 
