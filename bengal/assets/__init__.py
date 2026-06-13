@@ -47,3 +47,7 @@ See Also:
 """
 
 from __future__ import annotations
+
+from bengal.assets.manifest import AssetManifest, AssetManifestEntry
+
+__all__ = ["AssetManifest", "AssetManifestEntry"]
