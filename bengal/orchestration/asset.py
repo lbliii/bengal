@@ -322,9 +322,15 @@ class AssetOrchestrator:
                 f"{cli.icons.tree_end} Output: {total_output} files {cli.icons.success}", indent=1
             )
 
-        minify = self.site.config.get("minify_assets", True)
-        optimize = self.site.config.get("optimize_assets", True)
-        fingerprint = self.site.config.get("fingerprint_assets", True)
+        # Read the nested ``[assets]`` config (assets.minify / assets.optimize /
+        # assets.fingerprint), as documented. Fall back to the deprecated flat
+        # keys (minify_assets / optimize_assets / fingerprint_assets) for
+        # backward compatibility with older configs.
+        minify = assets_cfg.get("minify", self.site.config.get("minify_assets", True))
+        optimize = assets_cfg.get("optimize", self.site.config.get("optimize_assets", True))
+        fingerprint = assets_cfg.get(
+            "fingerprint", self.site.config.get("fingerprint_assets", True)
+        )
 
         # Log asset processing configuration
         logger.info(

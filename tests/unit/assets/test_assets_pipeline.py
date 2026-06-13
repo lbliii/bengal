@@ -126,3 +126,118 @@ def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
 
     # Assert: command succeeded
     assert result.exit_code == 0
+
+
+def test_asset_manifest_importable_from_package() -> None:
+    """The documented public import ``from bengal.assets import AssetManifest`` works.
+
+    Regression guard for #447: ``bengal/assets/__init__.py`` previously had no
+    re-export, so the documented import (docstring + theming/assets docs) raised
+    ImportError. This asserts both names are re-exported from the package root
+    and are the same objects as the ones defined in ``bengal.assets.manifest``.
+    """
+    from bengal.assets import AssetManifest as PackageManifest
+    from bengal.assets import AssetManifestEntry as PackageEntry
+    from bengal.assets.manifest import AssetManifest as ModuleManifest
+    from bengal.assets.manifest import AssetManifestEntry as ModuleEntry
+
+    assert PackageManifest is ModuleManifest
+    assert PackageEntry is ModuleEntry
+
+
+def test_orchestrator_honors_nested_assets_minify_false(tmp_path: Path, monkeypatch) -> None:
+    """``[assets] minify = false`` must disable minification.
+
+    Regression guard for #447: the orchestrator used to read the deprecated flat
+    key ``minify_assets`` (which never exists once the loader flattens
+    ``assets.*`` to bare keys), so the documented nested ``[assets] minify``
+    setting was silently ignored and minification stayed on. This spies on the
+    derived ``minify`` flag handed to processing. It is discriminating: if the
+    orchestrator reverted to reading ``minify_assets``, ``captured["minify"]``
+    would be the ``True`` default and the assertion would fail.
+    """
+    from bengal.orchestration.asset import AssetOrchestrator
+
+    # Nested [assets] config as documented; note this is the section dict that
+    # config_service.assets_config returns.
+    site = DummySite(tmp_path, config={"assets": {"minify": False}})
+    orchestrator = AssetOrchestrator(site)
+
+    captured: dict = {}
+
+    def fake_sequential(
+        self,
+        css_entries,
+        other_assets,
+        minify,
+        optimize,
+        fingerprint,
+        progress_manager,
+        css_modules_count=0,
+    ):
+        captured["minify"] = minify
+        captured["optimize"] = optimize
+        captured["fingerprint"] = fingerprint
+
+    monkeypatch.setattr(AssetOrchestrator, "_process_sequentially", fake_sequential)
+
+    class _FakeAsset:
+        def __init__(self) -> None:
+            self.source_path = tmp_path / "app.js"
+
+        def is_css_entry_point(self) -> bool:
+            return False
+
+        def is_css_module(self) -> bool:
+            return False
+
+        def is_js_module(self) -> bool:
+            return False
+
+    orchestrator.process([_FakeAsset()])
+
+    assert captured["minify"] is False
+
+
+def test_orchestrator_minify_defaults_true_without_assets_config(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """With no ``[assets]`` config, minification defaults to on (proves the guard
+    above fails for the right reason, not because the flag is always False)."""
+    from bengal.orchestration.asset import AssetOrchestrator
+
+    site = DummySite(tmp_path, config={})
+    orchestrator = AssetOrchestrator(site)
+
+    captured: dict = {}
+
+    def fake_sequential(
+        self,
+        css_entries,
+        other_assets,
+        minify,
+        optimize,
+        fingerprint,
+        progress_manager,
+        css_modules_count=0,
+    ):
+        captured["minify"] = minify
+
+    monkeypatch.setattr(AssetOrchestrator, "_process_sequentially", fake_sequential)
+
+    class _FakeAsset:
+        def __init__(self) -> None:
+            self.source_path = tmp_path / "app.js"
+
+        def is_css_entry_point(self) -> bool:
+            return False
+
+        def is_css_module(self) -> bool:
+            return False
+
+        def is_js_module(self) -> bool:
+            return False
+
+    orchestrator.process([_FakeAsset()])
+
+    assert captured["minify"] is True
