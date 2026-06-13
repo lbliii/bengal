@@ -94,12 +94,26 @@ children = element?.children ?? []
   {% end %}
   {% end %}
 
-  {# Source link #}
-  {% with meta?.source_file as source_file %}
-  {% if show_source and source_file %}
-  <a href="{{ meta?.source_url ?? '#' }}" class="autodoc-source" target="_blank" rel="noopener">
+  {# Source link - build the GitHub blob URL inline from `config` (see #441).
+     The old template read `meta?.source_url`, which nothing ever populates, so
+     every link fell back to '#'. We now resolve github_repo / github_branch the
+     same way the autodoc config normalizer does: prefer the [autodoc] section,
+     fall back to the top level, and expand `owner/repo` shorthand to a full URL.
+     `config` may be a Config accessor (use its `.raw` dict for predictable
+     `| get` semantics) or an already-normalized dict. #}
+  {% let _cfg = config?.raw ?? config %}
+  {% let _autodoc = _cfg | get('autodoc', {}) %}
+  {% let _repo = (_autodoc | get('github_repo', '')) or (_cfg | get('github_repo', '')) %}
+  {% let _repo = _repo | string %}
+  {% let source_file = element?.display_source_file ?? element?.source_file %}
+  {% if show_source and source_file and _repo %}
+  {% let github_repo = _repo if _repo.startswith('http') else ('https://github.com/' ~ _repo) %}
+  {% let _branch = (_autodoc | get('github_branch', '')) or (_cfg | get('github_branch', '')) %}
+  {% let branch = (_branch | string) if _branch else 'main' %}
+  {% let line_anchor = '#L' ~ element.line_number if element?.line_number else '' %}
+  {% let source_url = github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
+  <a href="{{ source_url }}" class="autodoc-source" target="_blank" rel="noopener">
     View source
   </a>
-  {% end %}
   {% end %}
 </header>
