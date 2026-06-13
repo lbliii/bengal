@@ -225,9 +225,14 @@ Emitted lifecycle hooks:
 - `pre_snapshot`, `post_snapshot`
 - `pre_assets`, `post_assets`
 - `pre_render`, `post_render`
-- `pre_rendering`, `post_rendering`
+- `pre_rendering`, `post_rendering` (back-compat aliases of `pre_render`/`post_render`)
 - `pre_finalization`, `post_finalization`
 - `pre_health`, `post_health`
+
+`build_complete` is a teardown/cleanup contract: it fires exactly once per
+build, including when a mid-build phase raises, so plugin cleanup callbacks
+(closing connections, writing summaries) always run. The in-flight exception
+still propagates after the hook has run.
 
 :::{seealso}
 - [Pipeline](pipeline.md) — Streaming and memory optimization

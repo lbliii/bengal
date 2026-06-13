@@ -328,3 +328,136 @@ class TestBuildOrchestrator:
         mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_called_once()
         # Asset orchestrator process is called
         mock_orchestrators["asset"].return_value.process.assert_called_once()
+
+    def test_build_complete_fires_once_on_success(self, mock_site, mock_orchestrators):
+        """build_complete is a teardown contract: it fires exactly once on a clean build.
+
+        Discriminating: if the fired-once guard regressed (e.g. the finally
+        re-fired after the happy-path call), the count would be 2 and this fails.
+        """
+        orchestrator = BuildOrchestrator(mock_site)
+        registry = PluginRegistry()
+        fire_count = {"build_complete": 0}
+        registry.on_phase(
+            "build_complete",
+            lambda site, context: fire_count.__setitem__(
+                "build_complete", fire_count["build_complete"] + 1
+            ),
+        )
+        plugin_registry = registry.freeze()
+
+        mock_cache = MagicMock()
+        mock_cache.parsed_content = {}
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
+        mock_orchestrators["incremental"].return_value.check_config_changed.return_value = False
+        mock_orchestrators["section"].return_value.validate_sections.return_value = []
+
+        from bengal.orchestration.build.results import FilterResult
+
+        filter_result = FilterResult(
+            pages_to_build=[],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
+        with (
+            patch("bengal.plugins.load_plugins", return_value=plugin_registry),
+            patch(
+                "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance",
+                return_value=filter_result,
+            ),
+        ):
+            orchestrator.build(BuildOptions(incremental=False, force_sequential=True))
+
+        assert fire_count["build_complete"] == 1
+
+    def test_build_complete_fires_once_on_mid_build_failure(self, mock_site, mock_orchestrators):
+        """build_complete must fire exactly once even when a mid-build phase raises (#437).
+
+        Discriminating: without the try/finally wrapper around the build body,
+        the exception escapes before build_complete runs and fire_count stays 0,
+        failing this assertion. The fired-once guard keeps it from exceeding 1.
+        """
+        orchestrator = BuildOrchestrator(mock_site)
+        registry = PluginRegistry()
+        fire_count = {"build_complete": 0}
+        registry.on_phase(
+            "build_complete",
+            lambda site, context: fire_count.__setitem__(
+                "build_complete", fire_count["build_complete"] + 1
+            ),
+        )
+        plugin_registry = registry.freeze()
+
+        mock_cache = MagicMock()
+        mock_cache.parsed_content = {}
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
+
+        boom = RuntimeError("mid-build phase exploded")
+
+        with (
+            patch("bengal.plugins.load_plugins", return_value=plugin_registry),
+            # phase_fonts is the first phase inside the wrapped build body; forcing
+            # it to raise simulates an arbitrary mid-build failure.
+            patch(
+                "bengal.orchestration.build.initialization.phase_fonts",
+                side_effect=boom,
+            ),
+            pytest.raises(RuntimeError, match="mid-build phase exploded"),
+        ):
+            orchestrator.build(BuildOptions(incremental=False, force_sequential=True))
+
+        # Hook fired despite the failure, and exactly once.
+        assert fire_count["build_complete"] == 1
+
+    def test_build_complete_fires_and_cache_error_propagates(self, mock_site, mock_orchestrators):
+        """A failing cache save raises BengalCacheError AFTER build_complete fired (#437).
+
+        Guards the explicit guardrail that BengalCacheError still surfaces to the
+        caller once the teardown hook has run.
+        """
+        from bengal.errors import BengalCacheError
+
+        orchestrator = BuildOrchestrator(mock_site)
+        registry = PluginRegistry()
+        fire_count = {"build_complete": 0}
+        registry.on_phase(
+            "build_complete",
+            lambda site, context: fire_count.__setitem__(
+                "build_complete", fire_count["build_complete"] + 1
+            ),
+        )
+        plugin_registry = registry.freeze()
+
+        mock_inc = mock_orchestrators["incremental"].return_value
+        mock_cache = MagicMock()
+        mock_cache.parsed_content = {}
+        mock_inc.initialize.return_value = mock_cache
+        mock_inc.check_config_changed.return_value = False
+        # save_cache returning False makes _save_main_cache raise BengalCacheError,
+        # which the WorkScope reduce re-raises as `raise r.error`.
+        mock_inc.save_cache.return_value = False
+        mock_orchestrators["section"].return_value.validate_sections.return_value = []
+
+        from bengal.orchestration.build.results import FilterResult
+
+        filter_result = FilterResult(
+            pages_to_build=[],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
+        with (
+            patch("bengal.plugins.load_plugins", return_value=plugin_registry),
+            patch(
+                "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance",
+                return_value=filter_result,
+            ),
+            patch("bengal.orchestration.build.finalization.run_health_check"),
+            pytest.raises(BengalCacheError),
+        ):
+            orchestrator.build(BuildOptions(incremental=False, force_sequential=True))
+
+        assert fire_count["build_complete"] == 1
