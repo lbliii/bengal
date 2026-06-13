@@ -178,6 +178,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `commands` | `commands_filter` |
 | `current_lang` | `current_lang` |
 | `cursor_mcp_install_url` | `cursor_mcp_install_url_with_site` |
+| `data_table` | `_data_table` |
 | `doc` | `doc_with_site` |
 | `email_share_url` | `email_share_url` |
 | `ensure_trailing_slash` | `ensure_trailing_slash` |

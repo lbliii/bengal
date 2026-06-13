@@ -8,6 +8,7 @@ import pytest
 import yaml
 from kida import Environment, Markup
 
+from bengal.rendering.template_functions import register_all
 from bengal.rendering.template_functions.tables import data_table, register
 
 
@@ -89,6 +90,56 @@ class TestRegister:
         register(env, site)
 
         assert callable(env.globals["data_table"])
+
+
+class TestRegisterAllWiring:
+    """Guard that data_table is reachable through the production wiring path.
+
+    The TestRegister tests above call tables.register() in isolation, which
+    passes even when tables is never wired into register_all() -- that vacuity
+    hid issue #434, where {{ data_table(...) }} raised UndefinedError at render
+    time because register_all() (the only production registration path) never
+    called tables.register(). These tests exercise register_all() directly so
+    they fail if the wiring is dropped again.
+    """
+
+    def test_register_all_exposes_data_table(self):
+        """register_all() must expose data_table in env.globals (#434)."""
+        env = Environment()
+        site = MagicMock()
+        site.root_path = Path(".")
+
+        register_all(env, site)
+
+        assert "data_table" in env.globals, (
+            "data_table missing from env.globals after register_all() -- "
+            "tables.register() is not wired into register_all() (#434)"
+        )
+
+    def test_register_all_data_table_is_callable(self):
+        """The data_table global wired by register_all() must be callable (#434)."""
+        env = Environment()
+        site = MagicMock()
+        site.root_path = Path(".")
+
+        register_all(env, site)
+
+        assert callable(env.globals.get("data_table")), (
+            "data_table registered by register_all() is not callable (#434)"
+        )
+
+    def test_register_all_data_table_renders_in_template(self, mock_env, yaml_data_file):
+        """data_table wired by register_all() renders a real table (#434)."""
+        site = MagicMock()
+        site.root_path = mock_env.globals["site"].root_path
+
+        register_all(mock_env, site)
+
+        template = mock_env.from_string("{{ data_table(path) }}")
+        result = template.render(path=f"data/{yaml_data_file.name}")
+
+        assert "bengal-data-table" in result
+        assert "Alice" in result
 
 
 class TestDataTableFunction:
