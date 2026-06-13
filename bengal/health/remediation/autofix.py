@@ -41,6 +41,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.io import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -491,7 +492,7 @@ class AutoFixer:
                         self._apply_single_fix(lines, directive)
 
                 # Write file
-                file_path.write_text("\n".join(lines), encoding="utf-8")
+                atomic_write_text(file_path, "\n".join(lines), encoding="utf-8")
                 return True
 
             except Exception as e:
@@ -719,7 +720,7 @@ class AutoFixer:
                         self._apply_single_fix(lines, ancestor)
 
                 # Write file
-                file_path.write_text("\n".join(lines), encoding="utf-8")
+                atomic_write_text(file_path, "\n".join(lines), encoding="utf-8")
                 return True
 
             except Exception as e:
