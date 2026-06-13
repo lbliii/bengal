@@ -144,6 +144,11 @@ DEFAULTS: dict[str, Any] = {
         "stable_section_references": True,
         "min_page_size": 1000,
         "track_dependency_ordering": True,  # Render track items before track pages
+        # Isolated (separate-heap) render backend for large cold builds (#350).
+        # off (default) | auto | fork | spawn. Cold CLI/CI builds only.
+        "render_isolation": "off",
+        "render_isolation_threshold": 400,
+        "render_isolation_workers": None,
     },
     # -------------------------------------------------------------------------
     # Development (canonical location: dev.*)

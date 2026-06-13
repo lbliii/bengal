@@ -542,6 +542,9 @@ class SiteConfig(TypedDict, total=False):
     fast_mode: bool
     stable_section_references: bool
     min_page_size: int
+    render_isolation: str  # #350 off|auto|fork|spawn
+    render_isolation_threshold: int
+    render_isolation_workers: int | None
 
     # -------------------------------------------------------------------------
     # Nested Configurations

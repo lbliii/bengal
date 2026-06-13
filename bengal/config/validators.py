@@ -249,6 +249,14 @@ class ConfigValidator:
         "extra",
         "params",
         "hooks",
+        # Output / metadata sections present in defaults.py (#446)
+        "output_formats",
+        "link_previews",
+        "document_application",
+        "external_refs",
+        "content_signals",
+        "connect_to_ide",
+        "structured_data",
     }
 
     def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:
