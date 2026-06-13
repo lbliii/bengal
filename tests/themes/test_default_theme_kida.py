@@ -13,10 +13,11 @@ globals, template inheritance). These tests focus on:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
-from kida import Environment
+from kida import Environment, FileSystemLoader
 
 # Path to default theme templates
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "bengal" / "themes" / "default" / "templates"
@@ -501,3 +502,81 @@ class TestPerformance:
         for _ in range(100):
             result = tmpl.render(page=page)
             assert result == "Test"
+
+
+class TestArticleJsonLd:
+    """Regression: the article JSON-LD partial must emit VALID JSON-LD.
+
+    Guards #442 — the `@type` value was written as
+    ``{{ "TechArticle" if is_doc else "BlogPosting" | tojson }}``, where
+    ``| tojson`` binds only to the ``else`` branch. On a doc page
+    (``is_doc=True``) that emitted a bare, unquoted ``TechArticle`` inside the
+    ``<script type="application/ld+json">`` block, producing invalid JSON-LD on
+    every doc page. The fix parenthesizes the conditional:
+    ``{{ ("TechArticle" if is_doc else "BlogPosting") | tojson }}``.
+
+    These tests render the REAL partial file and assert the script body parses
+    as JSON, so they fail if the parenthesization regresses.
+    """
+
+    class _Page:
+        def __init__(self, page_type: str) -> None:
+            self.type = page_type
+            self.title = "Sample Page"
+            self.description = "A sample description."
+            self.date = None
+            self.author = None
+            self.word_count = 123
+            self.toc_items = []
+            self.href = "/sample/"
+            self.metadata: dict = {}
+
+    class _Site:
+        baseurl = ""
+        title = "Sample Site"
+        author = None
+
+    @pytest.fixture
+    def jsonld_template(self):
+        env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=False)
+        # The partial calls hasattr(); the real engine registers it as a global.
+        env.add_global("hasattr", hasattr)
+        return env.get_template("partials/article-jsonld.html")
+
+    def _render_script_body(self, template, page_type: str) -> str:
+        rendered = template.render(
+            page=self._Page(page_type),
+            site=self._Site(),
+            config={},
+            section=None,
+            toc_items=[],
+        )
+        assert '<script type="application/ld+json">' in rendered
+        start = rendered.index("<script")
+        body_start = rendered.index(">", start) + 1
+        body_end = rendered.index("</script>")
+        return rendered[body_start:body_end]
+
+    def test_doc_page_jsonld_is_valid_json_with_techarticle_type(self, jsonld_template):
+        """A doc page must emit parseable JSON-LD with a quoted TechArticle @type."""
+        body = self._render_script_body(jsonld_template, "doc")
+        # The pre-fix bug emitted bare `TechArticle,` here, which is invalid JSON.
+        data = json.loads(body)
+        assert data["@type"] == "TechArticle"
+
+    def test_post_page_jsonld_is_valid_json_with_blogposting_type(self, jsonld_template):
+        """A post page must emit parseable JSON-LD with a quoted BlogPosting @type."""
+        body = self._render_script_body(jsonld_template, "post")
+        data = json.loads(body)
+        assert data["@type"] == "BlogPosting"
+
+    def test_type_value_is_quoted_in_raw_output(self, jsonld_template):
+        """Belt-and-suspenders: the raw @type token must be quoted, not bare.
+
+        json.loads alone could be satisfied by an unrelated valid document; pin
+        the exact token so a regression of the tojson-binding bug is caught even
+        if the surrounding JSON were otherwise rearranged.
+        """
+        body = self._render_script_body(jsonld_template, "doc")
+        assert '"@type": "TechArticle"' in body
+        assert '"@type": TechArticle' not in body
