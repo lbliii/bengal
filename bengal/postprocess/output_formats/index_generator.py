@@ -75,7 +75,6 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
-from unittest.mock import Mock
 
 from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
@@ -235,7 +234,7 @@ class SiteIndexGenerator:
         logger.debug("generating_site_index_json", page_count=len(pages))
 
         # Build site metadata (per-locale when i18n is enabled)
-        # Ensure all values are strings, not Mock objects
+        # Coerce all values to strings for stable JSON output
         site_metadata = {
             "title": str(self.site.title or "Bengal Site"),
             "description": str(getattr(self.site, "description", "") or ""),
@@ -246,7 +245,7 @@ class SiteIndexGenerator:
         # Use site.build_time (set once at build start) for deterministic output
         if not self.site.dev_mode:
             build_time = getattr(self.site, "build_time", None)
-            # Verify it's a real datetime (not a Mock) with a working isoformat method
+            # Only emit build_time when it's a real datetime with isoformat()
             if isinstance(build_time, datetime):
                 site_metadata["build_time"] = build_time.isoformat()
 
@@ -414,7 +413,7 @@ class SiteIndexGenerator:
         # Use site.build_time (set once at build start) for deterministic output
         if not self.site.dev_mode:
             build_time = getattr(self.site, "build_time", None)
-            # Verify it's a real datetime (not a Mock) with a working isoformat method
+            # Only emit build_time when it's a real datetime with isoformat()
             if isinstance(build_time, datetime):
                 site_metadata["build_time"] = build_time.isoformat()
 
@@ -610,9 +609,13 @@ class SiteIndexGenerator:
         return summary
 
     def _is_json_serializable(self, value: Any) -> bool:
-        """Check if value is JSON serializable (excluding Mock objects)."""
-        if isinstance(value, Mock):
-            return False
+        """Check if value is JSON serializable.
+
+        Uses a real serialization attempt rather than a type allow-list so
+        that any non-serializable object (datetimes, custom classes, test
+        doubles, etc.) is rejected without coupling production code to a
+        specific implementation.
+        """
         try:
             json.dumps(value)
             return True
@@ -624,22 +627,13 @@ class SiteIndexGenerator:
         value = metadata.get(key)
         if value is None:
             return None
-        # Filter out Mock objects and non-serializable values
-        if isinstance(value, Mock):
-            return None
         if isinstance(value, (list, tuple)):
-            # Filter out Mock objects from lists
-            filtered_list = [
-                v for v in value if not isinstance(v, Mock) and self._is_json_serializable(v)
-            ]
+            # Filter out non-serializable items from lists
+            filtered_list = [v for v in value if self._is_json_serializable(v)]
             return filtered_list if filtered_list else None
         if isinstance(value, dict):
-            # Recursively filter dict values
-            filtered_dict = {
-                k: v
-                for k, v in value.items()
-                if not isinstance(v, Mock) and self._is_json_serializable(v)
-            }
+            # Recursively filter out non-serializable dict values
+            filtered_dict = {k: v for k, v in value.items() if self._is_json_serializable(v)}
             return filtered_dict if filtered_dict else None
         if self._is_json_serializable(value):
             return value
