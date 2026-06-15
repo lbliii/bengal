@@ -1,3 +1,17 @@
+## [0.4.1] - 2026-06-15
+
+### Fixed
+
+- Re-armed the core composition-over-inheritance guard tests so they actually protect the live page object. The four mixin/rendering guards previously scanned `bengal/core/page/__init__.py` (which defines no page class) and trivially passed; they now scan the live `RuntimePage` in `runtime.py` and go red if it re-acquires a `*Mixin` base or hoists a `bengal.rendering` import to module scope. (`#433`)
+- Wire the `data_table` template function into `register_all()` so templates calling `{{ data_table(...) }}` no longer raise an `UndefinedError` at render time. The function existed and was tested in isolation, but was never registered through the production rendering path. (`#434`)
+- The `build_complete` plugin lifecycle hook now fires exactly once even when a mid-build phase raises, so plugin teardown callbacks (closing connections, writing summaries) always run. The original build error still propagates to the caller after the hook has executed. (`#437`)
+- The health `--auto-fix` remediator now writes user content files atomically (write-temp-then-rename) instead of overwriting in place, so a crash or interrupt mid-write can no longer leave a source file truncated or partially written. (`#440`)
+- Autodoc "View source" links now resolve to a real GitHub blob URL when `github_repo` is configured (under `[autodoc]` or at the top level), instead of always falling back to `#`. The default-theme autodoc header partial builds the URL from the repository and branch directly, expanding `owner/repo` shorthand and honoring `github_branch`. (`#441`)
+- The default theme's article JSON-LD partial now emits valid structured data on doc pages. The `@type` field previously rendered an unquoted `TechArticle` token because `| tojson` bound only to the conditional's `else` branch, producing invalid JSON-LD that search engines and AI crawlers reject; the conditional is now parenthesized so the value is always quoted. (`#442`)
+- The `build.render_isolation`, `build.render_isolation_threshold`, and `build.render_isolation_workers` options are now read from config instead of being silently swallowed, so opting into the experimental isolated render backend takes effect. The config validator also recognizes the `output_formats`, `link_previews`, `document_application`, `external_refs`, `content_signals`, `connect_to_ide`, and `structured_data` sections, eliminating spurious "unknown config section" warnings on valid configs. (`#446`)
+- Restored the documented public import `from bengal.assets import AssetManifest` (the package previously re-exported nothing) and made the asset orchestrator honor the nested `[assets]` settings (`minify`, `optimize`, `fingerprint`) instead of the deprecated flat `*_assets` keys, so setting `minify = false` under `[assets]` now actually disables minification. (`#447`)
+
+
 ## [0.4.0] - 2026-06-12
 
 ### Added
