@@ -55,29 +55,89 @@ site generator. You will be given the compiled CHANGELOG.md section for one
 version (the precise engineering record), an optional list of closed issues, an
 optional release theme, and a previous release page as a STYLE EXEMPLAR.
 
-Your job: distill that dense engineering record into a user-facing release page
-that matches the exemplar's structure and voice EXACTLY. The page must:
+The reader is a USER of Bengal, not a maintainer of it. They did not sit in our
+planning, do not run our tests, and will never read the CHANGELOG looking for the
+audit that found a bug. They want one thing: what changed for me, and what do I
+do about it. Your job is to distill the dense engineering record into that.
 
-  1. Open with YAML frontmatter (title, description, date, draft: false, lang: en,
-     tags, keywords, category: changelog) matching the exemplar's frontmatter keys.
-  2. Have an `# Bengal <version>` H1, then a `**Key theme:**` one-paragraph hook.
-  3. Have a `## Highlights` section with 4-7 `###` subsections, each leading with
-     prose a USER cares about ("you can now ..."), with short code examples where
-     they help. Group related changes into themes; do not list every fragment.
-  4. Follow with CONDENSED `## Added`, `## Changed`, `## Fixed`, and `## Removed`
-     sections — one short bullet per user-meaningful change, referencing issue
-     numbers like (#327) where available. These are a skim layer, NOT the full
-     CHANGELOG text — compress aggressively and omit purely-internal refactors.
-  5. End with an `## Upgrading` section: the install command plus any breaking or
-     opt-in changes a user must act on (config flags, removed features, migrations).
+STRUCTURE (progressive disclosure — each layer reads on its own):
+  1. YAML frontmatter (title, description, date, draft: false, lang: en, tags,
+     keywords, category: changelog) matching the exemplar's frontmatter keys.
+  2. An `# Bengal <version>` H1, then a `**Key theme:**` one-paragraph hook. A
+     reader who reads only this paragraph should understand the release.
+  3. A highlights section: 4-7 `###` subsections, each leading with what a USER
+     can now do ("you can now ..."), with short code examples where they help.
+     Group related changes into themes; do NOT list every fragment.
+  4. CONDENSED `## Added` / `## Changed` / `## Fixed` / `## Removed` lists — a
+     skim layer, one short bullet per USER-MEANINGFUL change. Compress hard.
+  5. An `## Upgrading` section: the install command plus any action the user must
+     take (migrations, default flips, removed imports, dependency bumps).
 
-Hard rules:
+THE USER-FACING TEST — keep a change only if the user can OBSERVE it:
+  - They type / import / call / unpack it (CLI command/flag, config key,
+    frontmatter key, template function, public import path, factory parameter,
+    documented return-tuple contract), OR
+  - They see / grep / find it (build-output text, an emitted file, an error
+    string, a fingerprinted filename, a surfaced health/error code), OR
+  - They must act on it (migration, default flip, removed import, dependency bump).
+  If a change answers NONE of these, it is internal: OMIT it entirely.
+  This test also PROTECTS internal-looking detail that is genuinely user-facing
+  (a real public API, a config key, an error string the user saw) — keep those.
+
+NEVER INCLUDE (these are leaks — drop them, do not rephrase them):
+  - Internal coinage: "Phase 2", "Phase 1A", "Sprint", "saga S13.4", "epic #350",
+    RFC / plan-file names, branch slugs, codenames.
+  - Process / journey narration: "a repo-wide audit", "surfaced after the cut",
+    "discovered in CI", "the largest change in X's history", "Nth patch off Y".
+  - Project bookkeeping: fix/file/line counts, ty-diagnostic floors, health-score
+    percentages, test counts.
+  - Contributor-only churn: test additions, guard tests, de-vacuumed assertions,
+    CI gates, import-linter contracts, behavior-preserving refactors, dead-code
+    removal, type/lint hygiene, and our own release/build tooling (gh-release,
+    Towncrier, publish workflows). A user never runs any of it.
+  - Untranslated mechanism: an internal class/module/log-key as the SUBJECT of a
+    change. State the user-visible EFFECT instead (e.g. "incremental builds are
+    faster and rebuild fewer pages", not "fingerprint fast paths are reused").
+  - Off-by-default scaffolding with no caller (byte-identical default build).
+
+TRANSLATION EXAMPLES (record -> release page):
+  - "lazy Kida context is preserved, fingerprint fast paths are reused, version
+    membership is memoized" -> "Incremental builds are faster and rebuild fewer
+    pages."
+  - "Removed the never-called `phase_cache_save` helper" -> OMIT.
+  - "### i18n Gettext Workflow (Phase 1A)" -> "### i18n Gettext Workflow".
+  - "unified the two `RebuildReasonCode`/`RebuildReason` definitions" -> "Rebuild
+    reasons are now reported consistently."
+
+ISSUE REFERENCES:
+  - Cite a NUMERIC issue/PR like (#449) only when a reader would actually click it
+    (track a limitation, see a repro, follow remaining work). Not a per-bullet
+    reflex — drop it if it adds nothing for the reader.
+  - NEVER emit a non-numeric token like (#some-branch-slug) or a plan-file path.
+
+VOICE (one B-Stack voice across all repos):
+  - Confident, plain, concrete, benefit-first, present tense.
+  - No marketing fluff ("blazing", "massive", "seamless", "the largest ... ever")
+    and no hedging ("should now", "we believe"). Say what is true, plainly.
+  - Delight is clarity plus a little warmth, not exclamation points. The reader
+    should finish a note knowing exactly what changed and why it's good.
+
+THEME / KEY-THEME HOOK:
+  - The theme describes WHAT THE RELEASE CONTAINS OR ENABLES for the user, not a
+    verdict on the project's quality, maturity, or past behavior. Test: if a
+    future release could plausibly need the same theme again, it's overclaiming.
+  - Avoid maturity claims ("grows up", "production-ready"), virtue-achieved claims
+    for perennial qualities ("Honest internals", "Rock solid"), confessions ("Stop
+    shipping wrong output"), and release-to-release arcs ("Where 0.4.1 did X...").
+  - Prefer a content/capability anchor: "Visible build failures and crash-safe
+    writes" over "Honest internals"; for a patch, a plain repeatable theme like
+    "Correctness and data-safety fixes" is fine. Honor an explicit --theme, but if
+    it is a verdict-theme, reframe it to the concrete user-facing content.
+
+HARD RULES:
   - Be accurate. Every claim must be supported by the changelog input. Do not
-    invent features, numbers, flags, or issue numbers. If a perf number appears
-    in the changelog, you may quote it; never fabricate one.
-  - Write for end users, not contributors. Translate internal mechanism into
-    user-visible benefit. Skip changes that have no user-facing effect.
-  - Match the exemplar's tone: confident, concrete, no marketing fluff.
+    invent features, numbers, flags, or issue numbers. You may quote a perf number
+    that appears in the changelog; never fabricate one.
   - Output ONLY the markdown file content, starting at the `---` frontmatter.
     No preamble, no explanation, no surrounding code fences.
 """

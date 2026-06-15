@@ -57,6 +57,37 @@ When site docs change, check:
 - Use generated output as authored truth.
 - Mention internal people, private customers, or private infrastructure.
 
+## Release Pages (changelog distillation)
+
+`content/releases/<version>.md` is the distilled, user-facing story of a release
+— the second of two artifacts (the dense engineering record is `../CHANGELOG.md`).
+Do not collapse them. Canonical rules, leak taxonomy, and before/after examples:
+`../docs/b-stack-changelog-strategy.md`. When you write or edit a release page:
+
+- **Distill, don't transcribe.** Find the bigger picture and cut true-but-internal
+  detail. The page is a top-down editorial act, not a reformatted CHANGELOG.
+- **Progressive disclosure.** Layer it: theme hook (one paragraph; reads alone) →
+  4–7 user-facing highlights ("you can now …") → condensed Added/Changed/Fixed
+  skim lists → Upgrading. Detail is available, never front-loaded.
+- **The user-facing test.** Keep a line only if the user can observe it — they
+  **type / import / call / unpack** it, **see / grep / find** it, or must **act**
+  on it. This protects real public API and grep-able error strings as much as it
+  cuts internal churn.
+- **Never internal coinage.** No "Phase 2", "saga S13.4", "epic #350", `plan/*.md`
+  names, branch slugs, codenames; no process narration ("repo-wide audit",
+  "surfaced after the cut"); no counts / scores / "Nth patch off …"; no
+  contributor-only test/CI/refactor/tooling entries. Translate mechanism to effect.
+- **Issue refs are conditional.** Cite a **numeric** issue/PR only when a reader
+  would click it; never a non-numeric slug. Not a per-bullet reflex.
+- **Theme describes content, not a verdict.** Name what the release enables, not
+  the project's maturity or past sins. Avoid "grows up", "Honest internals", "Stop
+  shipping wrong output". Test: if a future release could need the same theme
+  again, reframe it to the concrete user-facing change.
+- **Brand voice.** Confident, plain, concrete, benefit-first, present tense, no
+  marketing fluff — and a little delightful. The same voice across every repo.
+- **Tooling.** Bootstrap with `uv run poe release-notes --version <v> --theme "…"`
+  (first draft, always edited before shipping); check with `poe changelog-lint`.
+
 ## Own
 
 **Code:** `site/content/`, `site/config/`, `site/data/`, hand-maintained assets.

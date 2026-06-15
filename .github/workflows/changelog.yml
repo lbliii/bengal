@@ -30,6 +30,9 @@ jobs:
       - name: Sync dev dependencies
         run: uv sync --group dev
 
+      - name: Lint fragments for internal/meta leaks
+        run: uv run python scripts/lint_changelog_voice.py
+
       - name: Verify news fragment
         env:
           SKIP: ${{ contains(join(github.event.pull_request.labels.*.name, ','), 'skip-changelog') }}

@@ -325,6 +325,12 @@ This applies to `pyproject.toml`, `uv.lock`, `.github/workflows/`,
 - Package-data changes need source-tree and installed-wheel proof.
 - User-facing changes under `bengal/` need a `changelog.d/` fragment unless a
   maintainer marks the change exempt.
+- Changelog fragments and release pages are written for **third-party consumers**,
+  not maintainers: no internal coinage (phase/sprint/saga/epic/plan-file/branch
+  slug), no process narration, no contributor-only churn — translate mechanism to
+  user-visible effect. Rules live in `docs/b-stack-changelog-strategy.md`; stewards
+  in `changelog.d/AGENTS.md` and the "Release Pages" section of `site/AGENTS.md`;
+  `poe changelog-lint` enforces the high-precision subset.
 
 ## Cross-Cutting: Documentation Accuracy
 
