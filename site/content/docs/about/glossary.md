@@ -36,7 +36,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : Stored state from previous builds that enables incremental rebuilding. Located in `.bengal/cache/` by default.
 
 **Build Profile**
-: A configuration preset (`writer`, `theme-dev`, `dev`) that adjusts output verbosity, validation strictness, and enabled features. Set via `--profile` flag or `bengal project profile`.
+: A configuration preset (`writer`, `theme-dev`, `dev`) that adjusts output verbosity, validation strictness, and enabled features. Set via the `--profile` flag (for example `bengal build --profile writer`).
 
 **Bundle (Page Bundle)**
 : A folder containing a page's Markdown file alongside its dedicated assets (images, data files). Keeps related files together and enables relative asset references.

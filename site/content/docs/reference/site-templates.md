@@ -18,7 +18,6 @@ Bengal provides a template system for scaffolding new sites with predefined stru
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
 | `bengal new site` | Create new site from template | Starting a new project |
-| `bengal init` | Add sections to existing site | Expanding site structure |
 | `bengal config init` | Initialize config directory | Converting single-file to directory config |
 
 ---
@@ -70,48 +69,17 @@ All templates create:
 
 ---
 
-## `bengal init`
+## Adding sections to an existing site
 
-Initialize content sections in an existing Bengal site. Uses the skeleton system under the hood.
-
-### Syntax
-
-```bash
-bengal init [OPTIONS]
-```
-
-### Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--sections`, `-s` | Multiple | `blog` | Section names to create |
-| `--with-content` | Flag | `false` | Generate sample pages |
-| `--pages-per-section` | Integer | `3` | Sample pages per section |
-| `--dry-run` | Flag | `false` | Preview without creating |
-| `--force` | Flag | `false` | Overwrite existing sections |
-
-### Examples
+Bengal has no command for retrofitting sections into an existing site — content is just
+files on disk. Add a section by creating its directory and an `_index.md`:
 
 ```bash
-# Default: create blog section
-bengal init
-
-# Multiple sections
-bengal init --sections blog --sections projects --sections about
-
-# Short form
-bengal init -s docs -s tutorials -s api
-
-# With sample content
-bengal init --sections blog --with-content --pages-per-section 10
-
-# Preview first
-bengal init --sections docs --dry-run
+mkdir -p content/docs
+$EDITOR content/docs/_index.md
 ```
 
-### Section Type Inference
-
-Section names are mapped to content types:
+Bengal infers a section's content type from its directory name:
 
 | Name Pattern | Type | Description |
 |--------------|------|-------------|
@@ -119,22 +87,8 @@ Section names are mapped to content types:
 | `docs`, `documentation`, `guides`, `reference`, `tutorials` | `doc` | Weight-sorted content |
 | All others | `section` | Standard section |
 
-### Generated Files
-
-For each section, Bengal creates:
-
-```tree
-content/<section>/
-├── _index.md          # Section index (always created)
-├── <page-1>.md        # Sample pages (with --with-content)
-├── <page-2>.md
-└── <page-3>.md
-```
-
-Sample page names are context-aware:
-- Blog: `welcome-post`, `getting-started`, `tips-and-tricks`
-- Docs: `introduction`, `quickstart`, `installation`
-- Projects: `project-alpha`, `project-beta`, `project-gamma`
+Override the inferred type with `type:` (or `cascade.type:`) in the section's `_index.md`
+frontmatter.
 
 ---
 

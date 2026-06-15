@@ -44,7 +44,7 @@ The `--template blog` flag scaffolds a complete blog structure with sample posts
 :::{dropdown} Or use a custom skeleton YAML
 :icon: file-text
 
-Define your site structure in one YAML file:
+Define your site structure in one `skeleton.yaml`, drop it into a template directory, and scaffold from it:
 
 ```yaml
 name: My Blog
@@ -66,10 +66,11 @@ structure:
       My first post!
 ```
 
-Apply it:
+Scaffold a site from it (the manifest lives as `bengal/scaffolds/my-blog/skeleton.yaml`,
+or register a custom template with `bengal.scaffolds.register_template`):
 
 ```bash
-bengal project skeleton apply my-blog.yaml
+bengal new site myblog --template my-blog
 ```
 
 See [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]] for more examples.

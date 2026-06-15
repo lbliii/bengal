@@ -169,14 +169,14 @@ Move invariant expressions outside loops:
 
 ```kida
 {# Good: Compute once #}
-{% let base_url = site.config.base_url %}
+{% let baseurl = site.config.baseurl %}
 {% for page in pages %}
-  <a href="{{ base_url }}{{ page.href }}">{{ page.title }}</a>
+  <a href="{{ baseurl }}{{ page.href }}">{{ page.title }}</a>
 {% end %}
 
-{# Avoid: Recomputes site.config.base_url on every iteration #}
+{# Avoid: Recomputes site.config.baseurl on every iteration #}
 {% for page in pages %}
-  <a href="{{ site.config.base_url }}{{ page.href }}">{{ page.title }}</a>
+  <a href="{{ site.config.baseurl }}{{ page.href }}">{{ page.title }}</a>
 {% end %}
 ```
 
