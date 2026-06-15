@@ -591,7 +591,6 @@ class TestCacheCheckerLinkRestoreDiagnostics:
                 self.output_path = tmp_path / "public" / "cached" / "index.html"
                 self.metadata = {"title": "Cached"}
                 self.rendered_html = ""
-                self.links = ["sentinel"]
                 clear_parsed_page_state(self)
 
             @property
@@ -626,7 +625,7 @@ class TestCacheCheckerLinkRestoreDiagnostics:
             if links:
                 raise boom
             applied.append(list(links))
-            page.links = []
+            page.__dict__["links"] = []  # adapter stub; avoid parsed-field boundary guard
 
         monkeypatch.setattr(
             "bengal.rendering.pipeline.cache_checker.apply_parsed_links_to_page",
