@@ -200,21 +200,41 @@ def has_index(section: Section) -> bool:
     return section.index_page is not None
 
 
-def get_all_pages(section: Section, recursive: bool = True) -> list[PageLike]:
+def get_all_pages(
+    section: Section,
+    recursive: bool = True,
+    *,
+    include_drafts: bool = True,
+) -> list[PageLike]:
     """
     Get all pages in this section.
 
     Args:
         section: Section to read
         recursive: If True, include pages from subsections
+        include_drafts: If False, omit pages marked ``draft: true`` in
+            frontmatter. Defaults to True so existing callers (navigation,
+            cascade, content stats) keep seeing every page; the visibility
+            gate (``is_page_in_listings`` and friends) is what actually hides
+            drafts from public listings/feeds.
 
     Returns:
         List of all pages
     """
-    all_pages = list(section.pages)
+    all_pages = [p for p in section.pages if include_drafts or not _page_is_draft(p)]
 
     if recursive:
         for subsection in section.subsections:
-            all_pages.extend(subsection.get_all_pages(recursive=True))
+            all_pages.extend(
+                subsection.get_all_pages(recursive=True, include_drafts=include_drafts)
+            )
 
     return all_pages
+
+
+def _page_is_draft(page: PageLike) -> bool:
+    """Return whether a page is marked ``draft: true`` in frontmatter."""
+    metadata = getattr(page, "metadata", None)
+    if isinstance(metadata, dict):
+        return bool(metadata.get("draft", False))
+    return False

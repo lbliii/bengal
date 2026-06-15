@@ -16,6 +16,9 @@ def serve(
         bool, Description("Find available port if specified port is taken")
     ] = True,
     open_browser: Annotated[bool, Description("Open browser after server starts")] = True,
+    drafts: Annotated[
+        bool, Description("Include draft pages (draft: true) in the preview")
+    ] = False,
     environment: Annotated[str, Description("Environment: local, preview, production")] = "",
     profile: Annotated[str, Description("Config profile: writer, theme-dev, dev")] = "",
     version_scope: Annotated[str, Description("Focus on single version (e.g., v2, latest)")] = "",
@@ -93,6 +96,8 @@ def serve(
         if "build" not in cfg:
             cfg["build"] = {}
         cfg["build"]["strict_mode"] = True
+        if drafts:
+            cfg["build"]["drafts"] = True
         if debug:
             cfg["build"]["debug"] = True
 

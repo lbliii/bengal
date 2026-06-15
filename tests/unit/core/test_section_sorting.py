@@ -562,3 +562,52 @@ def test_weighted_sorting_invariant(pages_data):
         <= sorted_pages[i + 1].metadata.get("weight", float("inf"))
         for i in range(len(sorted_pages) - 1)
     ), "Sorting stable under weights"
+
+
+class TestSectionGetAllPagesIncludeDrafts:
+    """Test Section.get_all_pages(include_drafts=...) draft filtering."""
+
+    def test_default_includes_drafts(self, tmp_path):
+        """get_all_pages() keeps draft pages by default (callers filter via the
+        visibility gate, not here)."""
+        section = Section(name="docs", path=tmp_path / "docs")
+        published = _page(
+            source_path=tmp_path / "docs/a.md",
+            _raw_metadata={"title": "A"},
+        )
+        draft = _page(
+            source_path=tmp_path / "docs/b.md",
+            _raw_metadata={"title": "B", "draft": True},
+        )
+        section.pages = [published, draft]
+
+        titles = {p.title for p in section.get_all_pages()}
+        assert titles == {"A", "B"}
+
+    def test_exclude_drafts(self, tmp_path):
+        """get_all_pages(include_drafts=False) omits draft: true pages, recursively."""
+        root = Section(name="root", path=tmp_path)
+        child = Section(name="child", path=tmp_path / "child")
+        root.subsections = [child]
+
+        published = _page(
+            source_path=tmp_path / "a.md",
+            _raw_metadata={"title": "A"},
+        )
+        draft_top = _page(
+            source_path=tmp_path / "b.md",
+            _raw_metadata={"title": "B", "draft": True},
+        )
+        draft_nested = _page(
+            source_path=tmp_path / "child/c.md",
+            _raw_metadata={"title": "C", "draft": True},
+        )
+        published_nested = _page(
+            source_path=tmp_path / "child/d.md",
+            _raw_metadata={"title": "D"},
+        )
+        root.pages = [published, draft_top]
+        child.pages = [draft_nested, published_nested]
+
+        titles = {p.title for p in root.get_all_pages(include_drafts=False)}
+        assert titles == {"A", "D"}

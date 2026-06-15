@@ -38,6 +38,7 @@ def build(
         bool, Description("[Debug] Profile template rendering times")
     ] = False,
     clean_output: Annotated[bool, Description("Delete output directory before building")] = False,
+    drafts: Annotated[bool, Description("Include draft pages (draft: true) in the build")] = False,
     theme_dev: Annotated[bool, Description("Use theme developer profile")] = False,
     dev_profile: Annotated[
         bool, Description("Shorthand for --profile dev (full observability)")
@@ -288,6 +289,10 @@ def build(
             if "build" not in site.config:
                 site.config["build"] = {}
             site.config["build"]["strict_mode"] = True
+        if drafts:
+            if "build" not in site.config:
+                site.config["build"] = {}
+            site.config["build"]["drafts"] = True
         if debug:
             if "build" not in site.config:
                 site.config["build"] = {}

@@ -628,8 +628,13 @@ class QueryableSection(Protocol):
         """Get pages with filtering and sorting."""
         ...
 
-    def get_all_pages(self, *, include_drafts: bool = False) -> list[PageLike]:
-        """Get all pages including from subsections."""
+    def get_all_pages(
+        self, recursive: bool = True, *, include_drafts: bool = True
+    ) -> list[PageLike]:
+        """Get all pages, optionally recursing into subsections.
+
+        Set ``include_drafts=False`` to omit pages marked ``draft: true``.
+        """
         ...
 
 
