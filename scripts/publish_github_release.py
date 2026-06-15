@@ -157,13 +157,9 @@ def publish_release(tag: str, title: str, body: str) -> None:
         notes_path = fh.name
     try:
         verb = "edit" if release_exists(tag) else "create"
-        result = _gh(
-            ["gh", "release", verb, tag, "--title", title, "--notes-file", notes_path]
-        )
+        result = _gh(["gh", "release", verb, tag, "--title", title, "--notes-file", notes_path])
         if result.returncode != 0:
-            sys.exit(
-                f"error: `gh release {verb} {tag}` failed:\n{result.stderr.strip()}"
-            )
+            sys.exit(f"error: `gh release {verb} {tag}` failed:\n{result.stderr.strip()}")
         print(f"{'Updated' if verb == 'edit' else 'Created'} GitHub release {tag}: {title}")
     finally:
         Path(notes_path).unlink(missing_ok=True)
