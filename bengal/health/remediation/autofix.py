@@ -12,7 +12,7 @@ UNSAFE: Requires manual review (complex changes)
 
 Supported Fixes:
 - Directive fence nesting: Adjusts fence depths for proper nesting hierarchy
-- Link fixes: (Future) Typo detection and moved page reference updates
+- Link fixes: Typo detection, moved-page reference updates, and anchor fixes
 
 Architecture:
 AutoFixer analyzes HealthReport results and generates FixAction objects.
@@ -35,6 +35,7 @@ Example:
 
 from __future__ import annotations
 
+import difflib
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -131,7 +132,7 @@ class AutoFixer:
 
     Supported Fix Types:
         directive_fence: Adjusts fence depths for proper MyST directive nesting
-        link_update: (Future) Fix broken internal links, update moved pages
+        link_update: Fix broken internal links (typo, moved-page, anchor)
 
     Design Principles:
         - Fixes are atomic and file-local (no cross-file dependencies)
@@ -905,20 +906,356 @@ class AutoFixer:
 
     def _suggest_link_fixes(self, validator_report: Any) -> list[FixAction]:
         """
-        Suggest fixes for link validation errors.
+        Suggest fixes for broken internal link validation errors.
 
-        Future implementation will support:
-            - Typo detection for broken internal links
-            - Automatic updates for moved page references
-            - Anchor fixes for renamed headings
+        For each broken *internal* link the Links validator reported, this
+        proposes a concrete rewrite by comparing the link against the set of
+        valid URL paths derived from the site's content tree:
+
+            - **Typo / closest-match**: the link path is one small edit away
+              from a real page URL (e.g. ``/docs/instalation/`` ->
+              ``/docs/installation/``).
+            - **Moved page**: the link's final slug still exists, but at a
+              different location, so the whole path is updated.
+            - **Anchor fix**: the page resolves but the ``#fragment`` does not;
+              the closest heading anchor on the target page is suggested.
+
+        External links (``http(s)://``, ``mailto:``, ``tel:``) are skipped --
+        they are not fixable from local content.
+
+        FixActions are emitted at ``FixSafety.CONFIRM`` because rewriting a
+        cross-reference is a content change a human should eyeball before it is
+        applied, mirroring the framework's guidance for cross-reference edits.
 
         Args:
-            validator_report: ValidatorReport from Links validator.
+            validator_report: ValidatorReport from the Links validator.
 
         Returns:
-            List of FixAction objects (currently empty, future implementation).
+            List of FixAction objects rewriting broken internal links.
         """
-        return []
+        fixes: list[FixAction] = []
+
+        # Corpus of valid internal URL paths derived from the content tree.
+        valid_url_paths = self._valid_url_paths()
+        if not valid_url_paths:
+            return fixes
+
+        # Map each valid path's final slug -> set of full paths (for moved-page).
+        slug_index: dict[str, set[str]] = {}
+        for url_path in valid_url_paths:
+            slug = url_path.rstrip("/").rsplit("/", 1)[-1]
+            if slug:
+                slug_index.setdefault(slug, set()).add(url_path)
+
+        seen: set[tuple[str, str]] = set()
+        for result in validator_report.results:
+            if result.status.value != "error":
+                continue
+            for source_path, link in self._iter_broken_links(result):
+                if self._is_external_link(link):
+                    continue
+                key = (str(source_path), link)
+                if key in seen:
+                    continue
+                seen.add(key)
+
+                suggestion = self._suggest_link_target(link, valid_url_paths, slug_index)
+                if suggestion is None:
+                    continue
+                suggested, kind = suggestion
+
+                source_file = self._resolve_source_file(source_path)
+                if source_file is None:
+                    continue
+
+                try:
+                    rel_path = source_file.relative_to(self.site_root)
+                except ValueError:
+                    rel_path = source_file
+
+                fixes.append(
+                    FixAction(
+                        description=(
+                            f"Fix broken link in {rel_path}: {link} -> {suggested} ({kind})"
+                        ),
+                        file_path=source_file,
+                        line_number=None,
+                        fix_type="link_update",
+                        safety=FixSafety.CONFIRM,
+                        apply=self._create_link_fix(source_file, link, suggested),
+                        check_result=result,
+                    )
+                )
+
+        return fixes
+
+    @staticmethod
+    def _is_external_link(link: str) -> bool:
+        """Return True for links this fixer cannot resolve from local content."""
+        lowered = link.strip().lower()
+        return lowered.startswith(("http://", "https://", "mailto:", "tel:", "//"))
+
+    def _iter_broken_links(self, result: Any) -> list[tuple[str, str]]:
+        """
+        Extract ``(source_path, broken_link)`` pairs from a Links CheckResult.
+
+        Prefers structured ``metadata`` (``source_path`` + ``broken_links``) and
+        falls back to parsing ``details`` lines of the form
+        ``"<relative-source>: <broken-link>"`` -- the same dual strategy the
+        directive fixer uses.
+        """
+        pairs: list[tuple[str, str]] = []
+
+        metadata = getattr(result, "metadata", None) or {}
+        source = metadata.get("source_path")
+        links = metadata.get("broken_links")
+        if isinstance(source, str) and isinstance(links, list):
+            pairs.extend((source, link) for link in links if isinstance(link, str) and link)
+            if pairs:
+                return pairs
+
+        for detail in getattr(result, "details", None) or []:
+            if not isinstance(detail, str) or ": " not in detail:
+                continue
+            source_part, _, link_part = detail.partition(": ")
+            source_part = source_part.strip()
+            link_part = link_part.strip()
+            if source_part and link_part and source_part != "<unknown>":
+                pairs.append((source_part, link_part))
+
+        return pairs
+
+    def _resolve_source_file(self, source_path: str) -> Path | None:
+        """Resolve a (possibly site-relative) source path to an existing file."""
+        candidate = Path(source_path)
+        if candidate.is_absolute() and candidate.exists():
+            return candidate.resolve()
+
+        rooted = (self.site_root / candidate).resolve()
+        if rooted.exists():
+            return rooted
+
+        # Fall back to a recursive search by basename (details may be relative).
+        matches = list(self.site_root.rglob(candidate.name))
+        for match in matches[:1]:
+            if match.exists():
+                return match.resolve()
+        return None
+
+    def _valid_url_paths(self) -> set[str]:
+        """
+        Build the set of valid internal URL paths from the content tree.
+
+        Walks markdown sources under ``<site_root>/content`` (falling back to the
+        site root) and reconstructs each file's pretty URL path. This is the
+        corpus the broken-link suggester matches against; it intentionally lives
+        entirely on disk so the fixer stays file-local with no live ``Site``.
+        """
+        content_root = self.site_root / "content"
+        if not content_root.is_dir():
+            content_root = self.site_root
+
+        paths: set[str] = set()
+        for md in content_root.rglob("*.md"):
+            url_path = self._content_file_to_url_path(md, content_root)
+            if url_path:
+                paths.add(url_path)
+        for md in content_root.rglob("*.markdown"):
+            url_path = self._content_file_to_url_path(md, content_root)
+            if url_path:
+                paths.add(url_path)
+        return paths
+
+    @staticmethod
+    def _content_file_to_url_path(md_file: Path, content_root: Path) -> str | None:
+        """
+        Map a content file to its pretty URL path (leading + trailing slash).
+
+        ``content/docs/guide.md``    -> ``/docs/guide/``
+        ``content/docs/_index.md``   -> ``/docs/``
+        ``content/_index.md``        -> ``/``
+        """
+        try:
+            rel = md_file.relative_to(content_root)
+        except ValueError:
+            return None
+
+        parts = list(rel.parts)
+        if not parts:
+            return None
+
+        stem = Path(parts[-1]).stem
+        if stem in {"_index", "index"}:
+            dir_parts = parts[:-1]
+            if not dir_parts:
+                return "/"
+            return "/" + "/".join(dir_parts) + "/"
+
+        dir_parts = parts[:-1]
+        return "/" + "/".join([*dir_parts, stem]) + "/"
+
+    def _suggest_link_target(
+        self,
+        link: str,
+        valid_url_paths: set[str],
+        slug_index: dict[str, set[str]],
+    ) -> tuple[str, str] | None:
+        """
+        Compute the best suggested replacement for a broken internal link.
+
+        Returns ``(suggested_link, kind)`` where ``kind`` is one of
+        ``"typo"``, ``"moved-page"`` or ``"anchor"``; ``None`` when no
+        confident suggestion exists.
+        """
+        path_part, _, fragment = link.partition("#")
+        normalized = self._normalize_path(path_part)
+
+        # Anchor-only fix: the page resolves, but the fragment does not.
+        if fragment and normalized in valid_url_paths:
+            anchor_suggestion = self._suggest_anchor(normalized, fragment)
+            if anchor_suggestion is not None:
+                return (f"{path_part}#{anchor_suggestion}", "anchor")
+            return None
+
+        if normalized in valid_url_paths:
+            return None  # Path is fine; nothing to fix here.
+
+        # Moved-page: the final slug is unique somewhere else in the tree.
+        slug = normalized.rstrip("/").rsplit("/", 1)[-1]
+        candidates = slug_index.get(slug, set()) - {normalized}
+        if len(candidates) == 1:
+            target = next(iter(candidates))
+            if target != normalized:
+                suggested = target + (f"#{fragment}" if fragment else "")
+                return (suggested, "moved-page")
+
+        # Typo / closest-match against the full set of valid paths.
+        close = difflib.get_close_matches(normalized, sorted(valid_url_paths), n=1, cutoff=0.8)
+        if close and close[0] != normalized:
+            suggested = close[0] + (f"#{fragment}" if fragment else "")
+            return (suggested, "typo")
+
+        return None
+
+    @staticmethod
+    def _normalize_path(path_part: str) -> str:
+        """Normalize a URL path to the canonical ``/.../`` form for comparison."""
+        path = path_part.strip()
+        if not path:
+            return "/"
+        if not path.startswith("/"):
+            path = "/" + path
+        # Strip an ``index.html``/``.html`` suffix to compare pretty URLs.
+        if path.endswith("index.html"):
+            path = path[: -len("index.html")]
+        elif path.endswith(".html"):
+            path = path[: -len(".html")] + "/"
+        if not path.endswith("/"):
+            path += "/"
+        return path
+
+    def _suggest_anchor(self, url_path: str, fragment: str) -> str | None:
+        """
+        Suggest the closest heading anchor on the page at ``url_path``.
+
+        Reads the target content file's ATX headings, slugifies them, and
+        returns the closest match to ``fragment`` (or ``None`` if none is
+        close enough).
+        """
+        source_file = self._content_file_for_url_path(url_path)
+        if source_file is None:
+            return None
+
+        try:
+            content = source_file.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+        anchors = [
+            self._slugify_heading(m.group(2))
+            for m in re.finditer(r"^(#{1,6})\s+(.+?)\s*#*\s*$", content, re.MULTILINE)
+        ]
+        anchors = [a for a in anchors if a]
+        if not anchors or fragment in anchors:
+            return None
+
+        close = difflib.get_close_matches(fragment, anchors, n=1, cutoff=0.7)
+        return close[0] if close else None
+
+    def _content_file_for_url_path(self, url_path: str) -> Path | None:
+        """Reverse-map a pretty URL path back to its content source file."""
+        content_root = self.site_root / "content"
+        if not content_root.is_dir():
+            content_root = self.site_root
+
+        normalized = self._normalize_path(url_path)
+        for md in content_root.rglob("*.md"):
+            if self._content_file_to_url_path(md, content_root) == normalized:
+                return md
+        return None
+
+    @staticmethod
+    def _slugify_heading(text: str) -> str:
+        """Slugify a heading the way most static-site anchor generators do."""
+        slug = text.strip().lower()
+        slug = re.sub(r"[^\w\s-]", "", slug)
+        slug = re.sub(r"[\s_]+", "-", slug)
+        return slug.strip("-")
+
+    def _create_link_fix(self, file_path: Path, old_link: str, new_link: str) -> Any:
+        """
+        Create a fix callable that rewrites ``old_link`` to ``new_link`` in a file.
+
+        The rewrite is an exact, link-token replacement inside markdown/HTML link
+        syntax (``](old)``, ``href="old"``, ``href='old'``) so unrelated text
+        that merely contains the substring is never touched. Writes go through
+        the crash-safe ``atomic_write_text`` helper, like the fence fixer.
+        """
+
+        def apply_fix() -> bool:
+            try:
+                if not file_path.exists():
+                    return False
+
+                content = file_path.read_text(encoding="utf-8")
+
+                replacements = [
+                    (f"]({old_link})", f"]({new_link})"),
+                    (f'href="{old_link}"', f'href="{new_link}"'),
+                    (f"href='{old_link}'", f"href='{new_link}'"),
+                    (f"]({old_link} ", f"]({new_link} "),
+                ]
+
+                new_content = content
+                changed = False
+                for old_token, new_token in replacements:
+                    if old_token in new_content:
+                        new_content = new_content.replace(old_token, new_token)
+                        changed = True
+
+                if not changed:
+                    return False
+
+                atomic_write_text(file_path, new_content, encoding="utf-8")
+                return True
+
+            except Exception as e:
+                import traceback
+
+                from bengal.errors import ErrorCode
+
+                logger.error(
+                    "autofix_apply_failed",
+                    file_path=str(file_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    error_code=ErrorCode.V003.value,
+                    suggestion="Check file permissions and content syntax. See autofix docs for supported fix types.",
+                )
+                traceback.print_exc()
+                return False
+
+        return apply_fix
 
     def apply_fixes(self, fixes: list[FixAction] | None = None) -> dict[str, Any]:
         """
