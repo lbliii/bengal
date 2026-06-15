@@ -18,15 +18,11 @@ from bengal.debug import (
     DependencyVisualizer,
     IncrementalBuildDebugger,
     PageExplainer,
+    ShortcodeSandbox,
 )
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-try:
-    from bengal.debug import ShortcodeSandbox
-except ImportError, AttributeError:
-    ShortcodeSandbox = None  # type: ignore[misc, assignment]
 
 
 class TestDebugToolsInstantiation:
@@ -134,7 +130,6 @@ class TestDebugToolsInstantiation:
 
         assert viz.cache is mock_cache
 
-    @pytest.mark.skip(reason="ShortcodeSandbox not yet implemented")
     def test_shortcode_sandbox_instantiation(self) -> None:
         """ShortcodeSandbox creates without errors."""
         sandbox = ShortcodeSandbox()
@@ -175,18 +170,26 @@ class TestDebugToolsAnalyze:
 
         assert report.tool_name == "deps"
 
-    @pytest.mark.skip(reason="ShortcodeSandbox not yet implemented")
     def test_shortcode_sandbox_analyze(self) -> None:
-        """ShortcodeSandbox.analyze() returns helpful message."""
+        """ShortcodeSandbox.analyze() returns an empty report.
+
+        Unlike other debug tools, the sandbox has no site-wide analysis to
+        perform: it operates on content passed to run(). analyze() therefore
+        returns an empty report bearing the tool name; findings are produced
+        only when content or a file path is supplied via run().
+        """
         sandbox = ShortcodeSandbox()
         report = sandbox.analyze()
 
         assert report.tool_name == "sandbox"
-        # Should indicate that content parameter is needed
-        assert len(report.findings) > 0
+        # No content was provided, so analyze() emits no findings.
+        assert report.findings == []
+
+        # Findings appear only once content is supplied via run().
+        run_report = sandbox.run(content="```{note}\nHello\n```")
+        assert len(run_report.findings) > 0
 
 
-@pytest.mark.skip(reason="ShortcodeSandbox not yet implemented")
 class TestShortcodeSandboxRender:
     """Test ShortcodeSandbox rendering functionality."""
 

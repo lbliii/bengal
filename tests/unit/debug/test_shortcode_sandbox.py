@@ -11,11 +11,6 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip(
-    "bengal.debug.shortcode_sandbox",
-    reason="ShortcodeSandbox module not yet implemented",
-)
-
 from bengal.debug.shortcode_sandbox import (
     RenderResult,
     ShortcodeSandbox,
