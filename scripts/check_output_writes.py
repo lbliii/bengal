@@ -27,11 +27,6 @@ APPROVED_DIRECT_WRITES = {
         "_atomic_write_fast",
         "write_text",
     ): "temp-file write followed by atomic replace",
-    (
-        "bengal/rendering/external_refs/resolver.py",
-        "_fetch",
-        "write_text",
-    ): "external-reference cache write; tracked for atomic-write migration",
 }
 
 
