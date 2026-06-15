@@ -119,6 +119,7 @@ from . import (
     seo,
     sharing,
     strings,
+    tables,
     taxonomies,
     theme,
     urls,
@@ -203,6 +204,10 @@ def register_all(
     changelog.register(env, site)
     authors.register(env, site)
 
+    # Phase 7d: Data table function (data_table) -- registered before plugin
+    # extensions (Phase 11) so it stays a default global without clobbering them.
+    tables.register(env, site)
+
     # Phase 8: Template tests (match, draft, featured, etc.)
     template_tests.register(env, site)
 
@@ -253,6 +258,7 @@ __all__ = [
     "seo",
     "sharing",
     "strings",
+    "tables",
     "taxonomies",
     "template_tests",
     "theme",
