@@ -1,7 +1,7 @@
 """
 Finalization phases for build orchestration.
 
-Phases 17-21: Post-processing, cache save, collect stats, health check, finalize build.
+Phases 17-21: Post-processing, collect stats, health check, finalize build.
 """
 
 from __future__ import annotations
@@ -187,46 +187,6 @@ def _record_post_render_timing(
     timings = getattr(orchestrator.stats, "post_render_timings_ms", None)
     if isinstance(timings, dict):
         timings[name] = round(duration_ms, 1)
-
-
-def phase_cache_save(
-    orchestrator: BuildOrchestrator,
-    pages_to_build: list[Any],
-    assets_to_process: list[Any],
-    cli: CLIOutput | None = None,
-) -> None:
-    """
-    Phase 18: Save Cache.
-
-    Persists build cache including URL claims for incremental build safety.
-
-    Saves build cache for future incremental builds.
-
-    Args:
-        orchestrator: Build orchestrator instance
-        pages_to_build: Pages that were built
-        assets_to_process: Assets that were processed
-        cli: CLI output (optional) for timing display
-
-    """
-    with orchestrator.logger.phase("cache_save"):
-        start = time.perf_counter()
-        saved = orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
-        if saved is False:
-            from bengal.errors import BengalCacheError, ErrorCode
-
-            raise BengalCacheError(
-                "Build cache could not be saved.",
-                code=ErrorCode.A004,
-                suggestion=(
-                    "Check disk space and permissions. Incremental builds may be stale "
-                    "until the cache can be saved."
-                ),
-            )
-        duration_ms = (time.perf_counter() - start) * 1000
-        if cli is not None:
-            cli.phase("Cache save", duration_ms=duration_ms)
-        orchestrator.logger.info("cache_saved")
 
 
 def phase_collect_stats(

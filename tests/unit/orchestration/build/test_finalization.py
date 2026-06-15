@@ -3,7 +3,6 @@ Tests for build finalization phases.
 
 Covers:
 - phase_postprocess(): Post-processing phase
-- phase_cache_save(): Cache saving phase
 - phase_collect_stats(): Statistics collection
 - run_health_check(): Health check execution
 - phase_finalize(): Final cleanup phase
@@ -25,7 +24,6 @@ from bengal.orchestration.build.finalization import (
     _health_report_fingerprint,
     _load_cached_health_report,
     _store_cached_health_report,
-    phase_cache_save,
     phase_collect_stats,
     phase_finalize,
     phase_postprocess,
@@ -167,44 +165,6 @@ class TestPhasePostprocess:
             enabled_task_names={"special pages"},
         )
         assert orchestrator.stats.post_render_timings_ms["asset_audit"] == 0
-
-
-class TestPhaseCacheSave:
-    """Tests for phase_cache_save function."""
-
-    def test_saves_cache(self, tmp_path):
-        """Saves build cache."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        pages_to_build = [MagicMock()]
-        assets_to_process = [MagicMock()]
-
-        phase_cache_save(orchestrator, pages_to_build, assets_to_process)
-
-        orchestrator.incremental.save_cache.assert_called_once_with(
-            pages_to_build, assets_to_process
-        )
-
-    def test_logs_cache_saved(self, tmp_path):
-        """Logs cache saved message."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-
-        phase_cache_save(orchestrator, [], [])
-
-        orchestrator.logger.info.assert_called_with("cache_saved")
-
-    def test_raises_when_cache_save_fails(self, tmp_path):
-        """Cache persistence failures stop the build instead of being hidden."""
-        from bengal.errors import BengalCacheError
-
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.incremental.save_cache.return_value = False
-        phase_context = MagicMock()
-        phase_context.__enter__.return_value = None
-        phase_context.__exit__.return_value = False
-        orchestrator.logger.phase.return_value = phase_context
-
-        with pytest.raises(BengalCacheError):
-            phase_cache_save(orchestrator, [], [])
 
 
 class TestPhaseCollectStats:
