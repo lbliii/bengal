@@ -48,8 +48,8 @@ Usage:
     >>> # Parse content
     >>> html = parser.parse("# Hello World", metadata={})
     >>>
-    >>> # Parse with TOC extraction
-    >>> html, toc = parser.parse_with_toc("## Section 1\n## Section 2", {})
+    >>> # Parse with TOC extraction (html, toc, excerpt, meta_description)
+    >>> html, toc, excerpt, meta = parser.parse_with_toc("## Section 1\n## Section 2", {})
 
 Thread Safety:
 PythonMarkdownParser instances are NOT thread-safe.

@@ -48,7 +48,7 @@ class BaseMarkdownParser(ABC):
         """
 
     @abstractmethod
-    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str, str, str]:
         """
         Parse Markdown content and extract table of contents.
 
@@ -57,7 +57,9 @@ class BaseMarkdownParser(ABC):
             metadata: Page metadata
 
         Returns:
-            Tuple of (parsed HTML, table of contents HTML)
+            Tuple of (parsed HTML, table of contents HTML, excerpt,
+            meta description). Parsers that do not derive an excerpt or
+            meta description return empty strings for those fields.
         """
 
     def parse_to_ast(self, content: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:

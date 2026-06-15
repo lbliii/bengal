@@ -6,7 +6,7 @@ This allows Patitas to be used as a drop-in replacement for legacy parsers.
 Usage:
     parser = PatitasParser()
     html = parser.parse("# Hello", {})
-html, toc = parser.parse_with_toc("## Section 1\n## Section 2", {})
+    html, toc, excerpt, meta = parser.parse_with_toc("## Section 1\n## Section 2", {})
 
 Thread Safety:
 PatitasParser is thread-safe. Each parse() call creates independent
