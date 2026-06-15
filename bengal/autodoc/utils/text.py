@@ -72,6 +72,31 @@ def _convert_sphinx_roles(text: str) -> str:
     return text
 
 
+# MyST-style inline roles in docstrings (e.g. ``{ref}`target```, ``{doc}`/page```)
+# are illustrative source documentation, not navigation. Autodoc renders docstring
+# descriptions through the full Markdown pipeline, so an un-neutralized role becomes
+# a live (and usually broken) link on the generated API page. Escaping the opening
+# brace makes Patitas treat the token as literal text while the backtick span still
+# renders as inline code.
+_MYST_INLINE_ROLE_RE = re.compile(r"(?<!\\)\{([A-Za-z][\w-]*)\}(`+)")
+
+
+def _neutralize_myst_roles(text: str) -> str:
+    """
+    Escape MyST inline role syntax so docstring examples are not linkified.
+
+    Converts ``{role}`target``` into ``\\{role}`target``` so the role is shown
+    as literal text + inline code instead of being parsed as a live cross-reference.
+
+    Args:
+        text: Text that may contain MyST inline roles
+
+    Returns:
+        Text with inline role braces escaped
+    """
+    return _MYST_INLINE_ROLE_RE.sub(lambda m: rf"\{{{m.group(1)}}}{m.group(2)}", text)
+
+
 def sanitize_text(text: str | None) -> str:
     """
     Clean user-provided text for markdown generation.
@@ -119,6 +144,10 @@ def sanitize_text(text: str | None) -> str:
     # :meth:`method_name` → `method_name()`
     # :mod:`module_name` → `module_name`
     text = _convert_sphinx_roles(text)
+
+    # Neutralize MyST inline roles so illustrative docstring targets are not
+    # rendered as live (often broken) links on generated API pages.
+    text = _neutralize_myst_roles(text)
 
     # Collapse multiple blank lines to maximum of 2
     # (2 blank lines = paragraph break in markdown, more is excessive)

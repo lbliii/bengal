@@ -2,11 +2,13 @@
 
 Provides extensible block-level markup through the directive syntax:
 
+```text
 :::{directive-name} optional title
 :option-key: option value
 
 Content goes here.
 :::
+```
 
 Key components:
 - DirectiveHandler: Protocol for custom directive implementations

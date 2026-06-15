@@ -203,18 +203,57 @@ class TestInternalLinkCheckerBrokenLinks:
 
 
 class TestInternalLinkCheckerRelativeLinks:
-    """Tests for relative link handling."""
+    """Tests for relative link resolution (#489)."""
 
-    def test_relative_link_skipped(self, mock_site):
-        """Relative links (not starting with /) are currently skipped."""
+    def test_broken_relative_link_detected(self, mock_site):
+        """A relative link to a non-existent page is reported as broken (#489).
+
+        ``docs/guide.html`` lives at ``/docs/guide``; ``../missing/`` resolves
+        to ``/missing/`` which does not exist in the output index.
+        """
         checker = InternalLinkChecker(mock_site)
 
-        result = checker._check_internal_link("sibling-page", ["test.html"])
+        result = checker._check_internal_link("../missing/", ["docs/guide.html"])
 
-        # Relative links return OK with a note (not fully validated)
+        assert result.status == LinkStatus.BROKEN
+        assert result.first_ref == "docs/guide.html"
+        assert result.metadata.get("resolved") == "/missing/"
+
+    def test_valid_relative_link_resolves(self, mock_site):
+        """A relative link that resolves to a real page is OK.
+
+        From ``/docs/guide``, ``../about/`` resolves to ``/about/`` which exists.
+        """
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("../about/", ["docs/guide.html"])
+
         assert result.status == LinkStatus.OK
-        assert result.metadata is not None
-        assert "relative" in result.metadata.get("note", "").lower()
+
+    def test_relative_md_link_resolves_to_clean_url(self, mock_site):
+        """A relative ``.md`` link resolves against the build's clean URLs.
+
+        From the home page (``/``), ``about/index.md`` should validate against
+        the built ``/about/`` page rather than being skipped.
+        """
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("about/index.md", ["index.html"])
+
+        assert result.status == LinkStatus.OK
+
+    def test_relative_link_broken_for_one_ref(self, mock_site):
+        """A relative link is broken if it fails to resolve for any referrer.
+
+        ``./guide`` resolves to ``/docs/guide`` from ``docs/x.html`` (valid) but
+        to ``/guide`` from the home page (invalid) — the link is reported broken.
+        """
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("./guide", ["docs/x.html", "index.html"])
+
+        assert result.status == LinkStatus.BROKEN
+        assert result.first_ref == "index.html"
 
 
 class TestInternalLinkCheckerBaseURL:

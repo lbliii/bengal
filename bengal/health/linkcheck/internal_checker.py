@@ -54,8 +54,8 @@ class InternalLinkChecker:
         baseurl_path: Base URL path to strip from links
 
     Note:
-        Relative links are currently passed as OK with a metadata note,
-        as full resolution requires tracking the referencing page context.
+        Relative links are resolved against the referencing page's URL and
+        validated like absolute links.
 
     """
 
@@ -196,6 +196,117 @@ class InternalLinkChecker:
             output_paths_count=len(self._output_paths),
         )
 
+    def _ref_to_page_url(self, ref: str) -> str:
+        """
+        Convert a referencing page file path to its site-relative URL.
+
+        ``ref`` is the output-relative path of the HTML file that contains the
+        link (e.g. ``docs/guide/index.html`` or ``about.html``). The returned
+        URL is the base against which relative links on that page resolve.
+
+        Args:
+            ref: Output-relative HTML file path (uses ``/`` separators).
+
+        Returns:
+            Site-relative URL ending in ``/`` for index pages, otherwise the
+            clean URL of the page (e.g. ``/about.html``).
+        """
+        ref = ref.replace("\\", "/")
+        rel = Path(ref)
+        if rel.name == "index.html":
+            return "/" if rel.parent == Path(".") else f"/{rel.parent.as_posix()}/"
+        return f"/{rel.with_suffix('').as_posix()}"
+
+    def _resolved_path_exists(self, path: str) -> bool:
+        """
+        Check whether a resolved absolute path maps to a built page.
+
+        Normalizes common authoring suffixes (``.md``/``.html``) and trailing
+        slashes so a relative link such as ``../other.md`` validates against the
+        clean URL (``/section/other/``) recorded in the output index.
+
+        Args:
+            path: Absolute site path (already resolved, may include a suffix).
+
+        Returns:
+            True if the path matches a known built page or auxiliary file.
+        """
+        candidates = {path, path.rstrip("/")}
+        if path != "/" and not path.endswith("/"):
+            candidates.add(path + "/")
+
+        # Strip authoring suffixes that the build rewrites to clean URLs so a
+        # link to ``foo.md`` / ``foo.html`` resolves to ``/foo/``.
+        for suffix in (".md", ".html"):
+            if path.endswith(suffix):
+                stem = path[: -len(suffix)]
+                candidates.add(stem)
+                candidates.add(stem + "/")
+                # ``section/index.md`` -> ``/section/``
+                if stem.endswith("/index"):
+                    parent = stem[: -len("index")]
+                    candidates.add(parent)
+                    candidates.add(parent.rstrip("/"))
+
+        return any(c in self._output_paths for c in candidates)
+
+    def _check_relative_link(self, url: str, refs: list[str]) -> LinkCheckResult:
+        """
+        Resolve a relative internal link against each referencing page.
+
+        A relative link (``../other/``, ``./sibling.md``) has no meaning without
+        the page it appears on, so it is resolved against every referencing
+        page's URL via ``urljoin`` and validated like an absolute link. If it
+        fails to resolve for any referencing page, it is reported broken.
+
+        Args:
+            url: Relative internal URL (may include a fragment).
+            refs: Output-relative paths of pages that contain this link.
+
+        Returns:
+            LinkCheckResult — BROKEN for the first page where the link does not
+            resolve, otherwise OK.
+        """
+        from urllib.parse import urljoin
+
+        parsed = urlparse(url)
+        link_path = parsed.path
+
+        checked_refs = refs or [""]
+        for ref in checked_refs:
+            base_url = self._ref_to_page_url(ref) if ref else "/"
+            resolved = urljoin(base_url, link_path)
+
+            # Strip baseurl if the relative link climbed into it.
+            if self.baseurl_path and resolved.startswith(self.baseurl_path):
+                resolved = resolved[len(self.baseurl_path) :] or "/"
+
+            if not self._resolved_path_exists(resolved):
+                logger.debug(
+                    "internal_relative_link_broken",
+                    url=url,
+                    ref=ref,
+                    resolved=resolved,
+                )
+                return LinkCheckResult(
+                    url=url,
+                    kind=LinkKind.INTERNAL,
+                    status=LinkStatus.BROKEN,
+                    reason="Page not found",
+                    first_ref=ref or (refs[0] if refs else None),
+                    ref_count=len(refs),
+                    metadata={"resolved": resolved},
+                )
+
+        logger.debug("internal_relative_link_ok", url=url)
+        return LinkCheckResult(
+            url=url,
+            kind=LinkKind.INTERNAL,
+            status=LinkStatus.OK,
+            first_ref=refs[0] if refs else None,
+            ref_count=len(refs),
+        )
+
     def check_links(self, links: list[tuple[str, str]]) -> dict[str, LinkCheckResult]:
         """
         Check internal links against the output directory index.
@@ -292,23 +403,9 @@ class InternalLinkChecker:
             if not path:  # Handle case where path becomes empty
                 path = "/"
 
-        # Handle relative paths (resolve to absolute)
+        # Handle relative paths by resolving against the referencing page(s).
         if not path.startswith("/"):
-            # For now, treat other relative paths as potentially valid
-            # A full implementation would resolve relative to the referencing page
-            logger.debug(
-                "skipping_relative_internal_link",
-                url=url,
-                reason="relative paths not yet fully supported",
-            )
-            return LinkCheckResult(
-                url=url,
-                kind=LinkKind.INTERNAL,
-                status=LinkStatus.OK,
-                first_ref=refs[0] if refs else None,
-                ref_count=len(refs),
-                metadata={"note": "relative path - validation skipped"},
-            )
+            return self._check_relative_link(url, refs)
 
         # Check if page exists (with or without trailing slash)
         page_exists = path in self._output_paths or path.rstrip("/") in self._output_paths

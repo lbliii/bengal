@@ -117,6 +117,26 @@ class TestSanitizeText:
         assert "**bold**" in result
         assert "- Item 1" in result
 
+    def test_sanitize_neutralizes_myst_inline_roles(self):
+        """MyST inline roles are escaped so docstring examples are not linkified (#485).
+
+        ``{ref}`target``` and ``{doc}`/page``` would otherwise be rendered as
+        live (and usually broken) cross-reference links on generated API pages.
+        Escaping the opening brace keeps them as literal text + inline code.
+        """
+        text = "See {ref}`installation-guide` and {doc}`/getting-started` here."
+        result = sanitize_text(text)
+
+        assert r"\{ref}`installation-guide`" in result
+        assert r"\{doc}`/getting-started`" in result
+
+    def test_sanitize_leaves_non_role_braces_untouched(self):
+        """Braces not immediately followed by a backtick are not role syntax."""
+        text = "A {note} admonition and a {placeholder} value."
+        result = sanitize_text(text)
+
+        assert result == "A {note} admonition and a {placeholder} value."
+
 
 class TestTruncateText:
     """Tests for text truncation."""
