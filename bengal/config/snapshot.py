@@ -341,6 +341,11 @@ class ConfigSnapshot:
                 fast_mode=bool(build_data.get("fast_mode", False)),
                 stable_section_references=bool(build_data.get("stable_section_references", True)),
                 min_page_size=coerce_int(build_data.get("min_page_size", 1000), 1000),
+                render_isolation=str(build_data.get("render_isolation", "off")),
+                render_isolation_threshold=coerce_int(
+                    build_data.get("render_isolation_threshold", 400), 400
+                ),
+                render_isolation_workers=build_data.get("render_isolation_workers"),
             )
         else:
             build = BuildSection()
