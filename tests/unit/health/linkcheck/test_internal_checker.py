@@ -203,18 +203,109 @@ class TestInternalLinkCheckerBrokenLinks:
 
 
 class TestInternalLinkCheckerRelativeLinks:
-    """Tests for relative link handling."""
+    """Tests for relative link resolution (#489)."""
 
-    def test_relative_link_skipped(self, mock_site):
-        """Relative links (not starting with /) are currently skipped."""
+    def test_broken_relative_link_detected(self, mock_site):
+        """A relative link to a non-existent page is reported as broken (#489).
+
+        ``docs/guide.html`` is *served* at the pretty URL ``/docs/guide/``; a
+        browser resolves ``../missing/`` against that served directory to
+        ``/docs/missing/``, which does not exist in the output index.
+        """
         checker = InternalLinkChecker(mock_site)
 
-        result = checker._check_internal_link("sibling-page", ["test.html"])
+        result = checker._check_internal_link("../missing/", ["docs/guide.html"])
 
-        # Relative links return OK with a note (not fully validated)
+        assert result.status == LinkStatus.BROKEN
+        assert result.first_ref == "docs/guide.html"
+        assert result.metadata.get("resolved") == "/docs/missing/"
+
+    def test_valid_relative_link_resolves(self, mock_site):
+        """A relative link that resolves to a real page is OK.
+
+        ``docs/guide.html`` is served at ``/docs/guide/``; a browser resolves
+        ``../../about/`` against that directory to ``/about/`` which exists.
+        """
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("../../about/", ["docs/guide.html"])
+
         assert result.status == LinkStatus.OK
-        assert result.metadata is not None
-        assert "relative" in result.metadata.get("note", "").lower()
+
+    def test_relative_md_link_resolves_to_clean_url(self, mock_site):
+        """A relative ``.md`` link resolves against the build's clean URLs.
+
+        From the home page (``/``), ``about/index.md`` should validate against
+        the built ``/about/`` page rather than being skipped.
+        """
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("about/index.md", ["index.html"])
+
+        assert result.status == LinkStatus.OK
+
+    def test_relative_link_broken_for_one_ref(self, mock_site):
+        """A relative link is broken if it fails to resolve for any referrer.
+
+        Both ``docs/x.html`` and the home page are served at pretty URLs
+        (``/docs/x/`` and ``/``). ``../guide/`` resolves to ``/docs/guide/``
+        from ``docs/x.html`` (valid) but to ``/guide/`` from the home page
+        (invalid) — the link is reported broken against the home page.
+        """
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("../guide/", ["docs/x.html", "index.html"])
+
+        assert result.status == LinkStatus.BROKEN
+        assert result.first_ref == "index.html"
+
+    def test_pretty_url_sibling_link_not_false_positive(self, mock_site, tmp_path):
+        """Reviewer false-positive: ``../<sibling>.md`` from a flat non-index page.
+
+        Bengal serves the non-index file ``section/other.html`` at the pretty
+        URL ``/section/other/``. A browser resolves ``../other.md`` against that
+        served directory to ``/section/other.md`` → ``/section/other/`` (a
+        self-reference that exists). With the off-by-a-segment base (``/section/
+        other``) it wrongly resolved to ``/other/`` and was reported BROKEN.
+        This must now be OK.
+        """
+        section = tmp_path / "section"
+        section.mkdir()
+        # Flat-output non-index pages: served at /section/other/ and /section/sibling/
+        (section / "other.html").write_text("<html><body>Other</body></html>")
+        (section / "sibling.html").write_text("<html><body>Sibling</body></html>")
+
+        checker = InternalLinkChecker(mock_site)
+
+        # Self-referential sibling link authored on section/other.html.
+        result = checker._check_internal_link("../other.md", ["section/other.html"])
+        assert result.status == LinkStatus.OK, (
+            f"expected OK, got {result.status} (resolved="
+            f"{result.metadata.get('resolved') if result.metadata else None})"
+        )
+
+        # A real neighbouring page reached relative to the served directory.
+        result = checker._check_internal_link("../sibling/", ["section/other.html"])
+        assert result.status == LinkStatus.OK
+
+    def test_pretty_url_relative_link_still_catches_broken(self, mock_site, tmp_path):
+        """Discriminator: a genuinely-broken relative link from a flat page is BROKEN.
+
+        From ``section/other.html`` (served ``/section/other/``), ``../ghost.md``
+        resolves to ``/section/ghost.md`` → ``/section/ghost/`` which does not
+        exist — must be reported BROKEN with the browser-accurate resolved path.
+        """
+        section = tmp_path / "section"
+        section.mkdir()
+        (section / "other.html").write_text("<html><body>Other</body></html>")
+
+        checker = InternalLinkChecker(mock_site)
+
+        result = checker._check_internal_link("../ghost.md", ["section/other.html"])
+        assert result.status == LinkStatus.BROKEN
+        assert result.first_ref == "section/other.html"
+        # Browser-accurate base: resolves within the section, not at site root.
+        assert result.metadata.get("resolved") == "/section/ghost.md"
 
 
 class TestInternalLinkCheckerBaseURL:

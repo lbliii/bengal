@@ -11,6 +11,8 @@ Use cases:
 - Auto-generated section indexes
 
 Example:
+
+```text
 ::::{cards}
 :columns: 3
 
@@ -28,6 +30,7 @@ Quick introduction to the platform.
 Complete API documentation.
 :::
 ::::
+```
 
 Thread Safety:
 Stateless handlers. Safe for concurrent use across threads.

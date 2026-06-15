@@ -171,8 +171,8 @@ The default theme ships with these shortcodes. Override any by placing a templat
 | `tip` | `{{% tip %}}Hint{{% /tip %}}` | Tip callout box |
 | `warning` | `{{% warning %}}Caution{{% /warning %}}` | Warning callout box |
 | `danger` | `{{% danger %}}Critical{{% /danger %}}` | Danger callout box |
-| `ref` | `{{< ref "docs/guide/intro" >}}` | Internal page link (absolute URL) |
-| `relref` | `{{< relref "docs/guide/intro" >}}` | Internal page link (relative URL) |
+| `ref` | `{{< ref "docs/get-started/quickstart-writer" >}}` | Internal page link (absolute URL) |
+| `relref` | `{{< relref "docs/get-started/quickstart-writer" >}}` | Internal page link (relative URL) |
 
 ## Strict Mode
 
@@ -214,7 +214,7 @@ Copy-paste snippets for common patterns.
 ### Internal link with custom text
 
 ```markdown
-{{< ref "docs/guide/intro" text="Get started" >}}
+{{< ref "docs/get-started/quickstart-writer" text="Get started" >}}
 ```
 
 ### Typed arguments
