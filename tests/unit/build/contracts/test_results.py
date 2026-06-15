@@ -73,17 +73,17 @@ class TestRebuildReason:
         assert reason.trigger == "data/team.yaml"
 
     def test_str_without_trigger(self) -> None:
-        """__str__ returns code name when no trigger."""
+        """__str__ returns the string code value when no trigger/details (#445)."""
         reason = RebuildReason(code=RebuildReasonCode.FORCED)
-        assert str(reason) == "FORCED"
+        assert str(reason) == "forced"
 
     def test_str_with_trigger(self) -> None:
-        """__str__ includes trigger when present."""
+        """__str__ includes trigger when present, led by the string code value (#445)."""
         reason = RebuildReason(
             code=RebuildReasonCode.TEMPLATE_CHANGED,
             trigger="templates/base.html",
         )
-        assert str(reason) == "TEMPLATE_CHANGED: templates/base.html"
+        assert str(reason) == "template_changed: templates/base.html"
 
     def test_is_frozen(self) -> None:
         """RebuildReason is immutable (frozen)."""

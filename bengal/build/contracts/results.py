@@ -3,13 +3,18 @@ Immutable result types for change detection.
 
 All detectors return ChangeDetectionResult. Results are merged
 with .merge() to compose detector outputs.
+
+This module is the CANONICAL home of the rebuild-reason vocabulary
+(RebuildReasonCode / RebuildReason). The build-orchestration copy at
+``bengal.orchestration.build.results`` re-exports these symbols, so the two
+import paths resolve to the same objects (see #445).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import TYPE_CHECKING
+from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -18,33 +23,73 @@ if TYPE_CHECKING:
 
 
 class RebuildReasonCode(Enum):
-    """Why a page needs rebuilding."""
+    """
+    Why a page needs rebuilding.
 
-    CONTENT_CHANGED = auto()
-    DATA_FILE_CHANGED = auto()
-    TEMPLATE_CHANGED = auto()
-    TAXONOMY_CASCADE = auto()
-    CASCADE = auto()
-    ASSET_FINGERPRINT_CHANGED = auto()
-    CONFIG_CHANGED = auto()
-    OUTPUT_MISSING = auto()
-    CROSS_VERSION_DEPENDENCY = auto()
-    ADJACENT_NAV_CHANGED = auto()
-    FORCED = auto()
-    FULL_REBUILD = auto()
+    Values are STRINGS so they serialize cleanly into observability output and
+    JSON sidecars (do not switch to ``auto()`` ints). The vocabulary is the
+    union of the historic contracts-side and orchestration-side enums; where two
+    names denoted the same concept they alias to a single value:
+
+    - ``CASCADE`` and ``CASCADE_DEPENDENCY`` are aliases (value
+      ``"cascade_dependency"``).
+    """
+
+    CONTENT_CHANGED = "content_changed"
+    DATA_FILE_CHANGED = "data_file_changed"
+    TEMPLATE_CHANGED = "template_changed"
+    TAXONOMY_CASCADE = "taxonomy_cascade"
+    ASSET_FINGERPRINT_CHANGED = "asset_fingerprint_changed"
+    CONFIG_CHANGED = "config_changed"
+    OUTPUT_MISSING = "output_missing"
+    CROSS_VERSION_DEPENDENCY = "cross_version_dependency"
+    NAV_CHANGED = "nav_changed"
+    ADJACENT_NAV_CHANGED = "adjacent_nav_changed"
+    FORCED = "forced"
+    FULL_REBUILD = "full_rebuild"
+    # Cascade-dependency rebuild. CASCADE is the original contracts-side
+    # spelling; CASCADE_DEPENDENCY is the orchestration-side spelling. They
+    # are intentional aliases so neither call-site breaks.
+    CASCADE = "cascade_dependency"
+    CASCADE_DEPENDENCY = "cascade_dependency"  # noqa: PIE796 (intentional alias of CASCADE)
+
+
+class SkipReasonCode(Enum):
+    """Why a page was skipped (not rebuilt)."""
+
+    CACHE_HIT = "cache_hit"
+    NO_CHANGES = "no_changes"
+    SECTION_FILTERED = "section_filtered"
 
 
 @dataclass(frozen=True, slots=True)
 class RebuildReason:
-    """Detailed reason for page rebuild."""
+    """
+    Detailed reason for a page rebuild.
+
+    ``details`` is the primary, structured payload (used by observability and
+    the ``--explain`` CLI). ``trigger`` is a backward-compatible convenience
+    field for the common single-path case (e.g. ``"data/team.yaml"``); older
+    call-sites that read ``reason.trigger`` keep working unchanged.
+    """
 
     code: RebuildReasonCode
-    trigger: str = ""  # What triggered it (e.g., "data/team.yaml")
+    details: dict[str, Any] = field(default_factory=dict)
+    trigger: str = ""  # Backward-compat: what triggered it (e.g. "data/team.yaml")
 
     def __str__(self) -> str:
+        # Observability/JSON form: lead with the string code value.
+        if self.details:
+            detail_str = ", ".join(f"{k}={v}" for k, v in self.details.items())
+            return f"{self.code.value} ({detail_str})"
         if self.trigger:
-            return f"{self.code.name}: {self.trigger}"
-        return self.code.name
+            return f"{self.code.value}: {self.trigger}"
+        return self.code.value
+
+
+# Sentinel key used by ChangeDetectionResult.full_rebuild() to record its reason
+# (a full rebuild has no single triggering page key).
+_FULL_REBUILD_KEY = "<full_rebuild>"
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,8 +133,24 @@ class ChangeDetectionResult:
 
     @classmethod
     def full_rebuild(cls, reason: str = "forced") -> ChangeDetectionResult:
-        """Create result indicating full rebuild needed."""
-        return cls(force_full_rebuild=True)
+        """
+        Create result indicating a full rebuild is needed.
+
+        The ``reason`` string is recorded under a sentinel key in
+        ``rebuild_reasons`` (as the ``trigger`` of a FULL_REBUILD reason) so the
+        cause is observable downstream instead of being silently discarded.
+        """
+        from bengal.build.contracts.keys import CacheKey  # local: NewType is str at runtime
+
+        return cls(
+            force_full_rebuild=True,
+            rebuild_reasons={
+                CacheKey(_FULL_REBUILD_KEY): RebuildReason(
+                    code=RebuildReasonCode.FULL_REBUILD,
+                    trigger=reason,
+                )
+            },
+        )
 
     def merge(self, other: ChangeDetectionResult) -> ChangeDetectionResult:
         """

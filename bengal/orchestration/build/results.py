@@ -7,6 +7,12 @@ All dataclasses support convenient access patterns:
 - Tuple unpacking via __iter__() methods
 - Dict-like access for ChangeSummary (to_dict(), items(), get(), __getitem__())
 
+Note:
+    The rebuild-reason vocabulary (``RebuildReasonCode`` / ``RebuildReason``) and
+    ``SkipReasonCode`` are CANONICALLY defined in
+    ``bengal.build.contracts.results`` and re-exported here so the two import
+    paths resolve to the same objects (see #445). Do not redefine them.
+
 See Also:
 - plan/active/rfc-dataclass-improvements.md - Design rationale
 - plan/rfc-incremental-build-observability.md - Incremental decision tracking
@@ -16,8 +22,16 @@ See Also:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import TYPE_CHECKING, Any
+
+# Canonical rebuild/skip vocabulary lives in the contracts package. Re-export so
+# that bengal.orchestration.build.results.RebuildReasonCode IS
+# bengal.build.contracts.results.RebuildReasonCode (identity, not a copy).
+from bengal.build.contracts.results import (
+    RebuildReason,
+    RebuildReasonCode,
+    SkipReasonCode,
+)
 
 if TYPE_CHECKING:
     from collections.abc import ItemsView
@@ -30,6 +44,18 @@ if TYPE_CHECKING:
     from bengal.orchestration.content import ContentOrchestrator
     from bengal.protocols.core import PageLike, SectionLike
     from bengal.utils.observability.logger import BengalLogger
+
+__all__ = [
+    "ChangeSummary",
+    "ConfigCheckResult",
+    "DiscoveryPhaseInput",
+    "DiscoveryPhaseOutput",
+    "FilterResult",
+    "IncrementalDecision",
+    "RebuildReason",
+    "RebuildReasonCode",
+    "SkipReasonCode",
+]
 
 
 @dataclass
@@ -76,55 +102,6 @@ class DiscoveryPhaseOutput:
     assets: list[Asset]
     content_ms: float = 0.0
     assets_ms: float = 0.0
-
-
-class RebuildReasonCode(Enum):
-    """
-    Why a page is being rebuilt.
-
-    Enables exhaustive handling and better IDE support for understanding
-    incremental build decisions.
-    """
-
-    CONTENT_CHANGED = "content_changed"
-    TEMPLATE_CHANGED = "template_changed"
-    DATA_FILE_CHANGED = "data_file_changed"  # RFC: rfc-incremental-build-dependency-gaps
-    TAXONOMY_CASCADE = "taxonomy_cascade"  # RFC: rfc-incremental-build-dependency-gaps
-    ASSET_FINGERPRINT_CHANGED = "asset_fingerprint_changed"
-    CASCADE_DEPENDENCY = "cascade_dependency"
-    NAV_CHANGED = "nav_changed"
-    CROSS_VERSION_DEPENDENCY = "cross_version_dependency"
-    ADJACENT_NAV_CHANGED = "adjacent_nav_changed"
-    FORCED = "forced"
-    FULL_REBUILD = "full_rebuild"
-    OUTPUT_MISSING = "output_missing"
-
-
-class SkipReasonCode(Enum):
-    """Why a page was skipped (not rebuilt)."""
-
-    CACHE_HIT = "cache_hit"
-    NO_CHANGES = "no_changes"
-    SECTION_FILTERED = "section_filtered"
-
-
-@dataclass
-class RebuildReason:
-    """
-    Tracks why a page is being rebuilt.
-
-    Note: page_path is the dict key in IncrementalDecision.rebuild_reasons,
-    not stored here to avoid redundancy.
-    """
-
-    code: RebuildReasonCode
-    details: dict[str, Any] = field(default_factory=dict)
-
-    def __str__(self) -> str:
-        if self.details:
-            detail_str = ", ".join(f"{k}={v}" for k, v in self.details.items())
-            return f"{self.code.value} ({detail_str})"
-        return self.code.value
 
 
 @dataclass
