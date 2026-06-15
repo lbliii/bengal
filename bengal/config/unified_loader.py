@@ -74,11 +74,12 @@ class UnifiedConfigLoader:
         site_root: Path,
         environment: str | None = None,
         profile: str | None = None,
+        config_path: Path | None = None,
     ) -> Config:
         """
         Load configuration from site root.
 
-        Auto-detects config mode:
+        Auto-detects config mode (when ``config_path`` is not given):
             - config/ directory exists → directory mode
             - bengal.toml/yaml exists → single-file mode
             - Neither → DEFAULTS only
@@ -87,6 +88,9 @@ class UnifiedConfigLoader:
             site_root: Root directory of the site.
             environment: Environment name (auto-detected if None).
             profile: Profile name (optional).
+            config_path: Explicit path to a single config file. When provided,
+                this file is loaded directly and auto-discovery is bypassed.
+                When None, auto-discovery proceeds exactly as before.
 
         Returns:
             Config object with structured access.
@@ -108,8 +112,20 @@ class UnifiedConfigLoader:
         # Determine config source
         config_dir: Path | None = None
         single_file: Path | None = None
+        # An explicit config_path wins over auto-discovery: load that file
+        # directly and treat its parent as the site root.
+        if config_path is not None:
+            config_path = Path(config_path)
+            if not config_path.exists():
+                raise ConfigLoadError(
+                    f"Config file not found: {config_path}",
+                    code=ErrorCode.C005,
+                    file_path=config_path,
+                    suggestion="Ensure the explicit config file path exists",
+                )
+            single_file = config_path
         # Allow passing config directory directly (has _default/)
-        if site_root.is_dir() and (site_root / "_default").exists():
+        elif site_root.is_dir() and (site_root / "_default").exists():
             config_dir = site_root
         elif site_root.is_dir() and (site_root / "config").exists():
             config_dir = site_root / "config"
