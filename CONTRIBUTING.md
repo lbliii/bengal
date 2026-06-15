@@ -200,6 +200,7 @@ User-facing changes under `bengal/` should include a **news fragment** in `chang
 - **Preview:** `poe changelog-draft` (stdout only).
 - **Compile (maintainers, usually before tagging):** `poe changelog` runs `towncrier build --yes`.
 - **Local check vs `main`:** `poe changelog-check`.
+- **Voice/leak lint:** `poe changelog-lint` (fragments; add `--releases` for site release pages). Fragments are written for third-party consumers — no internal coinage (phase/sprint/saga/epic/plan-file/branch slug), counts, or contributor-only churn; translate mechanism to user-visible effect.
 - **Skip in CI:** Apply the **`skip-changelog`** label when no fragment fits (e.g. docs-only outside the package, or internal refactors with no release note).
 
 ## Pull Request Process
