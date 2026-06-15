@@ -1433,7 +1433,18 @@ class BuildTrigger:
                 if cache_path.exists():
                     cache = BuildCache.load(cache_path)
                     cache.site_root = self.site.root_path
-            except Exception:
+            except Exception as e:
+                # A corrupt/unreadable build cache must not crash the watcher,
+                # but the swallow used to hide load failures entirely. Emit a
+                # breadcrumb so a missing template-dependency graph (which
+                # forces conservative full rebuilds) is explainable.
+                logger.debug(
+                    "template_cache_load_failed",
+                    cache_path=str(cache_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="treating template change as full rebuild (no dependency graph)",
+                )
                 cache = None
 
         for path in html_paths:

@@ -556,3 +556,110 @@ class TestPipelineCacheIntegration:
             "Rendered content for persistence test"
             in loaded_cache.rendered_output[str(mock_page.source_path)]["html"]
         )
+
+
+def _cache_checker_events():
+    from bengal.utils.observability.logger import _loggers
+
+    name = "bengal.rendering.pipeline.cache_checker"
+    if name in _loggers:
+        return _loggers[name].get_events()
+    return []
+
+
+class TestCacheCheckerLinkRestoreDiagnostics:
+    """The cached-link restore fallback must emit a diagnostic, not swallow (issue #472)."""
+
+    def test_link_restore_failure_emits_fallback_diagnostic(
+        self, site_with_cache, monkeypatch, tmp_path
+    ):
+        """A failure applying cached links must log the error + reason, then fall back to empty."""
+        from bengal.utils.observability.logger import (
+            LogLevel,
+            configure_logging,
+            reset_loggers,
+        )
+
+        reset_loggers()
+        configure_logging(level=LogLevel.DEBUG)
+
+        site, _cache = site_with_cache
+
+        class Page:
+            def __init__(self):
+                self.source_path = tmp_path / "content" / "cached.md"
+                self.output_path = tmp_path / "public" / "cached" / "index.html"
+                self.metadata = {"title": "Cached"}
+                self.rendered_html = ""
+                clear_parsed_page_state(self)
+
+            @property
+            def plain_text(self):
+                return "Cached body"
+
+        class Cache:
+            def get_parsed_content(self, *args, **kwargs):
+                return {
+                    "html": "<p>Cached body</p>",
+                    "toc": "",
+                    "toc_items": [],
+                    # Non-empty list drives the cached-link restore path.
+                    "links": ["/guide/", "/about/"],
+                    "plain_text": "Cached body",
+                    "word_count": 2,
+                    "reading_time": 1,
+                }
+
+        class Renderer:
+            def render_content(self, content):
+                return content
+
+            def render_page(self, page, html_content, parsed_page=None):
+                return f"<html>{html_content}</html>"
+
+        boom = ValueError("synthetic link-apply failure " + "x" * 800)
+        applied = []
+
+        def fake_apply(page, links):
+            # Fail on the cached-restore call (non-empty), succeed on the [] fallback.
+            if links:
+                raise boom
+            applied.append(list(links))
+            page.__dict__["links"] = []  # adapter stub; avoid parsed-field boundary guard
+
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.apply_parsed_links_to_page",
+            fake_apply,
+        )
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.format_html",
+            lambda html, page, site: html,
+        )
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.write_output",
+            lambda *args, **kwargs: None,
+        )
+
+        try:
+            page = Page()
+            checker = CacheChecker(site=site, renderer=Renderer(), build_cache=Cache())
+
+            assert checker.try_parsed_cache(page, "default.html", "patitas-test-toc1") is True
+
+            # Fallback to empty links still happened.
+            assert applied == [[]]
+            assert page.links == []
+
+            events = _cache_checker_events()
+            fallbacks = [e for e in events if e.message == "cached_links_restore_failed"]
+            assert fallbacks, (
+                "expected a 'cached_links_restore_failed' diagnostic; "
+                f"got {[e.message for e in events]}"
+            )
+            ev = fallbacks[0]
+            assert ev.context.get("reason") == "fallback_to_empty"
+            # Error must be reported, untruncated.
+            assert str(boom) in str(ev.context.get("error"))
+            assert ev.context.get("error_type") == "ValueError"
+        finally:
+            reset_loggers()
