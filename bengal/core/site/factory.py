@@ -54,8 +54,10 @@ def from_config(
     Args:
         cls: The Site class (passed automatically by classmethod)
         root_path: Root directory of the site (Path object)
-        config_path: Optional explicit path to config file (Path object)
-                    Only used for single-file configs, ignored if config/ exists
+        config_path: Optional explicit path to a config file (Path object).
+                    When provided, this file is loaded directly and config
+                    auto-discovery (config/ directory or bengal.toml in the
+                    site root) is bypassed.
         environment: Environment name (e.g., 'production', 'local')
                     Auto-detected if not specified (Netlify, Vercel, GitHub)
         profile: Profile name (e.g., 'writer', 'dev')
@@ -92,7 +94,12 @@ def from_config(
     from bengal.config.unified_loader import UnifiedConfigLoader
 
     loader = UnifiedConfigLoader()
-    config = loader.load(root_path, environment=environment, profile=profile)
+    config = loader.load(
+        root_path,
+        environment=environment,
+        profile=profile,
+        config_path=config_path,
+    )
 
     return cls(root_path=root_path, config=config)
 
