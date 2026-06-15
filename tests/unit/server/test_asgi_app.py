@@ -153,12 +153,12 @@ async def test_static_asset_served_from_hidden_buffer_dir(tmp_path: Path) -> Non
     """Assets under a hidden (dot-prefixed) serving dir must serve, not 404 (regression).
 
     The dev double-buffer stages builds in ``<root>/.bengal/staging`` and serves from
-    whichever buffer is active. Pounce's static handler rejects any path whose resolved
-    absolute path contains a hidden component (``.bengal``), so when that buffer was
-    active *every* asset 404'd while HTML still loaded — the "theme drops to unstyled
-    for long periods while editing" bug. The app must route around Pounce to
-    ``_serve_static`` for hidden serving dirs so assets keep serving regardless of which
-    buffer is active. Before the fix this returned 404.
+    whichever buffer is active. Historically Pounce's static handler rejected any path
+    whose resolved absolute path contained a hidden component (``.bengal``), so when that
+    buffer was active *every* asset 404'd while HTML still loaded — the "theme drops to
+    unstyled for long periods while editing" bug. Pounce 0.8.0 (lbliii/pounce#74) only
+    treats components *below* the mount root as hidden, so the hidden staging buffer now
+    serves through the fast Pounce static path. This must keep returning 200.
     """
     staging = tmp_path / ".bengal" / "staging"
     (staging / "assets" / "css").mkdir(parents=True)
@@ -181,28 +181,19 @@ async def test_static_asset_served_from_hidden_buffer_dir(tmp_path: Path) -> Non
     assert _body(sent) == b"body { color: red; }"
 
 
-def test_has_hidden_path_component(tmp_path: Path) -> None:
-    """Detects dot-prefixed components anywhere in the resolved path (except .well-known)."""
-    from bengal.server.asgi_app import _has_hidden_path_component
-
-    assert _has_hidden_path_component(tmp_path / ".bengal" / "staging") is True
-    assert _has_hidden_path_component(tmp_path / "public") is False
-    assert _has_hidden_path_component(tmp_path / "public-bengal-staging") is False
-    assert _has_hidden_path_component(tmp_path / ".well-known") is False
-
-
 @pytest.mark.asyncio
 async def test_asset_404_with_present_file_emits_diagnostic(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """A 404 for an asset that exists on disk emits a loud diagnostic (serve-path-bug canary).
 
     A genuinely-missing file 404 and an existing-file-404 (a serving bug) look identical to a
     client. This diagnostic distinguishes them — it is what would have made the hidden-buffer
-    bug a one-line signal instead of a multi-theory investigation. Driven directly through the
-    Pounce path with a hidden serving dir (which Pounce rejects) so the file is present yet 404s.
+    bug a one-line signal instead of a multi-theory investigation. Pounce 0.8.0 serves a buffer
+    rooted under a dotfile, but still rejects a hidden component *below* the mount root, so we
+    drive a ``.secret/`` subdir asset (present on disk, yet 404'd) to exercise the diagnostic.
     """
     from bengal.server import asgi_app
 
-    hidden = tmp_path / ".bengal" / "staging" / "assets" / "css"
+    hidden = tmp_path / ".secret" / "css"
     hidden.mkdir(parents=True)
     (hidden / "style.css").write_text("body {}")
 
@@ -219,15 +210,16 @@ async def test_asset_404_with_present_file_emits_diagnostic(tmp_path: Path, monk
 
     sent, send = _make_send_capture()
     served = await asgi_app._serve_pounce_static_asset(
-        {"type": "http", "method": "GET", "path": "/assets/css/style.css", "headers": []},
+        {"type": "http", "method": "GET", "path": "/.secret/css/style.css", "headers": []},
         _noop_receive,
         send,
-        output_dir=tmp_path / ".bengal" / "staging",
+        output_dir=tmp_path,
         static_asset_handlers={},
     )
 
     assert served is True
-    assert sent[0]["status"] == 404  # Pounce rejects the hidden path even though the file exists
+    # Pounce rejects the hidden component below the mount root even though the file exists.
+    assert sent[0]["status"] == 404
     assert any("404_but_file_present" in msg for msg, _ in warnings), (
         "an asset that exists on disk but 404s must emit a diagnostic warning"
     )
@@ -534,9 +526,15 @@ async def test_preview_app_serves_generated_artifact_as_static_file(tmp_path: Pa
 
 @pytest.mark.asyncio
 async def test_preview_app_uses_protocol_owned_pounce_sendfile(tmp_path: Path) -> None:
-    """Preview static files use Pounce's h11-accounted sendfile message."""
+    """Preview static files use Pounce's h11-accounted sendfile message.
+
+    Pounce 0.8.0 only emits ``pounce.response.sendfile`` for bodies at/above its
+    zero-copy threshold (``_SENDFILE_MIN_SIZE``, 16 KiB); tiny files stream via
+    chunked ``http.response.body``. Use a body past that threshold so the
+    protocol-owned sendfile path is the one exercised here.
+    """
     asset_path = tmp_path / "app.js"
-    asset_path.write_text("console.log('preview')")
+    asset_path.write_text("console.log('preview');" + "x" * (32 * 1024))
 
     app = create_bengal_preview_app(output_dir=tmp_path)
     sent, send = _make_send_capture()

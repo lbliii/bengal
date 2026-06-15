@@ -42,9 +42,8 @@ def _hidden_path_component(directory: Path) -> str | None:
     """Return the first hidden (dot-prefixed) component of a resolved path, or None.
 
     ``.well-known`` is exempt: it is a hidden directory the static handler is
-    expected to serve. Mirrors the detection in ``asgi_app._has_hidden_path_component``
-    so the construction-time guard (#400) and the request-time serving fallback
-    (#392) agree on what "hidden" means.
+    expected to serve. Used by the construction-time warning (#400 Part 1), which
+    surfaces a hidden serving path loudly at buffer setup as a safety net.
     """
     try:
         resolved = directory.resolve()
@@ -83,19 +82,19 @@ class BufferManager:
     def _warn_on_hidden_buffer_paths(self) -> None:
         """Pin the hidden-path serving constraint at the integration boundary (#400).
 
-        Pounce's static handler rejects any path whose resolved absolute path
-        contains a hidden (dot-prefixed) component — see ``pounce/_static.py``
-        ``_resolve_file`` and upstream lbliii/pounce#74. The dev server's default
-        staging buffer lives under ``<root>/.bengal/staging``, a hidden directory,
-        so when that buffer is active Pounce 404s every asset under it. #392 works
-        around this by routing those requests through Bengal's own ``_serve_static``,
-        but the underlying constraint is invisible three layers from the cause.
+        Historically Pounce's static handler rejected any path whose *resolved
+        absolute* path contained a hidden (dot-prefixed) component, so the dev
+        server's default staging buffer under ``<root>/.bengal/staging`` made
+        Pounce 404 every asset when that buffer was active (lbliii/pounce#74).
+        Pounce 0.8.0 fixed this — the hidden-file check now only inspects path
+        components *below* the mount root, so a buffer rooted under a dotfile
+        serves correctly through the fast static path.
 
-        This surfaces the constraint loudly at buffer construction so a future
-        change that introduces a *new* hidden serving path fails visibly here
-        rather than as mysterious runtime 404s. We log (not raise) because the
-        #392 mitigation keeps serving working; Part 2 (relocating the staging
-        buffer off ``.bengal/``) is upstream-gated on pounce#74.
+        We keep this warning as a forward-looking safety net: it surfaces a
+        hidden serving-buffer path loudly at construction so a future change
+        (a different static handler, a downgraded Pounce, a new hidden ancestor)
+        fails visibly here instead of as mysterious runtime 404s three layers
+        downstream. We log (not raise) because serving works on Pounce 0.8.0+.
         """
         for label, directory in (("active", self._dirs[0]), ("staging", self._dirs[1])):
             hidden = _hidden_path_component(directory)
@@ -107,11 +106,12 @@ class BufferManager:
                     hidden_component=hidden,
                     ref="lbliii/pounce#74",
                     hint=(
-                        "Buffer path contains a hidden (dot-prefixed) component that "
-                        "Pounce's static handler rejects; asset requests for this buffer "
-                        "fall back to bengal's _serve_static (#392 mitigation) instead of "
-                        "the fast Pounce static path. Relocating off .bengal/ (#400 Part 2) "
-                        "is gated on upstream pounce#74."
+                        "Buffer path contains a hidden (dot-prefixed) component. "
+                        "Pounce 0.8.0+ serves such buffers correctly (lbliii/pounce#74), "
+                        "but a different static handler or a downgraded Pounce would 404 "
+                        "every asset under it. Surfaced here as a boundary safety net "
+                        "(#400 Part 1) so the constraint fails visibly at setup, not as "
+                        "runtime 404s downstream."
                     ),
                 )
 

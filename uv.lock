@@ -209,7 +209,7 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-pounce", specifier = ">=0.7.1" },
+    { name = "bengal-pounce", specifier = ">=0.8.0" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "chirp-ui", marker = "extra == 'chirp'", specifier = ">=0.9.0" },
@@ -274,15 +274,15 @@ dev = [
 
 [[package]]
 name = "bengal-pounce"
-version = "0.7.1"
+version = "0.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "h11" },
     { name = "milo-cli" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/89/987fe874d2aa008b8a777676f34a524aea04d8f5c0066854aae6fc940a9d/bengal_pounce-0.7.1.tar.gz", hash = "sha256:326452f317351488319292ee5b1032e98054993a146f63ba3550275eab853331", size = 201077, upload-time = "2026-05-23T16:49:26.62Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/77/a61cd170de9e6ab0681520d4de36bc43658518857fb5326609e5e0bf558f/bengal_pounce-0.8.1.tar.gz", hash = "sha256:ada2cf7603e7fc1dcd4993856bbb856cc7487ad8dcec43d199bb561f2b80a8cd", size = 238476, upload-time = "2026-06-15T21:09:01.709Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/0b/868403f83e95b3048a244014eff1f932a522372eccb699fca5f5040c01fd/bengal_pounce-0.7.1-py3-none-any.whl", hash = "sha256:63a04aab2596be51dbccba4146a8ab44223f9451f59fe16206ce05ffbed8b2ca", size = 232327, upload-time = "2026-05-23T16:49:24.372Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/81/61324b3d1864c6fc426ff1b3db533a93b8d80275f14869aabf55285e9169/bengal_pounce-0.8.1-py3-none-any.whl", hash = "sha256:5eb229297cbeab24878c02ccddf46bf752925af19431fdbfbe96b9557496fbe8", size = 272453, upload-time = "2026-06-15T21:09:00.059Z" },
 ]
 
 [[package]]
