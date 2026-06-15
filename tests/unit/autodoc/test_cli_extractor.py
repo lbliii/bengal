@@ -2,6 +2,7 @@
 Tests for CLI documentation extractor.
 """
 
+import argparse
 from pathlib import Path
 
 import click
@@ -996,3 +997,218 @@ class TestMiloExtractor:
         greet = next(e for e in elements if e.name == "greet")
         loud_param = next(p for p in greet.children if p.name == "loud")
         assert "--loud" in loud_param.metadata["opts"]
+
+
+# ============================================================================
+# argparse Tests
+# ============================================================================
+
+
+def _build_sample_argparse_cli():
+    """Build a sample argparse parser with subcommands for testing."""
+    parser = argparse.ArgumentParser(prog="argtool", description="A sample argparse application")
+    subparsers = parser.add_subparsers(dest="command")
+
+    process = subparsers.add_parser("process", help="Process a file")
+    process.add_argument("filename", help="File to process")
+    process.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
+    process.add_argument("-c", "--count", type=int, default=1, help="Number of times to process")
+
+    clean = subparsers.add_parser("clean", help="Clean up resources")
+    clean.add_argument("-f", "--force", action="store_true", help="Force the operation")
+
+    return parser
+
+
+class TestArgparseExtractor:
+    """Tests for argparse CLI extraction."""
+
+    def test_extract_root(self):
+        """Test extracting the root argparse parser as a command-group."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        assert len(elements) >= 1
+        root = elements[0]
+        assert root.name == "argtool"
+        assert root.element_type == "command-group"
+        assert "sample argparse application" in root.description
+
+    def test_extract_commands(self):
+        """Test that subcommands are extracted."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "process" in command_names
+        assert "clean" in command_names
+
+    def test_command_help_from_subparsers_table(self):
+        """Test that the subparsers help= becomes the command description."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        clean_cmd = next(e for e in elements if e.name == "clean")
+        assert "Clean up resources" in clean_cmd.description
+
+    def test_positional_is_argument(self):
+        """Test that positional arguments are extracted as arguments."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        arguments = [p for p in process_cmd.children if p.element_type == "argument"]
+        arg_names = [a.name for a in arguments]
+        assert "filename" in arg_names
+
+        filename = next(a for a in arguments if a.name == "filename")
+        assert filename.metadata["required"] is True
+
+    def test_optionals_are_options(self):
+        """Test that optionals are extracted as options."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        option_names = [p.name for p in process_cmd.children if p.element_type == "option"]
+        assert "verbose" in option_names
+        assert "count" in option_names
+
+    def test_help_action_skipped(self):
+        """Test that the implicit -h/--help action is not emitted."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        names = [p.name for p in process_cmd.children]
+        assert "help" not in names
+
+    def test_store_true_is_flag(self):
+        """Test that store_true optionals are detected as flags of type bool."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        verbose = next(p for p in process_cmd.children if p.name == "verbose")
+        assert verbose.metadata["is_flag"] is True
+        assert verbose.metadata["type"] == "bool"
+        assert "-v" in verbose.metadata["opts"]
+        assert "--verbose" in verbose.metadata["opts"]
+
+    def test_typed_option_metadata(self):
+        """Test that typed options expose type and default."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        count = next(p for p in process_cmd.children if p.name == "count")
+        assert count.metadata["type"] == "int"
+        assert count.metadata["default"] == "1"
+        assert count.metadata["is_flag"] is False
+
+    def test_qualified_names(self):
+        """Test that qualified names are hierarchical."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        assert process_cmd.qualified_name == "argtool.process"
+
+    def test_output_paths(self):
+        """Test that output paths are generated correctly."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        root = elements[0]
+        assert extractor.get_output_path(root) == Path("_index.md")
+
+        process_cmd = next(e for e in elements if e.name == "process")
+        assert extractor.get_output_path(process_cmd) == Path("process.md")
+
+    def test_command_count_metadata(self):
+        """Test that the root group reports its command count."""
+        parser = _build_sample_argparse_cli()
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        root = elements[0]
+        assert root.metadata["command_count"] == 2
+
+    def test_nested_subparsers(self):
+        """Test that nested subparsers are extracted as nested command-groups."""
+        parser = argparse.ArgumentParser(prog="argtool", description="root")
+        sub = parser.add_subparsers(dest="command")
+        manage = sub.add_parser("manage", help="Manage resources")
+        manage_sub = manage.add_subparsers(dest="manage_command")
+        create = manage_sub.add_parser("create", help="Create a resource")
+        create.add_argument("name", help="Resource name")
+
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        group_names = [e.name for e in elements if e.element_type == "command-group"]
+        assert "manage" in group_names
+
+        create_cmd = next(e for e in elements if e.name == "create")
+        assert create_cmd.qualified_name == "argtool.manage.create"
+        assert extractor.get_output_path(create_cmd) == Path("manage/create.md")
+
+    def test_flat_parser_without_subcommands(self):
+        """Test that a parser without subparsers becomes a single command."""
+        parser = argparse.ArgumentParser(prog="flat", description="A flat tool")
+        parser.add_argument("path", help="Input path")
+        parser.add_argument("--dry-run", action="store_true", help="Dry run")
+
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        assert len(elements) == 1
+        root = elements[0]
+        assert root.element_type == "command"
+        assert root.name == "flat"
+        child_names = [c.name for c in root.children]
+        assert "path" in child_names
+        assert "dry_run" in child_names
+
+    def test_optional_positional_not_required(self):
+        """Test that a positional with nargs='?' is not required."""
+        parser = argparse.ArgumentParser(prog="flat")
+        parser.add_argument("maybe", nargs="?", help="Optional positional")
+
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        root = elements[0]
+        maybe = next(c for c in root.children if c.name == "maybe")
+        assert maybe.element_type == "argument"
+        assert maybe.metadata["required"] is False
+
+    def test_choices_captured(self):
+        """Test that argparse choices are captured in metadata."""
+        parser = argparse.ArgumentParser(prog="flat")
+        parser.add_argument("--mode", choices=["fast", "slow"], help="Mode")
+
+        extractor = CLIExtractor(framework="argparse")
+        elements = extractor.extract(parser)
+
+        root = elements[0]
+        mode = next(c for c in root.children if c.name == "mode")
+        assert mode.metadata["choices"] == ["fast", "slow"]
+
+    def test_wrong_source_type_raises(self):
+        """Test that passing a non-parser raises a clear error."""
+        from bengal.errors import BengalDiscoveryError
+
+        extractor = CLIExtractor(framework="argparse")
+        with pytest.raises(BengalDiscoveryError, match="argparse"):
+            extractor.extract("not a parser")
