@@ -198,24 +198,37 @@ class InternalLinkChecker:
 
     def _ref_to_page_url(self, ref: str) -> str:
         """
-        Convert a referencing page file path to its site-relative URL.
+        Convert a referencing page file path to its served (pretty) URL.
 
         ``ref`` is the output-relative path of the HTML file that contains the
         link (e.g. ``docs/guide/index.html`` or ``about.html``). The returned
-        URL is the base against which relative links on that page resolve.
+        URL is the base against which relative links on that page resolve, and
+        it must match how a browser sees the page so ``urljoin`` reproduces the
+        browser's RFC 3986 resolution.
+
+        Bengal serves every page at a trailing-slash pretty URL: a directory
+        index (``docs/guide/index.html``) is served at ``/docs/guide/`` and a
+        flat-output non-index page (``docs/guide.html``) is *also* served at
+        ``/docs/guide/`` (the ``.html`` suffix is stripped and a trailing slash
+        is appended -- see :meth:`URLStrategy.url_from_output_path`). Returning
+        the trailing-slash form is therefore required for relative links to
+        resolve against the page's served directory, exactly as a browser does.
 
         Args:
             ref: Output-relative HTML file path (uses ``/`` separators).
 
         Returns:
-            Site-relative URL ending in ``/`` for index pages, otherwise the
-            clean URL of the page (e.g. ``/about.html``).
+            Served site-relative URL ending in ``/`` (e.g. ``/docs/guide/``),
+            or ``/`` for the root page.
         """
         ref = ref.replace("\\", "/")
         rel = Path(ref)
         if rel.name == "index.html":
             return "/" if rel.parent == Path(".") else f"/{rel.parent.as_posix()}/"
-        return f"/{rel.with_suffix('').as_posix()}"
+        # Non-index (flat output) page: served at the trailing-slash pretty URL
+        # with the ``.html`` suffix stripped, so relative links resolve against
+        # the page's own served directory rather than its parent.
+        return f"/{rel.with_suffix('').as_posix()}/"
 
     def _resolved_path_exists(self, path: str) -> bool:
         """
