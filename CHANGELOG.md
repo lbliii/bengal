@@ -1,3 +1,20 @@
+## [0.5.0] - 2026-06-15
+
+### Added
+
+- `bengal serve --drafts` and `bengal build --drafts` (or `drafts = true` under `[build]`) render pages marked `draft: true` so you can preview unpublished content locally; drafts stay hidden by default. (`#488`)
+
+### Changed
+
+- Dev-server assets now serve through the fast static path; the hidden-buffer 404 workaround is removed (requires bengal-pounce 0.8.0+). (`#400`)
+- `bengal build --memory-optimized` is now labeled experimental, and its help text and docs no longer promise a fixed memory saving — measure peak memory with and without the flag on your own site before relying on it. (`#487`)
+
+### Fixed
+
+- Autodoc no longer turns illustrative cross-reference and directive examples in docstrings into live (often broken) links, so generated API pages and the broken-link health check stay clean. (`#485`)
+- The internal link checker now resolves relative links (such as `../other/`) against the page that references them and reports broken ones, instead of silently passing them. (`#489`)
+
+
 ## [0.4.3] - 2026-06-15
 
 ### Fixed
