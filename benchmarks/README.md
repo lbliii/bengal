@@ -109,6 +109,7 @@ python -m pstats benchmarks/.benchmarks/cpu_profile.prof
 | `tests/performance/benchmark_template_complexity.py` | Template complexity impact |
 | `tests/performance/test_autodoc_render_regression.py` | Autodoc output shape/size regression gate |
 | `tests/performance/test_asset_fallback_cost.py` | Fallback asset parsing cost regression gate |
+| `benchmark_hmr_latency.py` | End-to-end dev-loop save->reload latency (record-only) |
 
 ## Benchmark Categories
 
@@ -159,6 +160,44 @@ comparable.
 For absolute single-thread throughput, compiled SSGs (e.g. Hugo, written in Go)
 remain ~20x faster per page; Bengal's bet is free-threaded parallel **scaling**,
 not winning the per-page constant factor.
+
+## HMR Save-to-Reload Latency (dev loop)
+
+`benchmark_hmr_latency.py` measures the FULL dev-loop save->reload cycle, not
+just `site.build()`. The committed dev-server warm path times only the build +
+buffer swap, hiding the fixed pre-build latency. This harness drives the real
+`WatcherRunner -> BuildTrigger -> BufferManager -> ReloadNotifier` chain (wired
+as `DevServer._create_watcher`), edits a real content file on disk, and times
+from just before the write to the instant the SSE reload signal fires.
+
+The total is decomposed so the number is informative rather than dominated by a
+configurable constant:
+
+- `timer_floor_ms` — the deterministic floor a save waits through before any
+  build can start: `debounce_ms` (300) + one debounce-loop tick (50ms) + the
+  expected half of one watchfiles poll interval (`poll_delay_ms`/2 = 150ms) =
+  **500ms**. This is config, not Bengal's work.
+- `variable_work_ms` = `total_ms - timer_floor_ms` — build + swap + signal. This
+  is the number v0.6.0's proportional-rebuild work (#332/#333) should drive down.
+
+The committed baseline lives at `baselines/hmr_latency.json`. Regenerate with:
+
+```bash
+python benchmarks/benchmark_hmr_latency.py --scales 50,200 --samples 7 --publish
+```
+
+**Record-only.** Driving the async watcher deterministically is timing-flaky, so
+this is a RECORD, not a gate — it never fails CI on a regression.
+`compare_hmr_latency.py` re-measures and reports drift vs the committed baseline
+without changing its exit code on a measured regression:
+
+```bash
+python benchmarks/compare_hmr_latency.py            # measure + report drift (no gate)
+```
+
+It is macOS wall-clock only (the dev server forces polling there) and was
+captured on the dev machine; re-capture on a stable host if it is ever promoted
+to a gate.
 
 ## Recent Optimizations (2025-10-20)
 
