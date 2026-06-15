@@ -97,11 +97,16 @@ def run_warm_build_consistency_benchmark(
     site_root: Path,
     num_warm_builds: int = 5,
     file_to_modify: Path | None = None,
+    quiet: bool = False,
 ) -> dict[str, float]:
     """
     Run cold + repeated warm builds, return timing stats.
 
     Returns dict with: cold_s, warm_1_s, warm_2_s, warm_1_vs_2_ratio, etc.
+
+    ``quiet`` suppresses the per-build progress output (used by the baseline
+    emitter so the captured timing is not interleaved with console noise); it
+    does not change the measured build path.
     """
     site = Site.from_config(site_root)
     content_dir = site_root / "content"
@@ -110,7 +115,7 @@ def run_warm_build_consistency_benchmark(
 
     # Cold build
     cold_start = time.perf_counter()
-    site.build(BuildOptions(incremental=False, profile=BuildProfile.WRITER))
+    site.build(BuildOptions(incremental=False, profile=BuildProfile.WRITER, quiet=quiet))
     cold_s = time.perf_counter() - cold_start
 
     warm_times: list[float] = []
@@ -127,6 +132,7 @@ def run_warm_build_consistency_benchmark(
                 incremental=True,
                 profile=BuildProfile.WRITER,
                 changed_sources={target_file},
+                quiet=quiet,
             )
         )
         warm_s = time.perf_counter() - warm_start
