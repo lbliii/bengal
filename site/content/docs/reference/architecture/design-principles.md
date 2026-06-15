@@ -233,13 +233,16 @@ class BlogStrategy(ContentStrategy):
 
 ### Registry Pattern
 ```python
-# Template functions and content types use registry
-class ContentTypeRegistry:
-    _strategies = {}
+# Content types use a module-level registry of strategy *instances*
+CONTENT_TYPE_REGISTRY = {"blog": BlogStrategy(), "doc": DocsStrategy()}
 
-    @classmethod
-    def register(cls, name, strategy):
-        cls._strategies[name] = strategy
+def register_strategy(name, strategy):
+    # `strategy` is an instance, not a class
+    CONTENT_TYPE_REGISTRY[name] = strategy
+
+# Public API: bengal.content_types.register_strategy
+from bengal.content_types import register_strategy
+register_strategy("news", NewsStrategy())
 ```
 
 ### Builder Pattern

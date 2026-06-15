@@ -125,7 +125,7 @@ content_type: blog
 ---
 ```
 
-Available types: `blog`, `doc`, `tutorial`, `changelog`, `api-reference`, `cli-reference`, `track`, `page`
+Available types: `blog`, `archive`, `changelog`, `doc`, `notebook`, `autodoc-python`, `autodoc-cli`, `tutorial`, `track`, `page`, `list`
 
 ## Auto-Detection
 
@@ -139,7 +139,7 @@ If no `content_type` is specified, Bengal auto-detects based on:
 Create custom strategies by subclassing `ContentTypeStrategy`:
 
 ```python
-from bengal.content_types.base import ContentTypeStrategy
+from bengal.content_types import ContentTypeStrategy
 
 class NewsStrategy(ContentTypeStrategy):
     """Custom strategy for news articles."""
@@ -161,12 +161,13 @@ class NewsStrategy(ContentTypeStrategy):
         return section.name.lower() in ("news", "announcements")
 ```
 
-Register in your site's Python configuration:
+Register the strategy *instance* via the module-level `register_strategy`
+function, early in your site's Python configuration (before content discovery):
 
 ```python
-from bengal.content_types.registry import ContentTypeRegistry
+from bengal.content_types import register_strategy
 
-ContentTypeRegistry.register("news", NewsStrategy)
+register_strategy("news", NewsStrategy())
 ```
 
 ## Strategy Methods
