@@ -72,7 +72,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from threading import Lock
+from threading import RLock
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors.utils import ThreadSafeSingleton, generate_error_signature
@@ -114,6 +114,15 @@ class ErrorPattern:
         occurrences: List of all occurrences
         first_file: File where error first occurred
         affected_files: Set of all affected files
+
+    Thread-safety:
+        This is a ``frozen`` *shell* — its fields cannot be reassigned — but
+        ``occurrences`` and ``affected_files`` are mutable containers that
+        :class:`ErrorSession` appends to in place while holding its lock.
+        The derived ``count`` / ``is_recurring`` / ``is_systemic`` properties
+        must therefore be read through :class:`ErrorSession`'s locked
+        accessors; iterating or mutating these fields outside that lock is a
+        data race on free-threaded Python.
 
     """
 
@@ -176,7 +185,10 @@ class ErrorSession:
         self._errors_by_file: dict[str, list[ErrorOccurrence]] = defaultdict(list)
         self._errors_by_code: dict[str, list[ErrorOccurrence]] = defaultdict(list)
         self._errors_by_phase: dict[str, list[ErrorOccurrence]] = defaultdict(list)
-        self._lock = Lock()
+        # Re-entrant: get_summary()/get_investigation_hints() call other locked
+        # readers, so a plain Lock would self-deadlock. All readers and writers
+        # below acquire this lock — the class's thread-safety claim depends on it.
+        self._lock = RLock()
         self._start_time = datetime.now()
         self._total_errors = 0
 
@@ -294,7 +306,8 @@ class ErrorSession:
             ErrorPattern if found, None otherwise
         """
         signature = self._generate_signature(error)
-        return self._patterns.get(signature)
+        with self._lock:
+            return self._patterns.get(signature)
 
     def get_errors_for_file(self, file_path: str) -> list[ErrorOccurrence]:
         """
@@ -306,7 +319,9 @@ class ErrorSession:
         Returns:
             List of ErrorOccurrence for that file
         """
-        return self._errors_by_file.get(file_path, [])
+        with self._lock:
+            # Copy: the caller must not iterate a list record() may append to.
+            return list(self._errors_by_file.get(file_path, []))
 
     def get_errors_by_code(self, code: str | ErrorCode) -> list[ErrorOccurrence]:
         """
@@ -319,7 +334,9 @@ class ErrorSession:
             List of ErrorOccurrence with that code
         """
         code_str = str(code)
-        return self._errors_by_code.get(code_str, [])
+        with self._lock:
+            # Copy: the caller must not iterate a list record() may append to.
+            return list(self._errors_by_code.get(code_str, []))
 
     def get_systemic_issues(self) -> list[ErrorPattern]:
         """
@@ -328,7 +345,8 @@ class ErrorSession:
         Returns:
             List of ErrorPattern that are systemic
         """
-        return [p for p in self._patterns.values() if p.is_systemic]
+        with self._lock:
+            return [p for p in self._patterns.values() if p.is_systemic]
 
     def get_most_common_errors(self, limit: int = 5) -> list[tuple[str, int]]:
         """
@@ -340,12 +358,13 @@ class ErrorSession:
         Returns:
             List of (signature, count) tuples, sorted by count
         """
-        sorted_patterns = sorted(
-            self._patterns.items(),
-            key=lambda x: x[1].count,
-            reverse=True,
-        )
-        return [(sig, pattern.count) for sig, pattern in sorted_patterns[:limit]]
+        with self._lock:
+            sorted_patterns = sorted(
+                self._patterns.items(),
+                key=lambda x: x[1].count,
+                reverse=True,
+            )
+            return [(sig, pattern.count) for sig, pattern in sorted_patterns[:limit]]
 
     def get_summary(self) -> dict[str, Any]:
         """
@@ -354,34 +373,35 @@ class ErrorSession:
         Returns:
             Dictionary with session statistics
         """
-        duration = (datetime.now() - self._start_time).total_seconds()
+        with self._lock:
+            duration = (datetime.now() - self._start_time).total_seconds()
 
-        # Get phase distribution
-        phase_counts = {phase: len(errors) for phase, errors in self._errors_by_phase.items()}
+            # Get phase distribution
+            phase_counts = {phase: len(errors) for phase, errors in self._errors_by_phase.items()}
 
-        # Get code distribution
-        code_counts = {code: len(errors) for code, errors in self._errors_by_code.items()}
+            # Get code distribution
+            code_counts = {code: len(errors) for code, errors in self._errors_by_code.items()}
 
-        # Get most affected files
-        file_counts = sorted(
-            [(f, len(e)) for f, e in self._errors_by_file.items()],
-            key=lambda x: x[1],
-            reverse=True,
-        )[:5]
+            # Get most affected files
+            file_counts = sorted(
+                [(f, len(e)) for f, e in self._errors_by_file.items()],
+                key=lambda x: x[1],
+                reverse=True,
+            )[:5]
 
-        return {
-            "total_errors": self._total_errors,
-            "unique_patterns": len(self._patterns),
-            "affected_files": len(self._errors_by_file),
-            "session_duration_seconds": duration,
-            "errors_per_minute": (self._total_errors / duration * 60) if duration > 0 else 0,
-            "systemic_issues": len(self.get_systemic_issues()),
-            "most_common_errors": self.get_most_common_errors(),
-            "errors_by_phase": phase_counts,
-            "errors_by_code": code_counts,
-            "most_affected_files": file_counts,
-            "recurring_errors": sum(1 for p in self._patterns.values() if p.is_recurring),
-        }
+            return {
+                "total_errors": self._total_errors,
+                "unique_patterns": len(self._patterns),
+                "affected_files": len(self._errors_by_file),
+                "session_duration_seconds": duration,
+                "errors_per_minute": (self._total_errors / duration * 60) if duration > 0 else 0,
+                "systemic_issues": len(self.get_systemic_issues()),
+                "most_common_errors": self.get_most_common_errors(),
+                "errors_by_phase": phase_counts,
+                "errors_by_code": code_counts,
+                "most_affected_files": file_counts,
+                "recurring_errors": sum(1 for p in self._patterns.values() if p.is_recurring),
+            }
 
     def get_investigation_hints(self) -> list[str]:
         """
@@ -390,46 +410,47 @@ class ErrorSession:
         Returns:
             List of actionable investigation hints
         """
-        hints: list[str] = []
+        with self._lock:
+            hints: list[str] = []
 
-        # Check for systemic issues
-        systemic = self.get_systemic_issues()
-        if systemic:
-            hints.append(
-                f"🔍 Found {len(systemic)} systemic issue(s) affecting multiple files. "
-                "Consider checking shared templates or configuration."
-            )
-
-        # Check for phase concentration
-        phase_counts = {p: len(e) for p, e in self._errors_by_phase.items()}
-        if phase_counts:
-            max_phase = max(phase_counts, key=lambda k: phase_counts[k])
-            if phase_counts[max_phase] > self._total_errors * 0.5:
+            # Check for systemic issues
+            systemic = self.get_systemic_issues()
+            if systemic:
                 hints.append(
-                    f"🎯 {phase_counts[max_phase]}/{self._total_errors} errors occurred in "
-                    f"{max_phase} phase. Focus investigation there."
+                    f"🔍 Found {len(systemic)} systemic issue(s) affecting multiple files. "
+                    "Consider checking shared templates or configuration."
                 )
 
-        # Check for high recurrence
-        recurring = [p for p in self._patterns.values() if p.count >= 3]
-        if recurring:
-            top = recurring[0]
-            hints.append(
-                f"⚠️ Error pattern '{top.signature[:50]}...' occurred {top.count} times. "
-                f"First in: {top.first_file}"
-            )
+            # Check for phase concentration
+            phase_counts = {p: len(e) for p, e in self._errors_by_phase.items()}
+            if phase_counts:
+                max_phase = max(phase_counts, key=lambda k: phase_counts[k])
+                if phase_counts[max_phase] > self._total_errors * 0.5:
+                    hints.append(
+                        f"🎯 {phase_counts[max_phase]}/{self._total_errors} errors occurred in "
+                        f"{max_phase} phase. Focus investigation there."
+                    )
 
-        # Check for code concentration
-        code_counts = {c: len(e) for c, e in self._errors_by_code.items()}
-        if code_counts:
-            max_code = max(code_counts, key=lambda k: code_counts[k])
-            if code_counts[max_code] >= 3:
+            # Check for high recurrence
+            recurring = [p for p in self._patterns.values() if p.count >= 3]
+            if recurring:
+                top = recurring[0]
                 hints.append(
-                    f"📋 Error code {max_code} occurred {code_counts[max_code]} times. "
-                    "Check documentation for this error code."
+                    f"⚠️ Error pattern '{top.signature[:50]}...' occurred {top.count} times. "
+                    f"First in: {top.first_file}"
                 )
 
-        return hints
+            # Check for code concentration
+            code_counts = {c: len(e) for c, e in self._errors_by_code.items()}
+            if code_counts:
+                max_code = max(code_counts, key=lambda k: code_counts[k])
+                if code_counts[max_code] >= 3:
+                    hints.append(
+                        f"📋 Error code {max_code} occurred {code_counts[max_code]} times. "
+                        "Check documentation for this error code."
+                    )
+
+            return hints
 
     def clear(self) -> None:
         """Clear all recorded errors and reset session."""

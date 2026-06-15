@@ -215,8 +215,8 @@ Locks for error recording, always acquired last.
 +-----------------------------------------------+--------+--------------------------------------------+
 | Lock                                          | Type   | Protects                                   |
 +===============================================+========+============================================+
-| ErrorSession._lock                            | Lock   | _patterns, _errors_by_*, _total_errors     |
-|   errors/session.py:180                       |        |                                            |
+| ErrorSession._lock                            | RLock  | _patterns, _errors_by_*, _total_errors     |
+|   errors/session.py:180                       |        | (reentrant: get_summary() calls readers)   |
 +-----------------------------------------------+--------+--------------------------------------------+
 | SingletonContainer._lock                      | Lock   | _instance (lazy singleton creation)        |
 |   errors/utils.py:531                         |        |                                            |
@@ -265,7 +265,8 @@ Design Principles
   serialization (templates, nav versions), use PerKeyLockManager instead
   of a single global lock.
 - **RLock for reentrant paths**: TaxonomyIndex, QueryIndex, ContentHashRegistry,
-  and LRUCache use RLock because their public methods may call each other.
+  LRUCache, and ErrorSession use RLock because their public methods may call
+  each other (e.g. ``ErrorSession.get_summary()`` calls other locked readers).
 - **ContextVar over locks**: Where possible, use ``contextvars.ContextVar``
   for per-task state instead of shared mutable state + locks. Note: For
   ThreadPoolExecutor workers, ``threading.local()`` is appropriate for
