@@ -150,11 +150,30 @@ class JsonAccumulator:
             self.build_context.accumulate_page_data(data)
 
         except Exception as e:
-            logger.debug(
+            # Surface accumulation failures as visible build warnings instead of
+            # silently dropping the page from the search index / JSON outputs.
+            # Mirrors the precedent in core.py for link-extraction failures.
+            full_error = str(e)
+            page_path = str(page.source_path)
+            logger.warning(
                 "unified_page_data_accumulation_failed",
-                page=str(page.source_path),
-                error=str(e)[:100],
+                page=page_path,
+                error=full_error,
+                error_type=type(e).__name__,
+                suggestion=(
+                    "This page was omitted from the search index and JSON "
+                    "outputs. Check the page content for malformed markdown, "
+                    "shortcodes, or metadata."
+                ),
             )
+            # Record in build stats so it shows up in the build summary
+            # (build_context and build_context.stats are both Optional).
+            if self.build_context and self.build_context.stats:
+                self.build_context.stats.add_warning(
+                    page_path,
+                    f"Page data accumulation failed: {full_error}",
+                    "json_accumulation",
+                )
 
     def extract_enhanced_metadata(self, page: PageLike) -> dict[str, Any]:
         """
