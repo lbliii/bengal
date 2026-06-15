@@ -513,6 +513,74 @@ class TestSiteIndexJsonGeneration:
         assert by_version["v2"][0].version == "v2"
         assert by_version[None][0].version is None
 
+    def test_index_generator_module_does_not_import_unittest_mock(self):
+        """Production code must not import the unittest.mock test library (#450)."""
+        import inspect
+
+        from bengal.postprocess.output_formats import index_generator
+
+        source = inspect.getsource(index_generator)
+        assert "unittest.mock" not in source, (
+            "index_generator.py must not import unittest.mock (a TEST library) "
+            "into production code (#450)."
+        )
+        assert "from unittest" not in source, (
+            "index_generator.py must not import from unittest in production (#450)."
+        )
+        # The module's namespace must not expose a bound Mock symbol.
+        assert not hasattr(index_generator, "Mock"), (
+            "index_generator should not bind a Mock symbol in production (#450)."
+        )
+
+    def test_non_serializable_metadata_value_is_skipped_without_mock(self, tmp_path):
+        """Non-JSON-serializable metadata values must be dropped via a real
+
+        serializability check, not a unittest.mock isinstance check (#450).
+        """
+        from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
+
+        class NotSerializable:
+            """A plain (non-Mock) object that json cannot serialize."""
+
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        generator = SiteIndexGenerator(mock_site)
+
+        bad = NotSerializable()
+        metadata = {
+            "author": "Real Author",  # serializable -> kept
+            "category": bad,  # non-serializable -> dropped
+            "categories": ["ok", bad],  # list filtered to ["ok"]
+            "related": {"a": "ok", "b": bad},  # dict filtered to {"a": "ok"}
+        }
+        summary: dict = {}
+        generator._add_enhanced_metadata(summary, metadata)
+
+        # The whole summary must remain JSON-serializable (the real contract).
+        json.dumps(summary)
+
+        assert summary["author"] == "Real Author"
+        assert "category" not in summary, "Non-serializable scalar must be dropped"
+        assert summary["categories"] == ["ok"], "Non-serializable list items dropped"
+        assert summary["related"] == {"a": "ok"}, "Non-serializable dict values dropped"
+
+    def test_is_json_serializable_rejects_non_serializable_object(self, tmp_path):
+        """_is_json_serializable must reject arbitrary non-serializable objects (#450)."""
+        from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
+
+        class NotSerializable:
+            pass
+
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        generator = SiteIndexGenerator(mock_site)
+
+        assert generator._is_json_serializable("ok") is True
+        assert generator._is_json_serializable({"a": 1}) is True
+        assert generator._is_json_serializable(NotSerializable()) is False
+
     def test_index_generator_generates_per_version_indexes_when_versioning_enabled(self, tmp_path):
         """Test that generate() returns list of paths when versioning is enabled."""
         from bengal.core.version import Version, VersionConfig
