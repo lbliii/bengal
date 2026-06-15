@@ -29,6 +29,11 @@ from pathlib import Path
 
 CORE_DIR = Path(__file__).resolve().parents[3] / "bengal" / "core"
 
+#: The live, mutable runtime page object. The legacy ``Page`` class is gone; any
+#: rendering-mixin regression would land here, not in the ``page/`` package root.
+RUNTIME_PAGE_FILE = CORE_DIR / "page" / "runtime.py"
+RUNTIME_PAGE_CLASS = "RuntimePage"
+
 LEGACY_MIXINS: frozenset[str] = frozenset()
 
 
@@ -46,6 +51,61 @@ def _find_mixin_classes(core_dir: Path) -> list[tuple[Path, str, int]]:
             if isinstance(node, ast.ClassDef) and node.name.endswith("Mixin")
         )
     return hits
+
+
+def _base_name(base: ast.expr) -> str:
+    """Render a class-base expression node back to its dotted leaf name for matching."""
+    if isinstance(base, ast.Name):
+        return base.id
+    if isinstance(base, ast.Attribute):
+        return base.attr
+    if isinstance(base, ast.Subscript):  # e.g. Generic[T]
+        return _base_name(base.value)
+    return ""
+
+
+def _runtime_page_bases() -> list[str]:
+    """Return the rendered base-class names of ``RuntimePage`` in ``runtime.py``.
+
+    A non-empty result that includes a ``*Mixin`` name is the composition-over-
+    inheritance regression this guard exists to catch.
+    """
+    tree = ast.parse(RUNTIME_PAGE_FILE.read_text(encoding="utf-8"))
+    classdefs = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == RUNTIME_PAGE_CLASS
+    ]
+    assert classdefs, (
+        f"{RUNTIME_PAGE_CLASS} not found in {RUNTIME_PAGE_FILE}. The guard tests below "
+        "scan the live runtime page object; update them if it was renamed or moved."
+    )
+    bases: list[str] = []
+    for classdef in classdefs:
+        bases.extend(_base_name(base) for base in classdef.bases)
+    return bases
+
+
+def _runtime_page_mixin_bases() -> list[str]:
+    """Return the ``*Mixin`` base classes ``RuntimePage`` inherits from (should be empty)."""
+    return [name for name in _runtime_page_bases() if name.endswith("Mixin")]
+
+
+def _module_level_rendering_imports(py_file: Path) -> list[tuple[str, int]]:
+    """Return (module, line) for top-level ``from bengal.rendering[.x] import ...`` statements.
+
+    Only statements at module scope (``tree.body``) count: the legitimate pattern
+    is a deferred import inside a compatibility-shim method body, which a hoist to
+    module scope would break -- and which this scan would then flag.
+    """
+    tree = ast.parse(py_file.read_text(encoding="utf-8"))
+    return [
+        (node.module, node.lineno)
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and (node.module == "bengal.rendering" or node.module.startswith("bengal.rendering."))
+    ]
 
 
 def test_no_new_mixin_classes_in_bengal_core() -> None:
@@ -86,35 +146,59 @@ def test_site_remains_mixin_free() -> None:
         )
 
 
-def test_page_does_not_inherit_rendering_operations() -> None:
-    """The legacy Page class is gone, so rendering operations cannot be inherited."""
+def test_runtime_page_does_not_inherit_rendering_operations() -> None:
+    """The live ``RuntimePage`` must not inherit rendering behavior via a mixin base.
+
+    Rendering operations (content, html, urls, link/shortcode extraction) live in
+    ``bengal/rendering/`` and are reached through deferred imports inside
+    compatibility-shim methods -- never inherited. This goes red if ``RuntimePage``
+    re-acquires a ``*Mixin`` base.
+    """
+    mixin_bases = _runtime_page_mixin_bases()
+    assert mixin_bases == [], (
+        f"{RUNTIME_PAGE_CLASS} must not inherit from mixin bases; found: {mixin_bases}. "
+        "Rendering behavior belongs behind deferred imports in compatibility shims, "
+        "not inherited. See CLAUDE.md and plan/epic-delete-forwarding-wrappers.md."
+    )
+
+
+def test_page_package_root_defines_no_page_class() -> None:
+    """The ``page/`` package root defines no concrete ``Page``/``RuntimePage`` class.
+
+    The legacy mutable ``Page`` was removed from ``bengal/core/page/__init__.py``;
+    the live object is ``RuntimePage`` in ``runtime.py`` (guarded separately above).
+    This pins that the package root stays free of a re-introduced page class so the
+    runtime-scanning guards remain the single source of truth.
+    """
     page_file = CORE_DIR / "page" / "__init__.py"
     tree = ast.parse(page_file.read_text(encoding="utf-8"))
 
     page_classes = [
-        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name in {"Page", RUNTIME_PAGE_CLASS}
     ]
     assert page_classes == []
 
 
 def test_page_has_no_module_level_rendering_helper_imports() -> None:
-    """Core Page should import rendering helpers only inside compatibility shims."""
-    page_file = CORE_DIR / "page" / "__init__.py"
-    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+    """Core Page imports rendering helpers only inside compatibility-shim bodies.
 
-    rendering_helper_modules = {
-        "bengal.rendering.page_content",
-        "bengal.rendering.page_operations",
-        "bengal.rendering.page_resources",
-        "bengal.rendering.page_urls",
-    }
-    imports = [
-        node
-        for node in tree.body
-        if isinstance(node, ast.ImportFrom) and node.module in rendering_helper_modules
-    ]
+    Scans both the package root (``__init__.py``) and the live ``RuntimePage``
+    module (``runtime.py``). ``runtime.py`` reaches ``bengal.rendering.*`` for
+    content/url/operation shims via deferred (in-method) imports; this goes red if
+    any such import is hoisted to module scope.
+    """
+    page_init = CORE_DIR / "page" / "__init__.py"
+    offenders = _module_level_rendering_imports(page_init) + _module_level_rendering_imports(
+        RUNTIME_PAGE_FILE
+    )
 
-    assert imports == []
+    assert offenders == [], (
+        "Core Page modules must reach bengal.rendering.* only via deferred imports "
+        f"inside compatibility shims. Found module-level imports: {offenders}. "
+        "See CLAUDE.md (rendering behavior stays out of core Page)."
+    )
 
 
 def test_page_bundle_resource_io_stays_out_of_core() -> None:
@@ -168,37 +252,31 @@ def test_section_has_no_module_level_rendering_helper_imports() -> None:
     assert imports == []
 
 
-def test_page_does_not_inherit_content_mixin() -> None:
-    """The legacy Page class is gone, so content mixins cannot be inherited."""
-    page_file = CORE_DIR / "page" / "__init__.py"
-    tree = ast.parse(page_file.read_text(encoding="utf-8"))
-
-    page_classes = [
-        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    ]
-    assert page_classes == []
+def test_runtime_page_does_not_inherit_content_mixin() -> None:
+    """``RuntimePage`` must not inherit a ``ContentMixin`` (or any ``*Mixin``) base."""
+    mixin_bases = _runtime_page_mixin_bases()
+    assert mixin_bases == [], (
+        f"{RUNTIME_PAGE_CLASS} must not inherit a content mixin (e.g. ContentMixin); "
+        f"found mixin bases: {mixin_bases}."
+    )
 
 
-def test_page_does_not_inherit_metadata_mixin() -> None:
-    """The legacy Page class is gone, so metadata mixins cannot be inherited."""
-    page_file = CORE_DIR / "page" / "__init__.py"
-    tree = ast.parse(page_file.read_text(encoding="utf-8"))
-
-    page_classes = [
-        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    ]
-    assert page_classes == []
+def test_runtime_page_does_not_inherit_metadata_mixin() -> None:
+    """``RuntimePage`` must not inherit a ``MetadataMixin`` (or any ``*Mixin``) base."""
+    mixin_bases = _runtime_page_mixin_bases()
+    assert mixin_bases == [], (
+        f"{RUNTIME_PAGE_CLASS} must not inherit a metadata mixin (e.g. MetadataMixin); "
+        f"found mixin bases: {mixin_bases}."
+    )
 
 
-def test_page_does_not_inherit_relationships_mixin() -> None:
-    """The legacy Page class is gone, so relationship mixins cannot be inherited."""
-    page_file = CORE_DIR / "page" / "__init__.py"
-    tree = ast.parse(page_file.read_text(encoding="utf-8"))
-
-    page_classes = [
-        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    ]
-    assert page_classes == []
+def test_runtime_page_does_not_inherit_relationships_mixin() -> None:
+    """``RuntimePage`` must not inherit a ``RelationshipsMixin`` (or any ``*Mixin``) base."""
+    mixin_bases = _runtime_page_mixin_bases()
+    assert mixin_bases == [], (
+        f"{RUNTIME_PAGE_CLASS} must not inherit a relationships mixin (e.g. RelationshipsMixin); "
+        f"found mixin bases: {mixin_bases}."
+    )
 
 
 def test_page_computed_keeps_content_rendering_out_of_core() -> None:
