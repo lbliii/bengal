@@ -494,6 +494,8 @@ def _find_config_file(root_path):
 def _update_config_with_version(root_path, version_id, dest_dir, label, cli):
     import yaml
 
+    from bengal.utils.io.atomic_write import AtomicFile
+
     config_file = _find_config_file(root_path)
     if not config_file:
         msg = "No bengal.yaml or bengal.toml found"
@@ -517,7 +519,9 @@ def _update_config_with_version(root_path, version_id, dest_dir, label, cli):
         }
         versioning["versions"].append(new_version)
 
-        with open(config_file, "w") as f:
+        # Rewrite the config atomically (write-temp-then-rename) so a crash
+        # mid-write never leaves a truncated bengal.yaml (#471).
+        with AtomicFile(config_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
         return
