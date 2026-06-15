@@ -92,6 +92,8 @@ from bengal.collections.schemas import (
 from bengal.collections.validator import SchemaValidator, ValidationResult
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.content.sources.source import ContentSource
 
 
@@ -121,6 +123,10 @@ class CollectionConfig[T]:
         loader: Optional :class:`ContentSource` for fetching remote content.
             When provided, content is fetched from the remote source instead
             of the local filesystem. Requires extras: ``pip install bengal[github]``
+        transform: Optional callable applied to each record's frontmatter dict
+            *before* schema validation. Useful for normalizing legacy
+            frontmatter during a migration. Receives the raw metadata dict and
+            returns the (possibly mutated) dict to validate.
 
     Example:
             >>> config = CollectionConfig(
@@ -145,6 +151,7 @@ class CollectionConfig[T]:
     strict: bool = True
     allow_extra: bool = False
     loader: ContentSource | None = None
+    transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
     def __post_init__(self) -> None:
         """
@@ -199,6 +206,7 @@ def define_collection[T](
     strict: bool = True,
     allow_extra: bool = False,
     loader: ContentSource | None = None,
+    transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> CollectionConfig[T]:
     """
     Define a content collection with a typed schema.
@@ -221,6 +229,10 @@ def define_collection[T](
             dict on the validated instance. Only effective when ``strict=False``.
         loader: Optional :class:`ContentSource` for fetching remote content.
             Requires extras: ``pip install bengal[github]`` or ``bengal[notion]``.
+        transform: Optional callable run on each record's frontmatter dict
+            *before* schema validation. Receives the raw metadata dict and
+            returns the dict to validate. Use it to normalize legacy field
+            names or shapes during a migration.
 
     Returns:
         A :class:`CollectionConfig` instance for use in the project's
@@ -269,6 +281,7 @@ def define_collection[T](
         strict=strict,
         allow_extra=allow_extra,
         loader=loader,
+        transform=transform,
     )
 
 
