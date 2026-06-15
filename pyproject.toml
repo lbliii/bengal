@@ -467,6 +467,7 @@ changelog = { cmd = "towncrier build --yes", help = "Compile changelog.d fragmen
 changelog-draft = { cmd = "towncrier build --draft", help = "Preview changelog from fragments (stdout)" }
 changelog-check = { cmd = "towncrier check --compare-with origin/main", help = "Verify branch adds a fragment (vs main)" }
 release-notes = { cmd = "python scripts/draft_release_notes.py", help = "Draft a user-facing site release page from CHANGELOG.md (--version/--theme/--bundle)" }
+gh-release = { cmd = "python scripts/publish_github_release.py", help = "Create/update the GitHub release from the site release page (--version/--theme/--create)" }
 release = { sequence = [
     "changelog",
     "dist",

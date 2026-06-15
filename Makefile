@@ -113,18 +113,16 @@ release: changelog dist publish
 	@echo "✓ Release complete"
 
 # Create GitHub release from site release notes; triggers python-publish workflow → PyPI
-# Strips YAML frontmatter (--- ... ---) from notes before passing to gh
+# Title + body are computed by scripts/publish_github_release.py, which reads
+# [project].version via tomllib and renders "vX.Y.Z — <theme>" (no greedy grep).
 gh-release:
-	@VERSION=$$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/'); \
-	PROJECT=$$(grep '^name = ' pyproject.toml | sed 's/name = "\(.*\)"/\1/'); \
+	@VERSION=$$(python3 -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])"); \
 	NOTES="site/content/releases/$$VERSION.md"; \
 	if [ ! -f "$$NOTES" ]; then echo "Error: $$NOTES not found"; exit 1; fi; \
-	echo "Creating release v$$VERSION for $$PROJECT..."; \
+	echo "Creating release v$$VERSION..."; \
 	git push origin main 2>/dev/null || true; \
 	git push origin v$$VERSION 2>/dev/null || true; \
-	awk '/^---$$/{c++;next}c>=2' "$$NOTES" | gh release create v$$VERSION \
-		--title "$$PROJECT $$VERSION" \
-		-F -; \
+	python scripts/publish_github_release.py --version "$$VERSION" --create; \
 	echo "✓ GitHub release v$$VERSION created (PyPI publish will run via workflow)"
 
 # =============================================================================
