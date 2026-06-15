@@ -181,6 +181,7 @@ class ConfigValidator:
         "fast_writes",
         "fast_mode",
         "stable_section_references",
+        "drafts",  # build.drafts — render draft pages for local preview (#488)
         # Assets (after flattening from assets.*)
         "minify_assets",
         "optimize_assets",

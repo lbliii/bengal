@@ -135,6 +135,10 @@ DEFAULTS: dict[str, Any] = {
         "minify_html": True,
         "strict_mode": False,
         "debug": False,
+        # Render draft (and otherwise-hidden) pages in listings/feeds/search.
+        # Off by default; the `bengal serve --drafts` / `bengal build --drafts`
+        # flags flip this for local preview.
+        "drafts": False,
         "validate_build": True,
         "validate_templates": False,  # Proactive template syntax validation during build
         "validate_links": True,

@@ -117,7 +117,31 @@ def should_render_page_in_environment(page: Any, is_production: bool = False) ->
     return should_render_visibility(get_page_visibility(page), is_production)
 
 
+def _drafts_enabled(page: Any) -> bool:
+    """Return whether draft preview is enabled site-wide for this page-like object.
+
+    Controlled by ``build.drafts`` (set by ``bengal serve --drafts`` /
+    ``bengal build --drafts``). When enabled, draft pages are treated as
+    publishable so authors can preview unpublished content locally.
+    """
+    site = getattr(page, "_site", None)
+    if site is None:
+        return False
+    config = getattr(site, "config", None)
+    if config is None:
+        return False
+    try:
+        build = config.get("build", {})
+        if isinstance(build, Mapping) and build.get("drafts"):
+            return True
+        return bool(config.get("drafts", False))
+    except Exception:
+        return False
+
+
 def _is_page_draft(page: Any) -> bool:
+    if _drafts_enabled(page):
+        return False
     metadata = getattr(page, "metadata", {})
     if isinstance(metadata, Mapping):
         return bool(metadata.get("draft", False))

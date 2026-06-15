@@ -378,11 +378,16 @@ class Section:
 
         return has_index(self)
 
-    def get_all_pages(self, recursive: bool = True) -> list[PageLike]:
-        """Get all pages in this section."""
+    def get_all_pages(
+        self, recursive: bool = True, *, include_drafts: bool = True
+    ) -> list[PageLike]:
+        """Get all pages in this section.
+
+        Set ``include_drafts=False`` to omit pages marked ``draft: true``.
+        """
         from .queries import get_all_pages
 
-        return get_all_pages(self, recursive)
+        return get_all_pages(self, recursive, include_drafts=include_drafts)
 
     @cached_property
     def href(self) -> str:

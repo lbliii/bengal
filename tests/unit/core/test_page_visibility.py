@@ -11,6 +11,7 @@ Tests the hidden/visibility frontmatter and related properties:
 from pathlib import Path
 
 from bengal.core.page_visibility import (
+    _is_page_draft,
     get_page_visibility,
     get_robots_meta,
     is_page_in_ai_input,
@@ -22,6 +23,7 @@ from bengal.core.page_visibility import (
     should_render_page,
     should_render_page_in_environment,
 )
+from tests._testing.mocks import MockSite
 from tests._testing.mocks import make_mock_page as _page
 
 
@@ -417,3 +419,67 @@ class TestVisibilityWithDraft:
         assert is_page_in_rss(page) is False
         assert is_page_in_ai_input(page) is False
         assert is_page_in_ai_train(page) is False
+
+
+class TestDraftsPreview:
+    """Test the build.drafts preview flag (bengal serve/build --drafts).
+
+    The CLI flag sets ``site.config["build"]["drafts"] = True``; the
+    visibility gate then treats draft pages as publishable so authors can
+    preview unpublished content locally. Default behaviour (drafts hidden)
+    must be unchanged.
+    """
+
+    def _draft_page(self, *, drafts_enabled: bool):
+        site = MockSite(config={"build": {"drafts": drafts_enabled}})
+        return _page(
+            source_path=Path("content/draft.md"),
+            _raw_content="Draft",
+            _raw_metadata={"title": "Draft", "draft": True},
+            _site=site,
+        )
+
+    def test_default_hides_drafts(self):
+        """Without --drafts, draft pages are excluded from every output."""
+        page = self._draft_page(drafts_enabled=False)
+
+        assert _is_page_draft(page) is True
+        assert is_page_in_listings(page) is False
+        assert is_page_in_sitemap(page) is False
+        assert is_page_in_search(page) is False
+        assert is_page_in_rss(page) is False
+
+    def test_drafts_flag_includes_drafts(self):
+        """With --drafts (build.drafts=True), draft pages become visible."""
+        page = self._draft_page(drafts_enabled=True)
+
+        assert _is_page_draft(page) is False
+        assert is_page_in_listings(page) is True
+        assert is_page_in_sitemap(page) is True
+        assert is_page_in_search(page) is True
+        assert is_page_in_rss(page) is True
+
+    def test_drafts_flag_does_not_publish_hidden_pages(self):
+        """--drafts only affects draft pages; hidden: true stays hidden."""
+        site = MockSite(config={"build": {"drafts": True}})
+        page = _page(
+            source_path=Path("content/secret.md"),
+            _raw_content="Secret",
+            _raw_metadata={"title": "Secret", "hidden": True},
+            _site=site,
+        )
+
+        assert is_page_in_listings(page) is False
+        assert is_page_in_sitemap(page) is False
+
+    def test_non_draft_page_unaffected_by_flag(self):
+        """Regular pages stay visible whether or not --drafts is set."""
+        for drafts_enabled in (False, True):
+            site = MockSite(config={"build": {"drafts": drafts_enabled}})
+            page = _page(
+                source_path=Path("content/post.md"),
+                _raw_content="Post",
+                _raw_metadata={"title": "Post"},
+                _site=site,
+            )
+            assert is_page_in_listings(page) is True
