@@ -69,69 +69,57 @@ def currency(value: float, symbol: str = "$") -> str:
 ```
 
 :::{/step}
-:::{step} Register Filter
+:::{step} Register the Filter in a Plugin
 
-Create a registration function to add your filter to the template environment:
-
-```bash
-mkdir -p python
-touch python/filter_registration.py
-```
-
-Register the filter:
+Register filters through the supported [plugin API](/docs/extending/plugins/).
+A plugin implements the `Plugin` protocol and calls
+`registry.add_template_filter()` in its `register()` method:
 
 ```python
-# python/filter_registration.py
-from bengal.core import Site
+# my_bengal_plugin/__init__.py
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
+
 from .filters import currency
 
-def register_filters(site: Site) -> None:
-    """Register custom Kida filters.
 
-    Note: This uses internal APIs that may change in future versions.
-    A stable plugin API is planned for v0.4.0.
-    """
-    # Access the template engine environment
-    # The template engine is created during the build process
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
-        env.add_filter("currency", currency)
+class MyFiltersPlugin(Plugin):
+    name = "my-filters"
+    version = "1.0.0"
+
+    def register(self, registry: PluginRegistry) -> None:
+        registry.add_template_filter("currency", currency)
 ```
+
+`add_template_filter` is a stable, supported entry point: registered filters
+are applied to every template environment during the build, and the frozen
+registry is safe to share across parallel render workers.
 
 :::{/step}
-:::{step} Call Registration Function
+:::{step} Declare the Entry Point and Install
 
-You need to call this function during the build process. Currently, this requires accessing internal APIs. Two approaches:
+Expose the plugin through the `bengal.plugins` entry point group so Bengal
+discovers it automatically:
 
-**Option A: Programmatic Build (Recommended)**
-
-Create a custom build script that calls your registration function:
-
-```python
-# build.py
-from pathlib import Path
-from bengal.core import Site
-from bengal.orchestration.build import BuildOptions
-from python.filter_registration import register_filters
-
-# Load site
-site = Site.from_config(Path("."))
-
-# Register filters before building
-register_filters(site)
-
-# Build site
-options = BuildOptions()
-site.build(options)
+```toml
+# pyproject.toml
+[project.entry-points."bengal.plugins"]
+my-filters = "my_bengal_plugin:MyFiltersPlugin"
 ```
 
-**Option B: Internal API Access (Advanced)**
+Install the plugin into the same environment as Bengal:
 
-:::{caution}
-This approach uses internal APIs (`site._template_engine`) that may change. Use with caution and test after Bengal updates.
-:::
+```bash
+uv pip install -e ./my-bengal-plugin
+```
 
-If you need to register filters during the build process, you can access the template engine after it's created. The template engine is typically available during the rendering phase of the build.
+On the next build, Bengal discovers the plugin and registers your filter — no
+build script or internal-attribute access required. Verify it is picked up with:
+
+```bash
+bengal plugin list
+bengal plugin info my-filters
+```
 
 :::{/step}
 :::{step} Use Filter in Template
@@ -179,18 +167,11 @@ def truncate_words(value: str, length: int = 50, suffix: str = "...") -> str:
     return " ".join(words[:length]) + suffix
 ```
 
-Register and use:
+Register it in your plugin:
 
 ```python
-# python/filter_registration.py
-from bengal.core import Site
-from .filters import truncate_words
-
-def register_filters(site: Site) -> None:
-    """Register custom Kida filters."""
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
-        env.add_filter("truncate_words", truncate_words)
+# my_bengal_plugin/__init__.py (inside register())
+registry.add_template_filter("truncate_words", truncate_words)
 ```
 
 ```kida
@@ -239,17 +220,9 @@ def relative_date(value, context=None):
 ```
 
 ```python
-# python/filter_registration.py
-from bengal.core import Site
-from .filters import relative_date
-
-def register_filters(site: Site) -> None:
-    """Register custom Kida filters."""
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
-        # Note: Context passing depends on filter implementation
-        # Kida passes context when filters accept it as a parameter
-        env.add_filter("relative_date", relative_date)
+# my_bengal_plugin/__init__.py (inside register())
+# Kida passes template context when the filter accepts it as a parameter.
+registry.add_template_filter("relative_date", relative_date)
 ```
 
 ```kida
@@ -284,15 +257,8 @@ def where_contains(items, key, value):
 ```
 
 ```python
-# python/filter_registration.py
-from bengal.core import Site
-from .filters import where_contains
-
-def register_filters(site: Site) -> None:
-    """Register custom Kida filters."""
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
-        env.add_filter("where_contains", where_contains)
+# my_bengal_plugin/__init__.py (inside register())
+registry.add_template_filter("where_contains", where_contains)
 ```
 
 ```kida
@@ -301,31 +267,26 @@ def register_filters(site: Site) -> None:
   |> where_contains('title', 'python') %}
 ```
 
-## Using Decorator Syntax
+## Registering Multiple Filters
 
-You can also use decorator syntax for cleaner registration:
+A single plugin can register any number of filters in one `register()` call:
 
 ```python
-# python/filter_registration.py
-from bengal.core import Site
+# my_bengal_plugin/__init__.py
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
 
-def register_filters(site: Site) -> None:
-    """Register all custom filters."""
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
+from .filters import currency, truncate_words, where_contains
 
-        @env.filter()
-        def currency(value: float, symbol: str = "$") -> str:
-            """Format a number as currency."""
-            return f"{symbol}{value:,.2f}"
 
-        @env.filter()
-        def truncate_words(value: str, length: int = 50) -> str:
-            """Truncate text to a specific word count."""
-            words = value.split()
-            if len(words) <= length:
-                return value
-            return " ".join(words[:length]) + "..."
+class MyFiltersPlugin(Plugin):
+    name = "my-filters"
+    version = "1.0.0"
+
+    def register(self, registry: PluginRegistry) -> None:
+        registry.add_template_filter("currency", currency)
+        registry.add_template_filter("truncate_words", truncate_words)
+        registry.add_template_filter("where_contains", where_contains)
 ```
 
 ## Testing Filters
@@ -354,7 +315,7 @@ def test_truncate_words():
 3. **None handling**: Handle None values gracefully
 4. **Error handling**: Provide sensible defaults
 5. **Naming**: Use descriptive, lowercase names with underscores
-6. **API access**: Use `env.add_filter()` method (preferred) over `env.filters['name'] = func`
+6. **Registration**: Register filters through a plugin's `registry.add_template_filter()` — the supported, thread-safe entry point
 
 ## Troubleshooting
 
@@ -362,31 +323,35 @@ def test_truncate_words():
 
 If your filter isn't available in templates:
 
-:::{dropdown} Check registration timing
-:icon: clock
+:::{dropdown} Verify the plugin is discovered
+:icon: search
 
-Ensure `register_filters()` is called before templates are rendered.
+Run `bengal plugin list` and `bengal plugin info <name>`. If your plugin is
+missing, confirm it is installed in the same environment as Bengal and that the
+`bengal.plugins` entry point in `pyproject.toml` points at your plugin class.
 :::
 
-:::{dropdown} Verify template engine
+:::{dropdown} Check the filter is registered
 :icon: settings
 
-Confirm `site._template_engine` exists and has `_env` attribute.
+Confirm `register()` calls `registry.add_template_filter("name", fn)` and that
+`bengal plugin info <name>` reports a non-zero `template_filters` count.
 :::
 
 :::{dropdown} Check filter name
 :icon: tag
 
-Filter names are case-sensitive and must match exactly.
+Filter names are case-sensitive and must match the name passed to
+`add_template_filter` exactly.
 :::
 
-### Template Engine Not Available
+### Plugin Not Discovered
 
-If `site._template_engine` is `None`:
+If `bengal plugin list` does not show your plugin:
 
-- The template engine is created during the rendering phase
-- Ensure you're calling `register_filters()` after the engine is initialized
-- Consider using a custom build script that registers filters before building
+- Reinstall the plugin after editing `pyproject.toml`: `uv pip install -e ./my-bengal-plugin`
+- Confirm the entry point group is exactly `bengal.plugins`
+- Make sure the class implements `name`, `version`, and `register()`
 
 ### Context Not Passed to Filters
 
@@ -410,8 +375,10 @@ Access context variables through the context parameter when provided.
 Context passing behavior may vary depending on how the filter is called.
 :::
 
-:::{caution}
-**Internal API Usage**: Accessing `site._template_engine._env` uses internal APIs that may change in future versions. A stable plugin API for filter registration is planned for v0.4.0. Test your filter registration after Bengal updates.
+:::{tip}
+**Supported API**: `registry.add_template_filter()` is the stable, supported way
+to register filters. Avoid reaching into internal attributes such as
+`site._template_engine._env` — those are private and may change between releases.
 :::
 
 ## Complete Example
@@ -462,35 +429,38 @@ def relative_date(value, context=None) -> str:
 ```
 
 ```python
-# python/filter_registration.py
-"""Filter registration for custom Kida filters."""
-from bengal.core import Site
+# my_bengal_plugin/__init__.py
+"""Plugin that registers custom Kida filters."""
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
+
 from .filters import currency, truncate_words, relative_date
 
-def register_filters(site: Site) -> None:
-    """Register custom Kida filters.
 
-    Call this function before building your site to register all custom filters.
-    """
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
-        env.add_filter("currency", currency)
-        env.add_filter("truncate_words", truncate_words)
-        env.add_filter("relative_date", relative_date)
+class MyFiltersPlugin(Plugin):
+    name = "my-filters"
+    version = "1.0.0"
+
+    def register(self, registry: PluginRegistry) -> None:
+        registry.add_template_filter("currency", currency)
+        registry.add_template_filter("truncate_words", truncate_words)
+        registry.add_template_filter("relative_date", relative_date)
 ```
 
-**Using in a build script:**
+**Declaring the entry point:**
 
-```python
-# build.py
-from pathlib import Path
-from bengal.core import Site
-from bengal.orchestration.build import BuildOptions
-from python.filter_registration import register_filters
+```toml
+# pyproject.toml
+[project.entry-points."bengal.plugins"]
+my-filters = "my_bengal_plugin:MyFiltersPlugin"
+```
 
-site = Site.from_config(Path("."))
-register_filters(site)
-site.build(BuildOptions())
+Install the plugin and build — Bengal discovers it automatically and your
+filters are available in every template:
+
+```bash
+uv pip install -e ./my-bengal-plugin
+bengal build
 ```
 
 ## Next Steps
@@ -501,5 +471,5 @@ site.build(BuildOptions())
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/) — Built-in filters
-- [Build Hooks](/docs/extending/build-hooks/) — More customization options
+- [Writing Plugins](/docs/extending/plugins/) — Full plugin authoring guide
 :::

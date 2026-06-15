@@ -50,7 +50,11 @@ bengal build --incremental --fast
 
 ## 1. Memory-Optimized Builds (Streaming Mode)
 
-For sites with 5K+ pages, enable streaming mode:
+:::{warning}
+**Experimental.** `--memory-optimized` is an experimental streaming mode. Its memory benefit is **not yet verified** by Bengal's benchmarks, and on the workloads measured so far it has not reduced peak memory below a standard build. Treat it as a tuning knob to try and measure on your own site, not a guaranteed win. Profile your build (see [Build Profiling](#6-build-profiling)) before and after to confirm any improvement.
+:::
+
+For sites with 5K+ pages, you can try streaming mode:
 
 ```bash
 bengal build --memory-optimized
@@ -61,14 +65,15 @@ bengal build --memory-optimized
 1. **Builds knowledge graph** to understand page connectivity
 2. **Renders hubs first** (highly connected pages) and keeps them in memory
 3. **Streams leaves** in batches and releases memory immediately
-4. **Result**: 80-90% memory reduction
 
-### When to Use
+The intent is to keep memory closer to constant as page count grows by releasing leaf pages after they render. Whether this lowers peak memory on a given site depends on its content and link structure — measure to confirm.
 
-- Sites with 5K+ pages
-- CI runners with limited memory
-- Docker containers with memory limits
-- Local machines with limited RAM
+### When to Try It
+
+- Very large sites (5K+ pages) where a standard build runs out of memory
+- CI runners or containers with strict memory limits
+
+In each case, compare peak memory with and without the flag before relying on it.
 
 :::{warning}
 `--memory-optimized` and `--perf-profile` cannot be used together (profiler doesn't work with batched rendering).
@@ -387,9 +392,9 @@ bengal clean --all
 
 ### Build runs out of memory
 
-1. Enable streaming: `--memory-optimized`
-2. Use `bengal build --dev --verbose` to see memory usage
-3. Increase swap space
+1. Increase available memory or swap space
+2. Use `bengal build --dev --verbose` to watch memory usage
+3. Try the experimental streaming mode (`--memory-optimized`) and measure peak memory with and without it — it is not guaranteed to help on every site
 
 ### Build is slow despite caching
 

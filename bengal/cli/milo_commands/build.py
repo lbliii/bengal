@@ -22,7 +22,8 @@ def build(
         bool, Description("Force full rebuild ignoring cache (default: auto-detect)")
     ] = False,
     memory_optimized: Annotated[
-        bool, Description("Streaming build for memory efficiency (5K+ pages)")
+        bool,
+        Description("[Experimental] Streaming build for 5K+ pages; memory benefit unverified"),
     ] = False,
     environment: Annotated[
         str,
