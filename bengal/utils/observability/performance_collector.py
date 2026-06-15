@@ -192,10 +192,13 @@ class PerformanceCollector:
             with open(history_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(metrics) + "\n")
 
-            # Also save as latest.json for easy access
+            # Also save as latest.json for easy access. Write atomically
+            # (write-temp-then-rename) so a crash mid-write never leaves a
+            # truncated latest.json (#471).
+            from bengal.utils.io.atomic_write import atomic_write_text
+
             latest_file = self.metrics_dir / "latest.json"
-            with open(latest_file, "w", encoding="utf-8") as f:
-                json.dump(metrics, f, indent=2)
+            atomic_write_text(latest_file, json.dumps(metrics, indent=2), encoding="utf-8")
 
         except Exception as e:
             # Fail gracefully - don't break the build if metrics can't be saved

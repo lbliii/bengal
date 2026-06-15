@@ -511,9 +511,12 @@ class IndexCache:
                 if response.status == 200:
                     data = json.loads(response.read().decode("utf-8"))
 
-                    # Cache the result
-                    cache_file.parent.mkdir(parents=True, exist_ok=True)
-                    cache_file.write_text(
+                    # Cache the result atomically (write-temp-then-rename) so a
+                    # crash mid-write never leaves a truncated cache file (#471).
+                    from bengal.utils.io.atomic_write import atomic_write_text
+
+                    atomic_write_text(
+                        cache_file,
                         json.dumps(data, indent=2),
                         encoding="utf-8",
                     )
