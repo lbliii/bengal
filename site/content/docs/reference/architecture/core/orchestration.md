@@ -92,7 +92,7 @@ flowchart LR
 | Phase | Function | Description |
 |-------|----------|-------------|
 | 17 | `phase_postprocess` | Generate sitemap, RSS, validate links |
-| 18 | `phase_cache_save` | Save cache for incremental builds |
+| 18 | Cache save | Persist the incremental build cache (URL claims, page/asset state) |
 | 19 | `phase_collect_stats` | Collect build statistics |
 | 19.5 | Error session | Track errors for pattern detection |
 | 20 | Health check | Run validators |
