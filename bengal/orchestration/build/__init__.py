@@ -438,621 +438,649 @@ class BuildOrchestrator:
 
         run_plugin_phase("build_start")
 
-        # Phase 1: Font Processing
-        initialization.phase_fonts(self, cli, collector=output_collector)
+        # `build_complete` is a documented teardown/cleanup contract: it must
+        # fire exactly once even when a mid-build phase raises (issue #437). The
+        # fired-once guard prevents double-firing on the happy path, which would
+        # break plugins with non-idempotent teardown.
+        build_complete_fired = False
 
-        # Phase 1.5: Template Validation (optional, controlled by config)
-        initialization.phase_template_validation(self, cli, strict=strict)
-
-        # === DISCOVERY PHASE GROUP (dashboard-integrated) ===
-        run_plugin_phase("pre_discovery")
-        notify_phase_start("discovery")
-        discovery_start = time.time()
-
-        # Phase 2: Content Discovery (with content caching for validators)
-        # Pass BuildCache for autodoc dependency registration
-        initialization.phase_discovery(
-            self,
-            cli,
-            incremental,
-            build_context=early_ctx,
-            build_cache=cache,
-        )
-
-        # Phase 3: Cache Discovery Metadata
-        initialization.phase_cache_metadata(self)
-
-        discovery_duration_ms = (time.time() - discovery_start) * 1000
-        self.stats.record_phase_timing("Discovery", discovery_duration_ms)
-
-        notify_phase_complete(
-            "discovery",
-            discovery_duration_ms,
-            f"{len(self.site.pages)} pages, {len(self.site.sections)} sections",
-        )
-        run_plugin_phase("post_discovery")
-
-        # Phase 4: Config Check and Cleanup
-        filter_start = time.perf_counter()
-        config_result = initialization.phase_config_check(self, cli, cache, incremental)
-        incremental = config_result.incremental
-        config_changed = config_result.config_changed
-
-        # Phase 5: Incremental Filtering (determine what to build)
-        # Always use provenance-based filtering (replaces old IncrementalFilterEngine)
-        from bengal.orchestration.build.provenance_filter import (
-            phase_incremental_filter_provenance,
-        )
-
-        filter_result = phase_incremental_filter_provenance(
-            self,
-            cli,
-            cache,
-            incremental,
-            verbose,
-            build_start,
-            changed_sources=changed_sources,
-            nav_changed_sources=nav_changed_sources,
-        )
-        self.stats.record_phase_timing(
-            "Config/filter",
-            (time.perf_counter() - filter_start) * 1000,
-        )
-
-        if filter_result is None:
-            # No changes detected - early exit
+        def fire_build_complete() -> None:
+            """Fire the build_complete hook at most once for this build."""
+            nonlocal build_complete_fired
+            if build_complete_fired:
+                return
+            build_complete_fired = True
             run_plugin_phase("build_complete")
-            return self.stats
-        pages_to_build = filter_result.pages_to_build
-        assets_to_process = filter_result.assets_to_process
-        affected_tags = filter_result.affected_tags
-        changed_page_paths = filter_result.changed_page_paths
-        affected_sections = filter_result.affected_sections
 
-        # Propagate incremental state into the shared BuildContext so later phases (especially
-        # health validators) can make safe incremental decisions without re-scanning everything.
-        early_ctx.incremental = bool(incremental)
-        early_ctx.changed_page_paths = set(changed_page_paths)
-        early_ctx.config_changed = bool(config_changed)
+        try:
+            # Phase 1: Font Processing
+            initialization.phase_fonts(self, cli, collector=output_collector)
 
-        # === CONTENT PHASE GROUP (dashboard-integrated) ===
-        run_plugin_phase("pre_content")
-        notify_phase_start("content")
-        content_start = time.time()
+            # Phase 1.5: Template Validation (optional, controlled by config)
+            initialization.phase_template_validation(self, cli, strict=strict)
 
-        # Phase 6: Section Finalization
-        content.phase_sections(self, cli, incremental, affected_sections)
+            # === DISCOVERY PHASE GROUP (dashboard-integrated) ===
+            run_plugin_phase("pre_discovery")
+            notify_phase_start("discovery")
+            discovery_start = time.time()
 
-        # Phase 7: Taxonomies & Dynamic Pages
-        # Pass force_sequential - phase will compute parallel based on should_parallelize()
-        affected_tags = content.phase_taxonomies(
-            self, cache, incremental, force_sequential, pages_to_build
-        )
-
-        # Phase 8: Save Taxonomy Index
-        content.phase_taxonomy_index(self)
-
-        # Phase 9: Menus
-        content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
-
-        # Phase 10: Related Posts Index
-        # Pass force_sequential - phase will compute parallel based on should_parallelize()
-        content.phase_related_posts(self, incremental, force_sequential, pages_to_build)
-
-        # Phase 11: Query Indexes
-        content.phase_query_indexes(self, cache, incremental, pages_to_build)
-
-        # Phase 12: Update Pages List (add generated taxonomy pages)
-        # RFC: Output Cache Architecture - Pass GeneratedPageCache to skip unchanged tag pages
-        pages_to_build = content.phase_update_pages_list(
-            self,
-            cache,
-            incremental,
-            pages_to_build,
-            affected_tags,
-            generated_page_cache=generated_page_cache,
-        )
-
-        # Phase 12.25: Variant filter (params.edition for multi-variant builds)
-        params_edition = None
-        params = self.site.config.get("params") or {}
-        if isinstance(params, dict):
-            params_edition = params.get("edition")
-        if params_edition is not None and str(params_edition).strip():
-            variant = str(params_edition).strip()
-            pages_to_build = [p for p in pages_to_build if p.in_variant(variant)]
-            self.site.pages = [p for p in self.site.pages if p.in_variant(variant)]
-            self._filter_sections_by_variant(self.site.sections, variant)
-            if hasattr(self.site, "invalidate_regular_pages_cache"):
-                self.site.invalidate_regular_pages_cache()
-        early_ctx.pages_to_build = list(pages_to_build)
-
-        # Phase 12.5: URL Collision Detection (proactive validation)
-        collisions = self.site.validate_no_url_collisions(strict=options.strict)
-        if collisions:
-            collision_records = self.site.collect_url_collisions()
-            cli.render_write("url_collisions.kida", collisions=collision_records)
-            logger.warning(
-                "url_collision_summary",
-                count=len(collision_records),
-                urls=[record.url for record in collision_records],
-                _console=False,
-            )
-
-        content_duration_ms = (time.time() - content_start) * 1000
-        self.stats.record_phase_timing("Content", content_duration_ms)
-        taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
-        notify_phase_complete(
-            "content",
-            content_duration_ms,
-            f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
-        )
-        run_plugin_phase("post_content")
-
-        # === PARSING PHASE (after all pages known, before snapshot) ===
-        # Parse markdown content for ALL pages (including generated taxonomy pages)
-        # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
-        run_plugin_phase("pre_parsing")
-        parsing_start = time.time()
-        with self.logger.phase("parsing"):
-            parsing.phase_parse_content(
+            # Phase 2: Content Discovery (with content caching for validators)
+            # Pass BuildCache for autodoc dependency registration
+            initialization.phase_discovery(
                 self,
                 cli,
+                incremental,
+                build_context=early_ctx,
+                build_cache=cache,
+            )
+
+            # Phase 3: Cache Discovery Metadata
+            initialization.phase_cache_metadata(self)
+
+            discovery_duration_ms = (time.time() - discovery_start) * 1000
+            self.stats.record_phase_timing("Discovery", discovery_duration_ms)
+
+            notify_phase_complete(
+                "discovery",
+                discovery_duration_ms,
+                f"{len(self.site.pages)} pages, {len(self.site.sections)} sections",
+            )
+            run_plugin_phase("post_discovery")
+
+            # Phase 4: Config Check and Cleanup
+            filter_start = time.perf_counter()
+            config_result = initialization.phase_config_check(self, cli, cache, incremental)
+            incremental = config_result.incremental
+            config_changed = config_result.config_changed
+
+            # Phase 5: Incremental Filtering (determine what to build)
+            # Always use provenance-based filtering (replaces old IncrementalFilterEngine)
+            from bengal.orchestration.build.provenance_filter import (
+                phase_incremental_filter_provenance,
+            )
+
+            filter_result = phase_incremental_filter_provenance(
+                self,
+                cli,
+                cache,
+                incremental,
+                verbose,
+                build_start,
+                changed_sources=changed_sources,
+                nav_changed_sources=nav_changed_sources,
+            )
+            self.stats.record_phase_timing(
+                "Config/filter",
+                (time.perf_counter() - filter_start) * 1000,
+            )
+
+            if filter_result is None:
+                # No changes detected - early exit
+                fire_build_complete()
+                return self.stats
+            pages_to_build = filter_result.pages_to_build
+            assets_to_process = filter_result.assets_to_process
+            affected_tags = filter_result.affected_tags
+            changed_page_paths = filter_result.changed_page_paths
+            affected_sections = filter_result.affected_sections
+
+            # Propagate incremental state into the shared BuildContext so later phases (especially
+            # health validators) can make safe incremental decisions without re-scanning everything.
+            early_ctx.incremental = bool(incremental)
+            early_ctx.changed_page_paths = set(changed_page_paths)
+            early_ctx.config_changed = bool(config_changed)
+
+            # === CONTENT PHASE GROUP (dashboard-integrated) ===
+            run_plugin_phase("pre_content")
+            notify_phase_start("content")
+            content_start = time.time()
+
+            # Phase 6: Section Finalization
+            content.phase_sections(self, cli, incremental, affected_sections)
+
+            # Phase 7: Taxonomies & Dynamic Pages
+            # Pass force_sequential - phase will compute parallel based on should_parallelize()
+            affected_tags = content.phase_taxonomies(
+                self, cache, incremental, force_sequential, pages_to_build
+            )
+
+            # Phase 8: Save Taxonomy Index
+            content.phase_taxonomy_index(self)
+
+            # Phase 9: Menus
+            content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
+
+            # Phase 10: Related Posts Index
+            # Pass force_sequential - phase will compute parallel based on should_parallelize()
+            content.phase_related_posts(self, incremental, force_sequential, pages_to_build)
+
+            # Phase 11: Query Indexes
+            content.phase_query_indexes(self, cache, incremental, pages_to_build)
+
+            # Phase 12: Update Pages List (add generated taxonomy pages)
+            # RFC: Output Cache Architecture - Pass GeneratedPageCache to skip unchanged tag pages
+            pages_to_build = content.phase_update_pages_list(
+                self,
+                cache,
+                incremental,
                 pages_to_build,
-                parallel=not force_sequential,
-            )
-        parsing_duration_ms = (time.time() - parsing_start) * 1000
-        self.stats.record_phase_timing("Parsing", parsing_duration_ms)
-        if hasattr(self.stats, "parsing_time_ms"):
-            self.stats.parsing_time_ms = parsing_duration_ms
-
-        cli.phase(
-            "Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages"
-        )
-        run_plugin_phase("post_parsing")
-
-        # === SNAPSHOT CREATION (after parsing, before rendering) ===
-        # Create immutable snapshot for lock-free parallel rendering
-        # Snapshot now contains pre-parsed HTML content from all pages
-        run_plugin_phase("pre_snapshot")
-        from bengal.snapshots import create_site_snapshot
-        from bengal.snapshots.persistence import SnapshotCache
-
-        snapshot_start = time.time()
-        with self.logger.phase("snapshot"):
-            site_snapshot = create_site_snapshot(self.site)
-            snapshot_duration_ms = (time.time() - snapshot_start) * 1000
-            self.stats.record_phase_timing("Snapshot", snapshot_duration_ms)
-            # Store snapshot in build context for rendering phase
-            early_ctx.snapshot = site_snapshot
-            # Store snapshot time in stats if available
-            if hasattr(self.stats, "snapshot_time_ms"):
-                self.stats.snapshot_time_ms = snapshot_duration_ms
-
-            # Install pre-computed NavTrees for lock-free lookups during rendering
-            from bengal.core.nav_tree import NavTreeCache
-
-            NavTreeCache.set_precomputed(dict(site_snapshot.navigation.nav_trees))
-
-            # Eagerly create global context wrappers (eliminates _context_lock
-            # contention during parallel rendering — cache is populated before
-            # any render thread starts)
-            from bengal.rendering.context import _get_global_contexts
-
-            _get_global_contexts(self.site, build_context=early_ctx)
-
-            # Configure directive cache before parallel rendering (eliminates
-            # _config_lock contention — configure_for_site() only needs to
-            # run once, and doing it here ensures no racing during rendering)
-            from bengal.cache.directive_cache import configure_for_site
-
-            configure_for_site(self.site)
-
-            # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
-            # This enables near-instant parsing on subsequent builds.
-            # Persist parser version + config hash so the next build's
-            # load_page_cache() can reject byte-stale parsed HTML after a parser
-            # upgrade or markdown/directive config change (issue #377). Save/load
-            # meta handling must stay symmetric or the cache silently never hits.
-            from bengal.config.hash import compute_config_hash
-            from bengal.rendering.pipeline import RenderingPipeline
-
-            cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
-            snapshot_cache = SnapshotCache(cache_dir)
-            snapshot_cache.save(
-                site_snapshot,
-                parser_version=RenderingPipeline(
-                    self.site,
-                    quiet=True,
-                    build_stats=None,
-                    build_context=None,
-                )._get_parser_version(),
-                config_hash=compute_config_hash(self.site.config),
+                affected_tags,
+                generated_page_cache=generated_page_cache,
             )
 
-            # === SERVICE INSTANTIATION (RFC: bengal-v2-architecture Phase 1) ===
-            # Services operate on the frozen snapshot for thread-safe rendering.
-            # Instantiated once per build, available via build context.
-            from bengal.services.query import QueryService
+            # Phase 12.25: Variant filter (params.edition for multi-variant builds)
+            params_edition = None
+            params = self.site.config.get("params") or {}
+            if isinstance(params, dict):
+                params_edition = params.get("edition")
+            if params_edition is not None and str(params_edition).strip():
+                variant = str(params_edition).strip()
+                pages_to_build = [p for p in pages_to_build if p.in_variant(variant)]
+                self.site.pages = [p for p in self.site.pages if p.in_variant(variant)]
+                self._filter_sections_by_variant(self.site.sections, variant)
+                if hasattr(self.site, "invalidate_regular_pages_cache"):
+                    self.site.invalidate_regular_pages_cache()
+            early_ctx.pages_to_build = list(pages_to_build)
 
-            early_ctx.query_service = QueryService.from_snapshot(site_snapshot)
-            # DataService instantiation deferred — only when data/ dir exists
+            # Phase 12.5: URL Collision Detection (proactive validation)
+            collisions = self.site.validate_no_url_collisions(strict=options.strict)
+            if collisions:
+                collision_records = self.site.collect_url_collisions()
+                cli.render_write("url_collisions.kida", collisions=collision_records)
+                logger.warning(
+                    "url_collision_summary",
+                    count=len(collision_records),
+                    urls=[record.url for record in collision_records],
+                    _console=False,
+                )
+
+            content_duration_ms = (time.time() - content_start) * 1000
+            self.stats.record_phase_timing("Content", content_duration_ms)
+            taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
+            notify_phase_complete(
+                "content",
+                content_duration_ms,
+                f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
+            )
+            run_plugin_phase("post_content")
+
+            # === PARSING PHASE (after all pages known, before snapshot) ===
+            # Parse markdown content for ALL pages (including generated taxonomy pages)
+            # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
+            run_plugin_phase("pre_parsing")
+            parsing_start = time.time()
+            with self.logger.phase("parsing"):
+                parsing.phase_parse_content(
+                    self,
+                    cli,
+                    pages_to_build,
+                    parallel=not force_sequential,
+                )
+            parsing_duration_ms = (time.time() - parsing_start) * 1000
+            self.stats.record_phase_timing("Parsing", parsing_duration_ms)
+            if hasattr(self.stats, "parsing_time_ms"):
+                self.stats.parsing_time_ms = parsing_duration_ms
+
+            cli.phase(
+                "Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages"
+            )
+            run_plugin_phase("post_parsing")
+
+            # === SNAPSHOT CREATION (after parsing, before rendering) ===
+            # Create immutable snapshot for lock-free parallel rendering
+            # Snapshot now contains pre-parsed HTML content from all pages
+            run_plugin_phase("pre_snapshot")
+            from bengal.snapshots import create_site_snapshot
+            from bengal.snapshots.persistence import SnapshotCache
+
+            snapshot_start = time.time()
+            with self.logger.phase("snapshot"):
+                site_snapshot = create_site_snapshot(self.site)
+                snapshot_duration_ms = (time.time() - snapshot_start) * 1000
+                self.stats.record_phase_timing("Snapshot", snapshot_duration_ms)
+                # Store snapshot in build context for rendering phase
+                early_ctx.snapshot = site_snapshot
+                # Store snapshot time in stats if available
+                if hasattr(self.stats, "snapshot_time_ms"):
+                    self.stats.snapshot_time_ms = snapshot_duration_ms
+
+                # Install pre-computed NavTrees for lock-free lookups during rendering
+                from bengal.core.nav_tree import NavTreeCache
+
+                NavTreeCache.set_precomputed(dict(site_snapshot.navigation.nav_trees))
+
+                # Eagerly create global context wrappers (eliminates _context_lock
+                # contention during parallel rendering — cache is populated before
+                # any render thread starts)
+                from bengal.rendering.context import _get_global_contexts
+
+                _get_global_contexts(self.site, build_context=early_ctx)
+
+                # Configure directive cache before parallel rendering (eliminates
+                # _config_lock contention — configure_for_site() only needs to
+                # run once, and doing it here ensures no racing during rendering)
+                from bengal.cache.directive_cache import configure_for_site
+
+                configure_for_site(self.site)
+
+                # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
+                # This enables near-instant parsing on subsequent builds.
+                # Persist parser version + config hash so the next build's
+                # load_page_cache() can reject byte-stale parsed HTML after a parser
+                # upgrade or markdown/directive config change (issue #377). Save/load
+                # meta handling must stay symmetric or the cache silently never hits.
+                from bengal.config.hash import compute_config_hash
+                from bengal.rendering.pipeline import RenderingPipeline
+
+                cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
+                snapshot_cache = SnapshotCache(cache_dir)
+                snapshot_cache.save(
+                    site_snapshot,
+                    parser_version=RenderingPipeline(
+                        self.site,
+                        quiet=True,
+                        build_stats=None,
+                        build_context=None,
+                    )._get_parser_version(),
+                    config_hash=compute_config_hash(self.site.config),
+                )
+
+                # === SERVICE INSTANTIATION (RFC: bengal-v2-architecture Phase 1) ===
+                # Services operate on the frozen snapshot for thread-safe rendering.
+                # Instantiated once per build, available via build context.
+                from bengal.services.query import QueryService
+
+                early_ctx.query_service = QueryService.from_snapshot(site_snapshot)
+                # DataService instantiation deferred — only when data/ dir exists
+                try:
+                    from bengal.services.data import DataService
+
+                    early_ctx.data_service = DataService.from_root(self.site.root_path)
+                except Exception:  # noqa: S110 -- data/ dir may not exist; service remains None
+                    pass
+            run_plugin_phase("post_snapshot")
+
+            # === DRY-RUN MODE: Skip output-producing phases ===
+            # RFC: rfc-incremental-build-observability Phase 2
+            # In dry-run mode, we skip rendering, assets, postprocessing, and health
+            # but still collect incremental decision data for --explain output
+            if dry_run:
+                cli.info("  Dry-run mode: skipping rendering and output phases")
+                self.stats.build_time_ms = (time.time() - build_start) * 1000
+                self.stats.dry_run = True
+
+                # Clear build state (build complete)
+                self.site.set_build_state(None)
+
+                fire_build_complete()
+                return self.stats
+
+            # === ASSETS PHASE GROUP (dashboard-integrated) ===
+            run_plugin_phase("pre_assets")
+            notify_phase_start("assets")
+            assets_start = time.time()
+
+            # Phase 13: Process Assets
+            # Asset processing is I/O-bound and benefits from parallel execution
+            # AssetOrchestrator has smart threshold (MIN_ITEMS_FOR_PARALLEL=5) to avoid overhead
+            assets_to_process = rendering.phase_assets(
+                self,
+                cli,
+                incremental,
+                not force_sequential,
+                assets_to_process,
+                collector=output_collector,
+            )
+
+            assets_duration_ms = (time.time() - assets_start) * 1000
+            self.stats.record_phase_timing("Assets", assets_duration_ms)
+            notify_phase_complete(
+                "assets",
+                assets_duration_ms,
+                f"{len(assets_to_process) if assets_to_process else 0} assets processed",
+            )
+            run_plugin_phase("post_assets")
+
+            # === RENDERING PHASE GROUP (dashboard-integrated) ===
+            # Canonical hook name is `pre_render`; `pre_rendering` is emitted as a
+            # back-compat alias for plugins registered against the older spelling.
+            # Same alias pairing applies to post_render/post_rendering below.
+            run_plugin_phase("pre_render")
+            run_plugin_phase("pre_rendering")
+            notify_phase_start("rendering")
+            rendering_start = time.time()
+
+            # Set up live progress display for rendering (the longest phase)
+            if progress_manager:
+                total_pages = len(pages_to_build) if pages_to_build else 0
+                # IMPORTANT: start() must come BEFORE add_phase() to enable Rich Live display
+                progress_manager.start()  # Start the Rich Live display
+                progress_manager.add_phase("rendering", "Rendering", total=total_pages)
+                progress_manager.start_phase("rendering")
+
+            # Phase 14: Render Pages (with cached content from discovery)
+            # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
+            # Ensure early_ctx has output_collector so pipeline gets it (fixes output_collector_missing)
+            early_ctx.output_collector = output_collector
+            early_ctx.artifact_collector = artifact_collector
             try:
-                from bengal.services.data import DataService
+                ctx = rendering.phase_render(
+                    self,
+                    cli,
+                    incremental,
+                    force_sequential,
+                    quiet,
+                    verbose,
+                    memory_optimized,
+                    pages_to_build,
+                    profile,
+                    progress_manager,
+                    reporter,
+                    profile_templates=profile_templates,
+                    early_context=early_ctx,
+                    changed_sources=changed_sources,
+                    collector=output_collector,
+                )
+            finally:
+                # Stop progress display after rendering (success or failure)
+                if progress_manager:
+                    rendering_elapsed_ms = (time.time() - rendering_start) * 1000
+                    progress_manager.complete_phase("rendering", elapsed_ms=rendering_elapsed_ms)
+                    progress_manager.stop()
 
-                early_ctx.data_service = DataService.from_root(self.site.root_path)
-            except Exception:  # noqa: S110 -- data/ dir may not exist; service remains None
-                pass
-        run_plugin_phase("post_snapshot")
+            # Phase 15: Update Site Pages (replace cached pages with rendered pages)
+            rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)
 
-        # === DRY-RUN MODE: Skip output-producing phases ===
-        # RFC: rfc-incremental-build-observability Phase 2
-        # In dry-run mode, we skip rendering, assets, postprocessing, and health
-        # but still collect incremental decision data for --explain output
-        if dry_run:
-            cli.info("  Dry-run mode: skipping rendering and output phases")
+            # Phase 16: Track Asset Dependencies
+            rendering.phase_track_assets(self, pages_to_build, cli=cli, build_context=ctx)
+
+            # Record provenance for all built pages (if using provenance-based filtering)
+            if hasattr(self, "_provenance_filter") and pages_to_build:
+                from bengal.orchestration.build.provenance_filter import record_all_page_builds
+
+                record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
+
+            rendering_duration_ms = (time.time() - rendering_start) * 1000
+            self.stats.record_phase_timing("Rendering", rendering_duration_ms)
+            notify_phase_complete(
+                "rendering",
+                rendering_duration_ms,
+                f"{len(pages_to_build) if pages_to_build else 0} pages rendered",
+            )
+            run_plugin_phase("post_render")  # canonical
+            run_plugin_phase("post_rendering")  # back-compat alias of post_render
+
+            # === FINALIZATION PHASE GROUP (dashboard-integrated) ===
+            run_plugin_phase("pre_finalization")
+            notify_phase_start("finalization")
+            finalization_start = time.time()
+
+            # Phase 17: Post-processing
+            # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
+            finalization.phase_postprocess(
+                self,
+                cli,
+                not force_sequential,
+                ctx,
+                incremental,
+                collector=output_collector,
+                enabled_task_names={"special pages"} if serve_ready_policy else None,
+                run_asset_audit=not serve_ready_policy,
+            )
+            self.stats.record_phase_timing("Post-process", self.stats.postprocess_time_ms)
+
+            from bengal.orchestration.build.artifact_inventory import populate_artifact_inventory
+
+            if not serve_ready_policy:
+                if ctx is not None:
+                    ctx.output_collector = output_collector
+                    ctx.artifact_collector = artifact_collector
+                artifact_inventory_start = time.perf_counter()
+                populate_artifact_inventory(self.site, ctx)
+                self.stats.post_render_timings_ms["artifact_inventory"] = round(
+                    (time.perf_counter() - artifact_inventory_start) * 1000,
+                    1,
+                )
+                self.stats.record_phase_timing(
+                    "Artifact inventory",
+                    self.stats.post_render_timings_ms["artifact_inventory"],
+                )
+
+            # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
+            # This enables skipping them on future builds if member content hasn't changed
+            # Note: Update on ALL builds (not just incremental) to populate cache for first build
+            if generated_page_cache and not serve_ready_policy:
+                # Build content hash lookup from parsed_content cache
+                content_hash_lookup: dict[str, str] = {}
+                if cache and hasattr(cache, "parsed_content"):
+                    for path_str, entry in cache.parsed_content.items():
+                        if isinstance(entry, dict):
+                            content_hash = entry.get("metadata_hash", "")
+                            if content_hash:
+                                content_hash_lookup[path_str] = content_hash
+
+                # Update cache for rendered tag pages
+                updated_entries = 0
+                tag_pages_found = 0
+                tag_pages_with_posts = 0
+                for page in pages_to_build:
+                    if page.metadata.get("type") == "tag" and page.metadata.get("_generated"):
+                        tag_pages_found += 1
+                        tag_slug = page.metadata.get("_tag_slug", "")
+                        member_pages = page.metadata.get("_posts", [])
+                        if tag_slug and member_pages:
+                            tag_pages_with_posts += 1
+                            # Note: We don't have rendered_html here, pass empty string
+                            # The cache is primarily for member hash comparison, not HTML caching
+                            generated_page_cache.update(
+                                page_type="tag",
+                                page_id=tag_slug,
+                                member_pages=member_pages,
+                                content_cache=content_hash_lookup,
+                                rendered_html="",  # HTML caching optional
+                                generation_time_ms=0,  # Not tracked here
+                            )
+                            updated_entries += 1
+
+                logger.info(
+                    "generated_page_cache_updated",
+                    entries=updated_entries,
+                    tag_pages_found=tag_pages_found,
+                    tag_pages_with_posts=tag_pages_with_posts,
+                    content_hash_count=len(content_hash_lookup),
+                )
+
+            # Phase 18: Save Caches (parallel for independent caches)
+            # Run cache saves concurrently since they're independent I/O operations.
+            # This reduces total cache save time from sum to max of all saves.
+            cache_start = time.perf_counter()
+
+            def _save_main_cache() -> None:
+                saved = self.incremental.save_cache(
+                    pages_to_build,
+                    assets_to_process,
+                    build_context=ctx,
+                )
+                if saved is False:
+                    from bengal.errors import BengalCacheError, ErrorCode
+
+                    raise BengalCacheError(
+                        "Build cache could not be saved.",
+                        code=ErrorCode.A004,
+                        suggestion=(
+                            "Check disk space and permissions. Incremental builds may be stale "
+                            "until the cache can be saved."
+                        ),
+                    )
+
+            def _save_generated_cache() -> None:
+                if generated_page_cache:
+                    generated_page_cache.save()
+
+            # Run cache saves in parallel
+            from bengal.utils.concurrency.work_scope import WorkScope
+
+            if serve_ready_policy:
+                self.stats.post_render_timings_ms["cache_save"] = 0
+                if cli is not None:
+                    cli.detail(
+                        "cache save deferred for serve-ready build", indent=1, icon=cli.icons.arrow
+                    )
+                self.logger.info("cache_save_deferred", policy=options.completion_policy.value)
+            else:
+                with WorkScope("CacheSave", max_workers=2) as scope:
+                    results = scope.map(lambda fn: fn(), [_save_main_cache, _save_generated_cache])
+
+                for r in results:
+                    if r.error:
+                        raise r.error
+
+                cache_duration_ms = (time.perf_counter() - cache_start) * 1000
+                self.stats.post_render_timings_ms["cache_save"] = round(cache_duration_ms, 1)
+                self.stats.record_phase_timing("Cache save", cache_duration_ms)
+                if cli is not None:
+                    cli.phase("Cache save", duration_ms=cache_duration_ms)
+                self.logger.info("cache_saved")
+
+            # Phase 19: Collect Final Stats
+            stats_start = time.perf_counter()
+            finalization.phase_collect_stats(self, build_start, cli=cli)
+            self.stats.post_render_timings_ms["stats"] = round(
+                (time.perf_counter() - stats_start) * 1000,
+                1,
+            )
+            self.stats.record_phase_timing("Stats", self.stats.post_render_timings_ms["stats"])
+
+            # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
+            self._finalize_error_session()
+
+            # Populate changed_outputs from collector for hot reload decisions
+            self.stats.changed_outputs = output_collector.get_outputs()
+
+            # Compute reload_hint for smarter dev server decisions.
+            # Only set "none" when we have outputs and can confidently say no reload.
+            # When outputs is empty (e.g. output_collector missing from pipeline),
+            # leave reload_hint=None so the trigger uses changed_files fallback.
+            outputs = self.stats.changed_outputs
+            if self.stats.dry_run:
+                self.stats.reload_hint = ReloadHint.NONE
+            elif not outputs:
+                self.stats.reload_hint = None
+            elif any(o.output_type.value == "html" for o in outputs):
+                self.stats.reload_hint = ReloadHint.FULL
+            elif all(o.output_type.value == "css" for o in outputs):
+                self.stats.reload_hint = ReloadHint.CSS_ONLY
+            else:
+                self.stats.reload_hint = ReloadHint.FULL
+
+            # Debug: Log output collection for hot reload diagnostics
+            if self.stats.changed_outputs:
+                self.logger.debug(
+                    "output_collector_results",
+                    total_outputs=len(self.stats.changed_outputs),
+                    html_count=sum(
+                        1 for o in self.stats.changed_outputs if o.output_type.value == "html"
+                    ),
+                    css_count=sum(
+                        1 for o in self.stats.changed_outputs if o.output_type.value == "css"
+                    ),
+                )
+            else:
+                self.logger.warning(
+                    "output_collector_empty",
+                    pages_rendered=len(pages_to_build) if pages_to_build else 0,
+                )
+
+            finalization_duration_ms = (time.time() - finalization_start) * 1000
+            notify_phase_complete(
+                "finalization",
+                finalization_duration_ms,
+                "post-processing complete",
+            )
+            run_plugin_phase("post_finalization")
+
+            if serve_ready_policy:
+                self.stats.post_render_timings_ms["health"] = 0
+                if cli is not None:
+                    cli.detail(
+                        "health check deferred for serve-ready build",
+                        indent=1,
+                        icon=cli.icons.arrow,
+                    )
+                self.logger.info("health_check_deferred", policy=options.completion_policy.value)
+            else:
+                # === HEALTH PHASE GROUP (dashboard-integrated) ===
+                run_plugin_phase("pre_health")
+                notify_phase_start("health")
+                health_start = time.time()
+
+                # Phase 20: Health Check
+                with logger.phase("health_check"):
+                    finalization.run_health_check(
+                        self,
+                        profile=profile,
+                        incremental=incremental,
+                        build_context=ctx,
+                    )
+
+                health_duration_ms = (time.time() - health_start) * 1000
+                self.stats.post_render_timings_ms["health"] = round(health_duration_ms, 1)
+                health_report = getattr(self.stats, "health_report", None)
+                health_summary = ""
+                if health_report:
+                    passed = health_report.total_passed
+                    total = health_report.total_checks
+                    health_summary = f"{passed}/{total} checks passed"
+                notify_phase_complete("health", health_duration_ms, health_summary)
+                run_plugin_phase("post_health")
+
+            # Save provenance cache if using provenance-based filtering
+            if hasattr(self, "_provenance_filter") and not serve_ready_policy:
+                from bengal.orchestration.build.provenance_filter import save_provenance_cache
+
+                provenance_save_start = time.perf_counter()
+                save_provenance_cache(self)
+                self.stats.post_render_timings_ms["provenance_save"] = round(
+                    (time.perf_counter() - provenance_save_start) * 1000,
+                    1,
+                )
+                self.stats.record_phase_timing(
+                    "Provenance save",
+                    self.stats.post_render_timings_ms["provenance_save"],
+                )
+
+            # Phase 21: Finalize Build
+            finalization_start = time.perf_counter()
             self.stats.build_time_ms = (time.time() - build_start) * 1000
-            self.stats.dry_run = True
+            finalization.phase_finalize(self, verbose, collector)
+            self.stats.record_phase_timing(
+                "Finalize",
+                (time.perf_counter() - finalization_start) * 1000,
+            )
+            self.stats.build_time_ms = (time.time() - build_start) * 1000
+
+            # Clean up partial fast-write files if build had errors
+            if self.stats.template_errors or (
+                isinstance(self.stats, HasErrors) and self.stats.errors
+            ):
+                from bengal.rendering.pipeline.output import cleanup_fast_writes
+
+                cleaned = cleanup_fast_writes()
+                if cleaned:
+                    logger.info("fast_write_cleanup", files_removed=cleaned)
 
             # Clear build state (build complete)
             self.site.set_build_state(None)
 
-            run_plugin_phase("build_complete")
+            fire_build_complete()
+
             return self.stats
-
-        # === ASSETS PHASE GROUP (dashboard-integrated) ===
-        run_plugin_phase("pre_assets")
-        notify_phase_start("assets")
-        assets_start = time.time()
-
-        # Phase 13: Process Assets
-        # Asset processing is I/O-bound and benefits from parallel execution
-        # AssetOrchestrator has smart threshold (MIN_ITEMS_FOR_PARALLEL=5) to avoid overhead
-        assets_to_process = rendering.phase_assets(
-            self,
-            cli,
-            incremental,
-            not force_sequential,
-            assets_to_process,
-            collector=output_collector,
-        )
-
-        assets_duration_ms = (time.time() - assets_start) * 1000
-        self.stats.record_phase_timing("Assets", assets_duration_ms)
-        notify_phase_complete(
-            "assets",
-            assets_duration_ms,
-            f"{len(assets_to_process) if assets_to_process else 0} assets processed",
-        )
-        run_plugin_phase("post_assets")
-
-        # === RENDERING PHASE GROUP (dashboard-integrated) ===
-        run_plugin_phase("pre_render")
-        run_plugin_phase("pre_rendering")
-        notify_phase_start("rendering")
-        rendering_start = time.time()
-
-        # Set up live progress display for rendering (the longest phase)
-        if progress_manager:
-            total_pages = len(pages_to_build) if pages_to_build else 0
-            # IMPORTANT: start() must come BEFORE add_phase() to enable Rich Live display
-            progress_manager.start()  # Start the Rich Live display
-            progress_manager.add_phase("rendering", "Rendering", total=total_pages)
-            progress_manager.start_phase("rendering")
-
-        # Phase 14: Render Pages (with cached content from discovery)
-        # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
-        # Ensure early_ctx has output_collector so pipeline gets it (fixes output_collector_missing)
-        early_ctx.output_collector = output_collector
-        early_ctx.artifact_collector = artifact_collector
-        try:
-            ctx = rendering.phase_render(
-                self,
-                cli,
-                incremental,
-                force_sequential,
-                quiet,
-                verbose,
-                memory_optimized,
-                pages_to_build,
-                profile,
-                progress_manager,
-                reporter,
-                profile_templates=profile_templates,
-                early_context=early_ctx,
-                changed_sources=changed_sources,
-                collector=output_collector,
-            )
         finally:
-            # Stop progress display after rendering (success or failure)
-            if progress_manager:
-                rendering_elapsed_ms = (time.time() - rendering_start) * 1000
-                progress_manager.complete_phase("rendering", elapsed_ms=rendering_elapsed_ms)
-                progress_manager.stop()
-
-        # Phase 15: Update Site Pages (replace cached pages with rendered pages)
-        rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)
-
-        # Phase 16: Track Asset Dependencies
-        rendering.phase_track_assets(self, pages_to_build, cli=cli, build_context=ctx)
-
-        # Record provenance for all built pages (if using provenance-based filtering)
-        if hasattr(self, "_provenance_filter") and pages_to_build:
-            from bengal.orchestration.build.provenance_filter import record_all_page_builds
-
-            record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
-
-        rendering_duration_ms = (time.time() - rendering_start) * 1000
-        self.stats.record_phase_timing("Rendering", rendering_duration_ms)
-        notify_phase_complete(
-            "rendering",
-            rendering_duration_ms,
-            f"{len(pages_to_build) if pages_to_build else 0} pages rendered",
-        )
-        run_plugin_phase("post_render")
-        run_plugin_phase("post_rendering")
-
-        # === FINALIZATION PHASE GROUP (dashboard-integrated) ===
-        run_plugin_phase("pre_finalization")
-        notify_phase_start("finalization")
-        finalization_start = time.time()
-
-        # Phase 17: Post-processing
-        # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
-        finalization.phase_postprocess(
-            self,
-            cli,
-            not force_sequential,
-            ctx,
-            incremental,
-            collector=output_collector,
-            enabled_task_names={"special pages"} if serve_ready_policy else None,
-            run_asset_audit=not serve_ready_policy,
-        )
-        self.stats.record_phase_timing("Post-process", self.stats.postprocess_time_ms)
-
-        from bengal.orchestration.build.artifact_inventory import populate_artifact_inventory
-
-        if not serve_ready_policy:
-            if ctx is not None:
-                ctx.output_collector = output_collector
-                ctx.artifact_collector = artifact_collector
-            artifact_inventory_start = time.perf_counter()
-            populate_artifact_inventory(self.site, ctx)
-            self.stats.post_render_timings_ms["artifact_inventory"] = round(
-                (time.perf_counter() - artifact_inventory_start) * 1000,
-                1,
-            )
-            self.stats.record_phase_timing(
-                "Artifact inventory",
-                self.stats.post_render_timings_ms["artifact_inventory"],
-            )
-
-        # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
-        # This enables skipping them on future builds if member content hasn't changed
-        # Note: Update on ALL builds (not just incremental) to populate cache for first build
-        if generated_page_cache and not serve_ready_policy:
-            # Build content hash lookup from parsed_content cache
-            content_hash_lookup: dict[str, str] = {}
-            if cache and hasattr(cache, "parsed_content"):
-                for path_str, entry in cache.parsed_content.items():
-                    if isinstance(entry, dict):
-                        content_hash = entry.get("metadata_hash", "")
-                        if content_hash:
-                            content_hash_lookup[path_str] = content_hash
-
-            # Update cache for rendered tag pages
-            updated_entries = 0
-            tag_pages_found = 0
-            tag_pages_with_posts = 0
-            for page in pages_to_build:
-                if page.metadata.get("type") == "tag" and page.metadata.get("_generated"):
-                    tag_pages_found += 1
-                    tag_slug = page.metadata.get("_tag_slug", "")
-                    member_pages = page.metadata.get("_posts", [])
-                    if tag_slug and member_pages:
-                        tag_pages_with_posts += 1
-                        # Note: We don't have rendered_html here, pass empty string
-                        # The cache is primarily for member hash comparison, not HTML caching
-                        generated_page_cache.update(
-                            page_type="tag",
-                            page_id=tag_slug,
-                            member_pages=member_pages,
-                            content_cache=content_hash_lookup,
-                            rendered_html="",  # HTML caching optional
-                            generation_time_ms=0,  # Not tracked here
-                        )
-                        updated_entries += 1
-
-            logger.info(
-                "generated_page_cache_updated",
-                entries=updated_entries,
-                tag_pages_found=tag_pages_found,
-                tag_pages_with_posts=tag_pages_with_posts,
-                content_hash_count=len(content_hash_lookup),
-            )
-
-        # Phase 18: Save Caches (parallel for independent caches)
-        # Run cache saves concurrently since they're independent I/O operations.
-        # This reduces total cache save time from sum to max of all saves.
-        cache_start = time.perf_counter()
-
-        def _save_main_cache() -> None:
-            saved = self.incremental.save_cache(
-                pages_to_build,
-                assets_to_process,
-                build_context=ctx,
-            )
-            if saved is False:
-                from bengal.errors import BengalCacheError, ErrorCode
-
-                raise BengalCacheError(
-                    "Build cache could not be saved.",
-                    code=ErrorCode.A004,
-                    suggestion=(
-                        "Check disk space and permissions. Incremental builds may be stale "
-                        "until the cache can be saved."
-                    ),
-                )
-
-        def _save_generated_cache() -> None:
-            if generated_page_cache:
-                generated_page_cache.save()
-
-        # Run cache saves in parallel
-        from bengal.utils.concurrency.work_scope import WorkScope
-
-        if serve_ready_policy:
-            self.stats.post_render_timings_ms["cache_save"] = 0
-            if cli is not None:
-                cli.detail(
-                    "cache save deferred for serve-ready build", indent=1, icon=cli.icons.arrow
-                )
-            self.logger.info("cache_save_deferred", policy=options.completion_policy.value)
-        else:
-            with WorkScope("CacheSave", max_workers=2) as scope:
-                results = scope.map(lambda fn: fn(), [_save_main_cache, _save_generated_cache])
-
-            for r in results:
-                if r.error:
-                    raise r.error
-
-            cache_duration_ms = (time.perf_counter() - cache_start) * 1000
-            self.stats.post_render_timings_ms["cache_save"] = round(cache_duration_ms, 1)
-            self.stats.record_phase_timing("Cache save", cache_duration_ms)
-            if cli is not None:
-                cli.phase("Cache save", duration_ms=cache_duration_ms)
-            self.logger.info("cache_saved")
-
-        # Phase 19: Collect Final Stats
-        stats_start = time.perf_counter()
-        finalization.phase_collect_stats(self, build_start, cli=cli)
-        self.stats.post_render_timings_ms["stats"] = round(
-            (time.perf_counter() - stats_start) * 1000,
-            1,
-        )
-        self.stats.record_phase_timing("Stats", self.stats.post_render_timings_ms["stats"])
-
-        # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
-        self._finalize_error_session()
-
-        # Populate changed_outputs from collector for hot reload decisions
-        self.stats.changed_outputs = output_collector.get_outputs()
-
-        # Compute reload_hint for smarter dev server decisions.
-        # Only set "none" when we have outputs and can confidently say no reload.
-        # When outputs is empty (e.g. output_collector missing from pipeline),
-        # leave reload_hint=None so the trigger uses changed_files fallback.
-        outputs = self.stats.changed_outputs
-        if self.stats.dry_run:
-            self.stats.reload_hint = ReloadHint.NONE
-        elif not outputs:
-            self.stats.reload_hint = None
-        elif any(o.output_type.value == "html" for o in outputs):
-            self.stats.reload_hint = ReloadHint.FULL
-        elif all(o.output_type.value == "css" for o in outputs):
-            self.stats.reload_hint = ReloadHint.CSS_ONLY
-        else:
-            self.stats.reload_hint = ReloadHint.FULL
-
-        # Debug: Log output collection for hot reload diagnostics
-        if self.stats.changed_outputs:
-            self.logger.debug(
-                "output_collector_results",
-                total_outputs=len(self.stats.changed_outputs),
-                html_count=sum(
-                    1 for o in self.stats.changed_outputs if o.output_type.value == "html"
-                ),
-                css_count=sum(
-                    1 for o in self.stats.changed_outputs if o.output_type.value == "css"
-                ),
-            )
-        else:
-            self.logger.warning(
-                "output_collector_empty",
-                pages_rendered=len(pages_to_build) if pages_to_build else 0,
-            )
-
-        finalization_duration_ms = (time.time() - finalization_start) * 1000
-        notify_phase_complete(
-            "finalization",
-            finalization_duration_ms,
-            "post-processing complete",
-        )
-        run_plugin_phase("post_finalization")
-
-        if serve_ready_policy:
-            self.stats.post_render_timings_ms["health"] = 0
-            if cli is not None:
-                cli.detail(
-                    "health check deferred for serve-ready build", indent=1, icon=cli.icons.arrow
-                )
-            self.logger.info("health_check_deferred", policy=options.completion_policy.value)
-        else:
-            # === HEALTH PHASE GROUP (dashboard-integrated) ===
-            run_plugin_phase("pre_health")
-            notify_phase_start("health")
-            health_start = time.time()
-
-            # Phase 20: Health Check
-            with logger.phase("health_check"):
-                finalization.run_health_check(
-                    self,
-                    profile=profile,
-                    incremental=incremental,
-                    build_context=ctx,
-                )
-
-            health_duration_ms = (time.time() - health_start) * 1000
-            self.stats.post_render_timings_ms["health"] = round(health_duration_ms, 1)
-            health_report = getattr(self.stats, "health_report", None)
-            health_summary = ""
-            if health_report:
-                passed = health_report.total_passed
-                total = health_report.total_checks
-                health_summary = f"{passed}/{total} checks passed"
-            notify_phase_complete("health", health_duration_ms, health_summary)
-            run_plugin_phase("post_health")
-
-        # Save provenance cache if using provenance-based filtering
-        if hasattr(self, "_provenance_filter") and not serve_ready_policy:
-            from bengal.orchestration.build.provenance_filter import save_provenance_cache
-
-            provenance_save_start = time.perf_counter()
-            save_provenance_cache(self)
-            self.stats.post_render_timings_ms["provenance_save"] = round(
-                (time.perf_counter() - provenance_save_start) * 1000,
-                1,
-            )
-            self.stats.record_phase_timing(
-                "Provenance save",
-                self.stats.post_render_timings_ms["provenance_save"],
-            )
-
-        # Phase 21: Finalize Build
-        finalization_start = time.perf_counter()
-        self.stats.build_time_ms = (time.time() - build_start) * 1000
-        finalization.phase_finalize(self, verbose, collector)
-        self.stats.record_phase_timing(
-            "Finalize",
-            (time.perf_counter() - finalization_start) * 1000,
-        )
-        self.stats.build_time_ms = (time.time() - build_start) * 1000
-
-        # Clean up partial fast-write files if build had errors
-        if self.stats.template_errors or (isinstance(self.stats, HasErrors) and self.stats.errors):
-            from bengal.rendering.pipeline.output import cleanup_fast_writes
-
-            cleaned = cleanup_fast_writes()
-            if cleaned:
-                logger.info("fast_write_cleanup", files_removed=cleaned)
-
-        # Clear build state (build complete)
-        self.site.set_build_state(None)
-
-        run_plugin_phase("build_complete")
-
-        return self.stats
+            # build_complete is a teardown contract: fire it whether the build
+            # body returned normally or raised, then let any in-flight exception
+            # continue to propagate to the caller (issue #437). BengalCacheError
+            # from the cache-save phase still surfaces after the hook runs.
+            fire_build_complete()
 
     def _filter_sections_by_variant(self, sections: list[Any], variant: str) -> None:
         """Filter section pages by variant; invalidate cached properties."""
