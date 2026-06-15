@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "python_version": "3.14.2 free-threading build (main, Jan 16 2026, 11:40:17) [Clang 17.0.0 (clang-1700.0.13.3)]",
+    "free_threaded": true,
+    "platform": "darwin",
+    "samples_per_cell": 7,
+    "record_only": true,
+    "note": "RECORD, not a gate. Captured on the dev machine; re-capture on a stable host if ever promoted to a gate. compare_hmr_latency.py reports drift without failing CI."
+  },
+  "data": {
+    "methodology": "End-to-end dev-loop save->reload latency. Drives the real WatcherRunner -> BuildTrigger -> BufferManager double-buffer -> ReloadNotifier chain (wired as DevServer._create_watcher), forcing polling for a deterministic floor. A real content file is edited on disk; latency is measured from just before the write to the instant BuildTrigger fires the SSE reload signal (the same call site the production LiveReloadNotifier uses to push the browser reload). Warmup + median-of-N with retries on watcher signal misses. total_ms is decomposed into timer_floor_ms (poll+debounce constants) and variable_work_ms (build+swap+signal).",
+    "timer_floor": {
+      "poll_delay_ms": 300,
+      "debounce_ms": 300,
+      "debounce_tick_ms": 50,
+      "expected_poll_contribution_ms": 150.0,
+      "timer_floor_ms": 500.0,
+      "explanation": "Deterministic, configurable latency a save waits through before any build can start: one debounce window (debounce_ms) + one debounce-loop tick (debounce_tick_ms) + the expected half of one watchfiles poll interval (poll_delay_ms/2). variable_work_ms = total_ms - timer_floor_ms isolates build+swap+signal -- the part v0.6.0 proportional-rebuild (#332/#333) should improve."
+    },
+    "cells": [
+      {
+        "pages": 50,
+        "error": null,
+        "samples": 7,
+        "total_ms_median": 768.9055840019137,
+        "variable_work_ms_median": 268.90558400191367,
+        "timer_floor_ms": 500.0,
+        "total_ms_min": 570.2370829967549,
+        "total_ms_max": 1044.2031670027063,
+        "total_ms_samples": [
+          570.2370829967549,
+          1044.2031670027063,
+          1038.597042002948,
+          737.1457080007531,
+          780.4855840004166,
+          768.9055840019137,
+          671.3594590037246
+        ],
+        "reload_action": "reload",
+        "reload_reason": "content-changed"
+      },
+      {
+        "pages": 200,
+        "error": null,
+        "samples": 7,
+        "total_ms_median": 1514.8715839968645,
+        "variable_work_ms_median": 1014.8715839968645,
+        "timer_floor_ms": 500.0,
+        "total_ms_min": 1305.0521249970188,
+        "total_ms_max": 2155.445125004917,
+        "total_ms_samples": [
+          1305.0521249970188,
+          1311.1789579998003,
+          1920.5412920055096,
+          2155.445125004917,
+          1444.5941250014585,
+          1578.4374580034637,
+          1514.8715839968645
+        ],
+        "reload_action": "reload",
+        "reload_reason": "content-changed"
+      }
+    ]
+  }
+}
