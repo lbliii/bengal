@@ -167,35 +167,41 @@ Use with `{% call %}` to pass content:
 
 ## Custom Filters
 
-Add custom filters using a build hook:
+Add custom filters through a [plugin](/docs/extending/plugins/) by calling
+`registry.add_template_filter()` in its `register()` method:
 
 ```python
-# python/build_hooks.py
-from bengal.core import Site
+# my_bengal_plugin/__init__.py
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
+
 
 def reading_time(content: str, wpm: int = 200) -> int:
     """Calculate reading time in minutes."""
     words = len(content.split())
     return max(1, round(words / wpm))
 
+
 def format_number(value: int) -> str:
     """Format number with commas."""
     return f"{value:,}"
 
-def register_filters(site: Site) -> None:
-    """Register custom Kida filters."""
-    # Get the Kida environment from the template engine
-    if hasattr(site, '_template_engine') and site._template_engine:
-        env = site._template_engine._env
-        env.add_filter("reading_time", reading_time)
-        env.add_filter("format_number", format_number)
+
+class MyFiltersPlugin(Plugin):
+    name = "my-filters"
+    version = "1.0.0"
+
+    def register(self, registry: PluginRegistry) -> None:
+        registry.add_template_filter("reading_time", reading_time)
+        registry.add_template_filter("format_number", format_number)
 ```
 
-Add the build hook to `bengal.toml`:
+Declare the entry point so Bengal discovers the plugin automatically:
 
-```yaml
-build_hooks:
-  - python.build_hooks.register_filters
+```toml
+# pyproject.toml
+[project.entry-points."bengal.plugins"]
+my-filters = "my_bengal_plugin:MyFiltersPlugin"
 ```
 
 Use in templates:
@@ -205,7 +211,7 @@ Use in templates:
 <span>{{ view_count | format_number }} views</span>
 ```
 
-**Note**: `page.reading_time` is already available as a built-in Page property, so you may not need a custom filter for reading time. See [Add a Custom Filter](/docs/theming/templating/kida/add-custom-filter/) for more details.
+**Note**: `page.reading_time` is already available as a built-in Page property, so you may not need a custom filter for reading time. See [Add a Custom Filter](/docs/theming/templating/kida/add-custom-filter/) for the full walkthrough.
 
 ## Functions vs Partials
 
