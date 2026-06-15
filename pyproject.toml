@@ -357,6 +357,8 @@ package_dir = "."
 title_format = "## [{version}] - {project_date}"
 issue_format = "`#{issue}`"
 underlines = ["", "", ""]
+# Steward docs / placeholders that live in changelog.d/ but are not fragments.
+ignore = ["AGENTS.md", ".gitkeep"]
 
 [[tool.towncrier.type]]
 directory = "added"
