@@ -12,6 +12,7 @@ from bengal.rendering.template_functions.get_page import (
     clear_get_page_cache,
 )
 from bengal.utils.io.file_io import write_text_file
+from bengal.utils.primitives.dotdict import DotDict
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -167,8 +168,18 @@ class TestTrackRendering:
     """Integration tests for track page rendering."""
 
     def test_tracks_yaml_loaded(self, site_with_tracks: Site):
-        """Test tracks.yaml is loaded into site.data.tracks."""
-        assert hasattr(site_with_tracks.data, "tracks")
+        """Test tracks.yaml is loaded into site.data.tracks.
+
+        ``hasattr(site.data, "tracks")`` is vacuous on a DotDict: it is always
+        True regardless of whether the key exists (see
+        ``bengal/utils/primitives/dotdict.py`` — a miss returns ``""``, never
+        raises). Assert membership and the actual value so the test fails when
+        tracks is empty or missing.
+        """
+        assert "tracks" in site_with_tracks.data
+        tracks = site_with_tracks.data.tracks
+        assert isinstance(tracks, DotDict)
+        assert len(tracks) == 2
         assert "getting-started" in site_with_tracks.data.tracks
         assert "content-mastery" in site_with_tracks.data.tracks
 
