@@ -23,6 +23,7 @@ def get_all_validator_classes() -> list[type[BaseValidator]]:
     from bengal.health.validators import (
         AccessibilityValidator,
         AnchorValidator,
+        AssetURLValidator,
         AssetValidator,
         AutodocValidator,
         CacheValidator,
@@ -37,6 +38,7 @@ def get_all_validator_classes() -> list[type[BaseValidator]]:
         NavigationValidator,
         OutputValidator,
         OwnershipPolicyValidator,
+        PerformanceValidator,
         RenderingValidator,
         RSSValidator,
         SitemapValidator,
@@ -45,11 +47,15 @@ def get_all_validator_classes() -> list[type[BaseValidator]]:
         URLCollisionValidator,
     )
 
-    # Note: TemplateValidator, AssetURLValidator, and PerformanceValidator are excluded
-    # because they have different interfaces (not BaseValidator subclasses)
+    # Note: TemplateValidator is excluded because it does NOT subclass
+    # BaseValidator (it is a standalone class — see
+    # bengal/health/validators/templates.py). AssetURLValidator and
+    # PerformanceValidator ARE BaseValidator subclasses and are included so the
+    # contract suite exercises them.
     return [
         AccessibilityValidator,
         AnchorValidator,
+        AssetURLValidator,
         AssetValidator,
         AutodocValidator,
         CacheValidator,
@@ -64,6 +70,7 @@ def get_all_validator_classes() -> list[type[BaseValidator]]:
         NavigationValidator,
         OutputValidator,
         OwnershipPolicyValidator,
+        PerformanceValidator,
         RenderingValidator,
         RSSValidator,
         SitemapValidator,
@@ -104,6 +111,11 @@ def minimal_mock_site(tmp_path):
     site.menu = {}
     site.menu_builders = {}
     site.baseurl = ""
+
+    # PerformanceValidator reads getattr(site, "_last_build_stats", None); a bare
+    # MagicMock auto-vivifies this as a truthy mock, which then raises TypeError on
+    # numeric comparison. Pin it to None so the validator follows its real no-stats path.
+    site._last_build_stats = None
 
     # Create minimal output structure
     (site.output_dir / "assets").mkdir()
@@ -206,6 +218,8 @@ class TestValidatorRobustnessContracts:
         site.menu = {}
         site.menu_builders = {}
         site.baseurl = ""
+        # See minimal_mock_site: pin so PerformanceValidator's no-stats path runs.
+        site._last_build_stats = None
 
         try:
             validator = validator_class()
