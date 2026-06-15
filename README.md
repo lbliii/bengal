@@ -28,7 +28,7 @@ Bengal is a static site generator where the entire stack is Python you can read,
 - **Sub-second rebuilds** — Provenance-based incremental builds with content-addressed hashing. Only changed pages rebuild.
 - **Python-native workflows** — Jupyter `.ipynb` rendering, autodoc for Python/CLI/OpenAPI, `pip install` and go.
 - **Batteries included** — Sitemap, RSS, social cards, search indexes, broken link detection, content validation.
-- **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting. 9 plugin extension points.
+- **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting. 6 wired plugin extension points (directives, roles, template functions/filters/tests, build phase hooks); content sources, health validators, and shortcodes are registered and planned.
 
 ## Use Bengal For
 
