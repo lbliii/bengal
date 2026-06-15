@@ -271,7 +271,11 @@ def register_strategy(content_type: str, strategy: ContentTypeStrategy) -> None:
             ``ContentTypeStrategy`` with appropriate method overrides.
 
     Example:
-            >>> from bengal.content_types import ContentTypeStrategy, register_strategy
+            >>> from bengal.content_types import (
+            ...     ContentTypeStrategy,
+            ...     get_strategy,
+            ...     register_strategy,
+            ... )
             >>>
             >>> class ProjectStrategy(ContentTypeStrategy):
             ...     default_template = "projects/list.html"
@@ -287,7 +291,11 @@ def register_strategy(content_type: str, strategy: ContentTypeStrategy) -> None:
             ...     def detect_from_section(self, section):
             ...         return section.name.lower() == "projects"
             >>>
+            >>> # Register the strategy INSTANCE (not the class)...
             >>> register_strategy("project", ProjectStrategy())
+            >>> # ...then retrieve it by name via get_strategy.
+            >>> isinstance(get_strategy("project"), ProjectStrategy)
+            True
 
     Note:
         Strategies should be registered early in the build process,
