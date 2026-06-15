@@ -39,15 +39,19 @@ def test_no_base_url_config_key_in_bengal_docs() -> None:
 
     Pages that legitimately discuss an *external* API's ``base_url`` (e.g. the
     migration tutorials' OpenAPI examples) are exempted by listing them here,
-    so the guard still catches a stray Bengal-config ``base_url``.
+    so the guard still catches a stray Bengal-config ``base_url``. Release-notes
+    / changelog pages under ``releases/`` are also exempt: they describe the
+    drift fix itself and so legitimately mention the old ``base_url`` spelling
+    (mirrors the historical-version exemption in the ``0.1.10`` guard below).
     """
     # Files where ``base_url`` refers to a third-party API config, not Bengal's.
     exempt = {
         _DOCS / "content" / "authoring" / "external-references.md",
     }
+    releases = _CONTENT / "releases"
     offenders: dict[str, list[int]] = {}
     for path in _markdown_files(_CONTENT):
-        if path in exempt:
+        if path in exempt or path.is_relative_to(releases):
             continue
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "base_url" in line:
