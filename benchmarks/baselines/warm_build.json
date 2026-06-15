@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "python_version": "3.14.2 free-threading build (main, Dec 17 2025, 21:08:58) [Clang 21.1.4 ]",
+    "free_threaded": true,
+    "warm_builds_per_size": 5,
+    "platform": "darwin",
+    "record_only": true
+  },
+  "data": {
+    "methodology": "WARM (incremental) single-page rebuild, NOT a cold build. For each site size: generate a synthetic multi-section markdown site, run one cold build(incremental=False) to warm caches, then time N warm rebuilds, each = edit one leaf page + Site.prepare_for_rebuild() + build(incremental=True, changed_sources={that page}) + restore the file (matches the dev-server BuildTrigger path). In-process Site.build, BuildProfile.WRITER, quiet. We report warm single-page rebuild cost (first / mean / median / min) per size. RECORD-ONLY: this baseline is a directional record captured on the maintainer's dev machine, not a CI gate.",
+    "cells": [
+      {
+        "pages": 100,
+        "warm_builds": 5,
+        "cold_s": 9.947183500000392,
+        "warm_first_s": 2.163170416999492,
+        "warm_mean_s": 1.7311290834011743,
+        "warm_median_s": 1.596079875002033,
+        "warm_min_s": 1.3823331669991603,
+        "warm_times_s": [
+          2.16317,
+          1.565454,
+          1.948608,
+          1.382333,
+          1.59608
+        ]
+      },
+      {
+        "pages": 1000,
+        "warm_builds": 5,
+        "cold_s": 51.461490292000235,
+        "warm_first_s": 7.751472791998822,
+        "warm_mean_s": 6.211761525199108,
+        "warm_median_s": 6.095735957998841,
+        "warm_min_s": 5.180662958999164,
+        "warm_times_s": [
+          7.751473,
+          6.353334,
+          5.180663,
+          5.677602,
+          6.095736
+        ]
+      }
+    ]
+  }
+}
