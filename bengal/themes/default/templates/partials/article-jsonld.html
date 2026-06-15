@@ -19,7 +19,7 @@ Usage in base.html head:
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": {{ "TechArticle" if is_doc else "BlogPosting" | tojson }},
+  "@type": {{ ("TechArticle" if is_doc else "BlogPosting") | tojson }},
   "headline": {{ page.title | tojson }},
   "description": {{ (page.description ?? page.summary ?? '') | tojson }},
   {%- if page.date %}
