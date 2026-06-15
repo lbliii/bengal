@@ -2049,3 +2049,78 @@ class TestWarmBuildBufferResync:
         # No swap ran (build crashed first), so output_dir reverts to active.
         assert trigger.site.output_dir == active
         assert trigger._last_buffer_delta_paths is None
+
+
+def _build_trigger_events():
+    from bengal.utils.observability.logger import _loggers
+
+    name = "bengal.server.build_trigger"
+    if name in _loggers:
+        return _loggers[name].get_events()
+    return []
+
+
+class TestTemplateCacheLoadDiagnostics:
+    """A BuildCache.load() failure during template-change detection must be logged (issue #472)."""
+
+    def test_cache_load_failure_emits_diagnostic(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """When BuildCache.load() raises, the swallow must emit a debug breadcrumb, not vanish."""
+        from types import SimpleNamespace
+
+        from bengal.utils.observability.logger import (
+            LogLevel,
+            configure_logging,
+            reset_loggers,
+        )
+
+        reset_loggers()
+        configure_logging(level=LogLevel.DEBUG)
+
+        # A build-cache file that exists so the load() path is taken.
+        cache_path = tmp_path / "cache.json"
+        cache_path.write_text("{}", encoding="utf-8")
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+
+        # Bare BuildTrigger to avoid heavy __init__.
+        trigger = BuildTrigger.__new__(BuildTrigger)
+        trigger.site = SimpleNamespace(
+            _cache=None,
+            root_path=tmp_path,
+            config_service=SimpleNamespace(paths=SimpleNamespace(build_cache=cache_path)),
+        )
+        trigger._template_dirs = [template_dir]
+
+        boom = OSError("synthetic cache corruption " + "y" * 200)
+
+        def fail_load(*args, **kwargs):
+            raise boom
+
+        monkeypatch.setattr(
+            "bengal.cache.BuildCache.load",
+            staticmethod(fail_load),
+        )
+
+        try:
+            # The changed template lives OUTSIDE the template dir so the
+            # post-cache loop is a no-op; we only exercise the load() swallow.
+            changed = {tmp_path / "elsewhere" / "page.html"}
+
+            # Must not raise -- the swallow keeps the dev server alive.
+            result = trigger._is_template_change(changed)
+            assert result is False
+
+            events = _build_trigger_events()
+            matches = [e for e in events if e.message == "template_cache_load_failed"]
+            assert matches, (
+                "expected a 'template_cache_load_failed' diagnostic; "
+                f"got {[e.message for e in events]}"
+            )
+            ev = matches[0]
+            assert str(boom) in str(ev.context.get("error"))
+            assert ev.context.get("error_type") == "OSError"
+        finally:
+            reset_loggers()

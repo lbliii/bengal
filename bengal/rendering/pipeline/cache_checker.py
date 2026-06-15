@@ -223,7 +223,19 @@ class CacheChecker:
         if isinstance(cached_links, list):
             try:
                 apply_parsed_links_to_page(page, cached_links)
-            except Exception:
+            except (AttributeError, TypeError, ValueError) as e:
+                # Restoring cached links failed (e.g. a non-stringifiable entry
+                # or a page surface that rejects the assignment). Mirror
+                # core.py's link-extraction handling: surface the (untruncated)
+                # error instead of silently dropping the links, then fall back
+                # to an empty link set so the warm-cache hit still completes.
+                logger.warning(
+                    "cached_links_restore_failed",
+                    page=str(page.source_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    reason="fallback_to_empty",
+                )
                 apply_parsed_links_to_page(page, [])
         else:
             try:
