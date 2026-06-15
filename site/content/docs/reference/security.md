@@ -241,7 +241,7 @@ Run validation before deploying:
 
 ```bash
 # Validate content and health
-bengal validate
+bengal check
 
 # Check for broken links
 bengal health linkcheck
@@ -265,7 +265,7 @@ Add security checks to your CI pipeline:
     ! grep -r "draft-banner\|data-draft" public/
 
     # Run Bengal validation
-    bengal validate
+    bengal check
 ```
 
 ---
@@ -490,7 +490,7 @@ Before deploying to production:
 - [ ] Sensitive files excluded from content directory
 - [ ] No API keys or secrets in content
 - [ ] Drafts marked in frontmatter (auto-excluded from output)
-- [ ] Validation passes (`bengal validate`)
+- [ ] Validation passes (`bengal check`)
 - [ ] Links checked (`bengal health linkcheck`)
 
 ### Dependencies

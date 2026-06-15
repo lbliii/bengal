@@ -9,7 +9,7 @@ tags: [reference, health, validation]
 
 # Health Check Codes Reference
 
-Bengal's health check system uses prefixed codes for quick identification and filtering. Use `bengal validate --ignore <code>` to suppress specific checks.
+Bengal's health check system uses prefixed codes for quick identification and filtering. Use `bengal check --ignore <code>` to suppress specific checks.
 
 ## Code Categories
 
@@ -1420,7 +1420,7 @@ Pages have HTML structure problems.
 
 ---
 
-### H1702: Unrendered Jinja2 Syntax {#h1702}
+### H1702: Unrendered Kida Syntax {#h1702}
 
 Pages may have unrendered template syntax.
 
@@ -1432,7 +1432,7 @@ Pages may have unrendered template syntax.
 
 **How to Fix**
 1. Check for template rendering errors
-2. If documenting Jinja2, escape properly
+2. If documenting Kida, escape properly
 
 ---
 
@@ -1618,26 +1618,26 @@ To suppress specific health checks, use the `--ignore` flag:
 
 ```bash
 # Ignore a single code
-bengal validate --ignore H202
+bengal check --ignore H202
 
 # Ignore multiple codes
-bengal validate --ignore H202 --ignore H1403 --ignore H1404
+bengal check --ignore H202 --ignore H1403 --ignore H1404
 
 # Combine with other options
-bengal validate --verbose --ignore H301
+bengal check --verbose --ignore H301
 ```
 
 Common ignore patterns:
 
 ```bash
 # Ignore external link checks (for offline development)
-bengal validate --ignore H202
+bengal check --ignore H202
 
 # Ignore performance warnings during development
-bengal validate --ignore H1001 --ignore H1002 --ignore H1003
+bengal check --ignore H1001 --ignore H1002 --ignore H1003
 
 # Ignore asset size warnings for documentation sites
-bengal validate --ignore H1403 --ignore H1404 --ignore H1405
+bengal check --ignore H1403 --ignore H1404 --ignore H1405
 ```
 
 ---

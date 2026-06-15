@@ -89,7 +89,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## H
 
 **Health Check**
-: Automated validation that detects issues like broken links, missing images, invalid front matter, or orphaned pages. Run via `bengal validate` or `bengal health linkcheck`.
+: Automated validation that detects issues like broken links, missing images, invalid front matter, or orphaned pages. Run via `bengal check` or `bengal health linkcheck`.
 
 ---
 

@@ -570,13 +570,13 @@ Your OpenAPI spec works with any generator. Documentation is independent of SDK 
 ---
 title: API Reference
 api_version: "2.0"
-base_url: "https://api.example.com/v2"
+baseurl: "https://api.example.com/v2"
 ---
 
 # {{ page.title }}
 
 Current version: **{{ page.metadata.api_version }}**
-Base URL: `{{ page.metadata.base_url }}`
+Base URL: `{{ page.metadata.baseurl }}`
 ````
 
 Use template variables directly in markdown.

@@ -69,11 +69,11 @@ bengal theme new --slug mytheme               # themes/mytheme/
 ### Validation & Health
 
 ```bash
-bengal validate                        # Full validation
-bengal validate --changed              # Only changed files
-bengal validate --watch                # Watch mode (continuous)
-bengal validate --verbose              # Show all checks
-bengal validate --suggestions          # Show quality suggestions
+bengal check                        # Full validation
+bengal check --changed              # Only changed files
+bengal check --watch                # Watch mode (continuous)
+bengal check --verbose              # Show all checks
+bengal check --suggestions          # Show quality suggestions
 bengal health linkcheck                # Check all links
 bengal health linkcheck --external-only # External links only
 bengal health linkcheck --internal-only # Internal links only
@@ -374,7 +374,7 @@ weight = 2
 | Debug incremental | `bengal build --explain` |
 | Dev server | `bengal serve` |
 | New page | `bengal new page <name>` |
-| Validate | `bengal validate` |
+| Validate | `bengal check` |
 | Link check | `bengal health linkcheck` |
 | Show config | `bengal config show` |
 | Analyze site | `bengal graph analyze` |
@@ -387,9 +387,8 @@ weight = 2
 | `bengal b` | `bengal build` |
 | `bengal s` | `bengal serve` |
 | `bengal c` | `bengal clean` |
-| `bengal v` | `bengal validate` |
+| `bengal v` | `bengal check` |
 | `bengal dev` | `bengal serve` |
-| `bengal check` | `bengal validate` |
 
 ---
 

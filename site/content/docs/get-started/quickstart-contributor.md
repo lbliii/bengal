@@ -188,7 +188,7 @@ Bengal provides a comprehensive CLI with aliases for common operations:
 | `bengal build` | `bengal b` | Build the site |
 | `bengal serve` | `bengal s` | Start dev server |
 | `bengal clean` | `bengal c` | Clean output directory |
-| `bengal validate` | `bengal v` | Validate site configuration |
+| `bengal check` | `bengal v` | Validate site configuration |
 | `bengal new site` | — | Create a new site |
 | `bengal new page` | — | Create a new page |
 | `bengal explain` | — | Introspect a page |

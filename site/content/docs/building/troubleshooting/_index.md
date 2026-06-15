@@ -17,7 +17,7 @@ Guides for diagnosing and resolving common Bengal issues.
 bengal config doctor
 
 # Run health checks
-bengal validate
+bengal check
 
 # Verbose build output
 bengal build --verbose

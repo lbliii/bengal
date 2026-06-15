@@ -478,13 +478,13 @@ Run template validation to catch syntax errors before a slow build:
 
 ```bash
 # Validate all templates
-bengal validate --templates
+bengal check --templates
 
 # Validate with migration hints
-bengal validate --templates --fix
+bengal check --templates --fix
 
 # Validate specific templates
-bengal validate --templates --templates-pattern "autodoc/**/*.html"
+bengal check --templates --templates-pattern "autodoc/**/*.html"
 ```
 
 ### Template Not Found

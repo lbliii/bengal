@@ -35,11 +35,7 @@ No. Collections are optional. Your site works fine without them.
 
 ## Quick Setup
 
-```bash
-bengal collections init
-```
-
-This creates `collections.py` at your project root. Edit it to uncomment what you need:
+Create a `collections.py` file at your project root. Edit it to uncomment what you need:
 
 ```python
 from bengal.collections import define_collection, BlogPost, DocPage
@@ -133,13 +129,13 @@ With `strict=False`, unknown fields are silently ignored. Add `allow_extra=True`
 
 ```bash
 # List defined collections and their schemas
-bengal collections list
+bengal content collections
 
-# Validate content without building
-bengal collections validate
+# Validate content against schemas without building
+bengal content schemas
 
 # Validate specific collection
-bengal collections validate --collection blog
+bengal content schemas --collection blog
 ```
 
 ## Advanced Options
@@ -161,7 +157,7 @@ define_collection(
 **Existing site with inconsistent frontmatter?**
 
 1. Start with `strict=False` to allow extra fields
-2. Run `bengal collections validate` to find issues
+2. Run `bengal content schemas` to find issues
 3. Fix content or adjust schema
 4. Enable `strict=True` when ready
 

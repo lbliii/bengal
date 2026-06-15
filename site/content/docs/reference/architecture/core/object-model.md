@@ -46,8 +46,8 @@ Represents a single content page with source, metadata, rendered HTML, and navig
 - **Plain dataclass with helper modules**:
   - `page_core.py`: Cacheable metadata (title, date, tags, etc.)
   - `metadata_helpers.py`: Frontmatter-derived metadata helpers
-  - `content.py`: Content compatibility helpers
-  - `relationships.py`: Section membership
+  - `navigation.py`: Section membership and page navigation
+  - `bundle.py`: Page bundle resource discovery
   - `computed.py`: Compatibility wrappers for computed values
 - **Rendering-owned behavior**: rendered content, excerpts, TOC extraction, shortcode checks,
   template URLs, and page bundle resource access/classification delegate to
