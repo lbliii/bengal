@@ -34,10 +34,10 @@ class DummyParser:
         return f"<p>{content}</p>"
 
     def parse_with_toc(self, content, metadata):
-        return f"<p>{content}</p>", "<nav>TOC</nav>"
+        return f"<p>{content}</p>", "<nav>TOC</nav>", "", ""
 
     def parse_with_toc_and_context(self, content, metadata, context):
-        return f"<p>{content}</p>", "<nav>TOC</nav>"
+        return f"<p>{content}</p>", "<nav>TOC</nav>", "", ""
 
     def parse_with_context(self, content, metadata, context):
         return f"<p>{content}</p>"

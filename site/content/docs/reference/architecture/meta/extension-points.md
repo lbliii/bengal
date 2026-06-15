@@ -90,11 +90,17 @@ class CustomMarkdownParser(BaseMarkdownParser):
         html = self._convert_to_html(content)
         return html
 
-    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
-        """Parse markdown and extract table of contents."""
+    def parse_with_toc(
+        self, content: str, metadata: dict[str, Any]
+    ) -> tuple[str, str, str, str]:
+        """Parse markdown and extract TOC, excerpt, and meta description.
+
+        Returns ``(html, toc, excerpt, meta_description)``. Return empty
+        strings for excerpt/meta if your parser does not derive them.
+        """
         html = self.parse(content, metadata)
         toc_html = self._extract_toc(content)
-        return html, toc_html
+        return html, toc_html, "", ""
 
 # Register in parser factory
 # (requires modification of bengal/parsing/__init__.py)

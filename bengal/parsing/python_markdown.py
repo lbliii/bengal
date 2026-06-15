@@ -57,9 +57,14 @@ class PythonMarkdownParser(BaseMarkdownParser):
         return self.md.convert(content)
 
     @override
-    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
-        """Parse Markdown content and extract table of contents."""
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str, str, str]:
+        """Parse Markdown content and extract table of contents.
+
+        Returns a 4-tuple ``(html, toc, excerpt, meta_description)`` to match
+        :meth:`BaseMarkdownParser.parse_with_toc`. python-markdown does not
+        derive an excerpt or meta description here, so both are empty strings.
+        """
         self.md.reset()
         html = self.md.convert(content)
         toc = getattr(self.md, "toc", "")
-        return html, toc
+        return html, toc, "", ""

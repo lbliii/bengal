@@ -690,7 +690,13 @@ class RenderingPipeline:
             else:
                 # Fallback for parsers without context support (e.g., PythonMarkdownParser)
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc(source, metadata_for_parser)
+                    result = self.parser.parse_with_toc(source, metadata_for_parser)
+                    parsed_content, toc = result[0], result[1]
+                    result_ext = cast("tuple[str, ...]", result)
+                    if len(result_ext) > 2:
+                        parsed_excerpt = result_ext[2]
+                    if len(result_ext) > 3:
+                        parsed_meta_description = result_ext[3]
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                 else:
                     parsed_content = self.parser.parse(source, metadata_for_parser)
@@ -743,7 +749,8 @@ class RenderingPipeline:
         """Parse content using legacy python-markdown parser."""
         content = self._preprocess_content(page)
         if need_toc and hasattr(self.parser, "parse_with_toc"):
-            parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
+            result = self.parser.parse_with_toc(content, page.metadata)
+            parsed_content, toc = result[0], result[1]
         else:
             parsed_content = self.parser.parse(content, page.metadata)
             toc = ""
