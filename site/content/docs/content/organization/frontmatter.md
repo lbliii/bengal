@@ -199,7 +199,7 @@ Access custom fields in templates:
 {{ page.props.icon }}
 ```
 
-**Note**: The `props:` key is only used in skeleton manifests (`bengal project skeleton apply`). For regular markdown files, use flat frontmatter (all fields at top level).
+**Note**: The `props:` key is only used in skeleton manifests (the `skeleton.yaml` files that back site templates and are materialized by `bengal new site`). For regular markdown files, use flat frontmatter (all fields at top level).
 
 ## Example
 

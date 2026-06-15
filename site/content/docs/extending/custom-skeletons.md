@@ -22,7 +22,7 @@ icon: file-text
 
 # Create Custom Skeletons
 
-Skeleton YAML files define reusable site structures. Create one skeleton, apply it to any project.
+Skeleton YAML files (`skeleton.yaml`) define reusable site structures. Drop one into a site-template directory and Bengal materializes it whenever you run `bengal new site` with that template.
 
 ## When to Use Custom Skeletons
 
@@ -140,16 +140,19 @@ Use `pages` to nest content under a section:
 ```
 
 :::{/step}
-:::{step} Apply and Test
+:::{step} Install and Build
+
+Place the manifest as `skeleton.yaml` inside a template directory (built-in templates
+live under `bengal/scaffolds/<name>/skeleton.yaml`; custom templates can be registered
+at runtime with `bengal.scaffolds.register_template`). Bengal materializes it when you
+scaffold a site from that template:
 
 ```bash
-# Preview first
-bengal project skeleton apply api-docs.yaml --dry-run
-
-# Apply
-bengal project skeleton apply api-docs.yaml
+# Scaffold a new site from your template
+bengal new site my-docs --template api-docs
 
 # Serve
+cd my-docs
 bengal serve
 ```
 
@@ -420,11 +423,12 @@ skeletons/
 ```
 :::
 
-:::{tip} Test with Dry Run
-Always preview before applying:
+:::{tip} Validate Before Shipping
+A skeleton is materialized during `bengal new site --template <name>`. Scaffold into a
+throwaway directory first to confirm the structure renders as expected:
 
 ```bash
-bengal project skeleton apply my-skeleton.yaml --dry-run
+bengal new site /tmp/skeleton-check --template my-skeleton
 ```
 :::
 
@@ -432,14 +436,15 @@ bengal project skeleton apply my-skeleton.yaml --dry-run
 
 ### Files Not Created
 
-**Symptom**: `bengal project skeleton apply` reports 0 files created.
+**Symptom**: `bengal new site` reports 0 files created when scaffolding from your template.
 
-**Cause**: Files already exist and `--force` was not used.
+**Cause**: The target directory already exists, so Bengal refuses to overwrite it.
 
-**Fix**:
+**Fix**: Scaffold into a fresh directory (or remove the existing one):
 
 ```bash
-bengal project skeleton apply my-skeleton.yaml --force
+rm -rf my-docs
+bengal new site my-docs --template my-skeleton
 ```
 
 ### Content Not Rendering

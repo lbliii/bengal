@@ -103,21 +103,22 @@ bengal new site my-blog --template blog
 bengal new site portfolio --template portfolio
 ```
 
-## Method 3: Add Sections to Existing Site
+## Method 3: Add Sections to an Existing Site
 
-Already have a site? Add sections without recreating:
+Bengal has no command for retrofitting sections into an existing site — content lives in
+plain files, so you add a section by creating its directory and an `_index.md`:
 
 ```bash
-# Add docs and tutorials sections
-bengal project init --sections docs --sections tutorials
+# Add a docs section
+mkdir -p content/docs
+$EDITOR content/docs/_index.md
 
-# Add sections with sample content
-bengal project init --sections blog --with-content --pages-per-section 5
+# Add a tutorials section
+mkdir -p content/tutorials
+$EDITOR content/tutorials/_index.md
 ```
 
-### Section Type Inference
-
-Bengal infers section types from names:
+Bengal infers a section's content type from its directory name:
 
 | Name Pattern | Inferred Type | Behavior |
 |--------------|---------------|----------|
@@ -125,6 +126,9 @@ Bengal infers section types from names:
 | docs, documentation, guides, tutorials | `doc` | Weight-sorted, doc-style |
 | projects, portfolio | `section` | Standard section |
 | about, contact | `section` | Standard section |
+
+You can override the inferred type by setting `type:` (or a `cascade.type:`) in the
+section's `_index.md` frontmatter.
 
 ## Customizing After Scaffolding
 
@@ -187,17 +191,14 @@ bengal build --environment production
 
 ## Skeleton Manifests
 
-Bengal supports **skeleton manifests** — shareable YAML files that define complete site structures with frontmatter, cascades, and content stubs.
+Bengal's site templates are powered by **skeleton manifests** — `skeleton.yaml` files that
+define a complete site structure (frontmatter, cascades, and content stubs). They are not a
+separate CLI step: when you drop a `skeleton.yaml` into a template directory, Bengal
+materializes it automatically during `bengal new site`.
 
 ```bash
-# Apply a skeleton YAML
-bengal project skeleton apply api-docs.yaml
-
-# Preview what would be created
-bengal project skeleton apply api-docs.yaml --dry-run
-
-# Overwrite existing files
-bengal project skeleton apply api-docs.yaml --force
+# Scaffold a site from a template backed by a skeleton manifest
+bengal new site api-docs --template api-docs
 ```
 
 See [[docs/extending/custom-skeletons|Create Custom Skeletons]] for the full guide on writing skeleton YAML files.
@@ -225,19 +226,22 @@ bengal new site my-docs-v2 --template docs
 :::{dropdown} "Section already exists"
 :icon: alert
 
-Use `--force` to overwrite:
+Sections are just directories under `content/`. To replace one, delete the existing
+directory and recreate it:
 
 ```bash
-bengal project init --sections blog --force
+rm -rf content/blog
+mkdir -p content/blog
+$EDITOR content/blog/_index.md
 ```
 :::
 
-:::{dropdown} Preview Without Creating
+:::{dropdown} Preview Before Publishing
 :icon: info
 
-Use `--dry-run` to see what would be created:
+Build the site and inspect the generated output (default `public/`) before deploying:
 
 ```bash
-bengal project init --sections api --sections guides --dry-run
+bengal build
 ```
 :::

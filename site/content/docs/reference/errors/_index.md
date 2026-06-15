@@ -451,7 +451,7 @@ Bengal could not find the content directory specified in your configuration. Wit
 **How to Fix**
 1. Verify you're in the site root directory
 2. Check that `content/` directory exists
-3. Run `bengal init` to create site structure
+3. Run `bengal new site` to create site structure
 
 ---
 

@@ -604,7 +604,7 @@ weight: 10
 
 ## Site Skeletons {#skeletons}
 
-Define entire site structures using **Skeleton Manifests** (`bengal project skeleton apply`).
+Define entire site structures using **Skeleton Manifests** — `skeleton.yaml` files that Bengal materializes when you scaffold from a template with `bengal new site`.
 
 :::{tab-set}
 

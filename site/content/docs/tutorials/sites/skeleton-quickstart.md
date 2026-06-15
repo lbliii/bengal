@@ -22,7 +22,7 @@ icon: file-text
 
 # Skeleton YAML Quickstart
 
-Define your entire site structure in one YAML file. Copy, paste, apply—done.
+Define your entire site structure in one YAML file, then scaffold a site from it with `bengal new site`.
 
 ## The 30-Second Start
 
@@ -47,7 +47,9 @@ Available templates: `default`, `blog`, `docs`, `landing`, `portfolio`, `product
 
 Define your own structure when templates don't fit or you need a specific layout. Create a YAML file describing your site structure:
 
-Save this as `my-site.yaml`:
+Save it as `skeleton.yaml` inside a template directory (for example
+`bengal/scaffolds/my-site/skeleton.yaml`, or register a custom template at runtime with
+`bengal.scaffolds.register_template`):
 
 ```yaml
 name: My Site
@@ -73,10 +75,11 @@ structure:
       This site was scaffolded from a skeleton YAML file.
 ```
 
-Apply it:
+Scaffold a site from it:
 
 ```bash
-bengal project skeleton apply my-site.yaml
+bengal new site mysite --template my-site
+cd mysite
 bengal serve
 ```
 
@@ -259,31 +262,31 @@ structure:
 
 ## CLI Commands
 
+Skeletons are materialized by `bengal new site`, not by a standalone apply command:
+
 | Command | Description |
 |---------|-------------|
-| `bengal new site NAME --template TEMPLATE` | Create site from built-in template |
-| `bengal project skeleton apply FILE.yaml` | Apply custom skeleton |
-| `bengal project skeleton apply FILE.yaml --dry-run` | Preview without creating files |
-| `bengal project skeleton apply FILE.yaml --force` | Overwrite existing files |
+| `bengal new site NAME --template TEMPLATE` | Create a site from a built-in or registered template |
+| `bengal new site NAME` | Launch the interactive wizard and pick a template |
 
 ## Tips
 
-:::{tip} Preview First
-Use `--dry-run` to see what files will be created before applying:
+:::{tip} Try It in a Throwaway Directory
+Scaffold into a temporary directory first to confirm the structure renders as expected:
 
 ```bash
-bengal project skeleton apply my-site.yaml --dry-run
+bengal new site /tmp/skeleton-check --template my-site
 ```
 
 :::
 
-:::{tip} Combine with Templates
-Start with a built-in template, then layer your custom skeleton on top:
+:::{tip} Start From a Built-in Template
+Begin with a built-in template, then edit the scaffolded structure by hand:
 
 ```bash
 bengal new site mysite --template docs
 cd mysite
-bengal project skeleton apply custom-sections.yaml
+# Add or edit sections directly under content/
 ```
 
 :::
