@@ -16,7 +16,7 @@ Bengal uses prefixed error codes for quick identification and searchability. Eac
 Bengal has two code systems:
 
 - **Build Errors (Axxx-Xxxx)**: Errors that occur during the build process. These stop the build or cause content issues.
-- **Health Codes (Hxxx)**: Health check warnings and suggestions from `bengal validate`. See [Health Check Codes](/docs/reference/errors/health-codes/) for the complete reference.
+- **Health Codes (Hxxx)**: Health check warnings and suggestions from `bengal check`. See [Health Check Codes](/docs/reference/errors/health-codes/) for the complete reference.
 
 ## Build Error Categories
 
@@ -1048,9 +1048,9 @@ layout: page  # This template exists
 
 ### R002: Template Syntax Error {#r002}
 
-Jinja2/template syntax error.
+Kida/template syntax error.
 
-The template contains a syntax error that prevents it from being parsed. This is usually a Jinja2 syntax issue.
+The template contains a syntax error that prevents it from being parsed. This is usually a Kida syntax issue.
 
 **Common Causes**
 - Missing `{% end %}` or `{% endfor %}`
@@ -1480,7 +1480,7 @@ A health validator raised an unhandled exception.
 - Missing dependencies
 
 **How to Fix**
-1. Run `bengal validate --verbose` for details
+1. Run `bengal check --verbose` for details
 2. Report the issue if it persists
 3. Use `--ignore V001` to skip temporarily
 

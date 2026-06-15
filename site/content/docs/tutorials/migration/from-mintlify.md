@@ -637,14 +637,14 @@ Mintlify has snippets too, but Bengal's are more flexible with filtering.
 ---
 title: API Reference
 api_version: "2.0"
-base_url: "https://api.example.com/v2"
+baseurl: "https://api.example.com/v2"
 ---
 
 # {{ page.title }}
 
 Current API version: **{{ api_version }}**
 
-Base URL: `{{ base_url }}`
+Base URL: `{{ baseurl }}`
 ```
 
 Use variables directly in markdown without JSX. Frontmatter keys are available directly (e.g., `{{ api_version }}`) or via `{{ page.metadata.api_version }}`.

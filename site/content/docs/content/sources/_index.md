@@ -155,14 +155,11 @@ loader = local_loader(
 Remote content is cached locally to avoid repeated API calls:
 
 ```bash
-# Check cache status
-bengal sources status
+# List configured sources
+bengal content sources
 
-# Force refresh from remote
-bengal sources fetch --force
-
-# Clear all cached content
-bengal sources clear
+# Force refresh from remote (ignore cache)
+bengal content fetch --force
 ```
 
 **Cache behavior:**
@@ -175,19 +172,12 @@ bengal sources clear
 
 ```bash
 # List configured content sources
-bengal sources list
-
-# Show cache status (age, size, validity)
-bengal sources status
+bengal content sources
 
 # Fetch/refresh from remote sources
-bengal sources fetch
-bengal sources fetch --source api-docs  # Specific source
-bengal sources fetch --force            # Ignore cache
-
-# Clear cached content
-bengal sources clear
-bengal sources clear --source api-docs
+bengal content fetch
+bengal content fetch --filter-source api-docs  # Specific source
+bengal content fetch --force                   # Ignore cache
 ```
 
 ## Environment Variables

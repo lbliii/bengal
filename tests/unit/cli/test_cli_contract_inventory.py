@@ -10,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[3]
 CLI_DOCS = ROOT / "site" / "content" / "docs" / "reference" / "architecture" / "tooling" / "cli.md"
 README = ROOT / "README.md"
 
+# A markdown line opens/closes a fenced code block.
+_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+# An inline-code span: `...`.
+_INLINE_CODE_RE = re.compile(r"`([^`]+)`")
+# A `bengal <subcommand> ...` invocation inside a code segment.
+_BENGAL_INVOCATION_RE = re.compile(r"bengal\s+([^`|&]+)")
+
 
 def _registered_command_keys() -> set[str]:
     from bengal.cli.milo_app import cli
@@ -43,13 +50,35 @@ def _docs_inventory() -> set[str]:
     return {line.strip() for line in match.group("body").splitlines() if line.strip()}
 
 
+def _code_segments(text: str) -> list[str]:
+    """Return text fragments that are in a *code context* — a fenced block or an
+    inline `code` span.
+
+    Real CLI documentation always presents commands as code. Restricting the
+    `bengal <subcommand>` scan to code context drops prose false positives like
+    "Running bengal from wrong directory" or "Another bengal server running"
+    (issue #470), so those tokens no longer need allow-listing.
+    """
+    segments: list[str] = []
+    in_fence = False
+    for line in text.splitlines():
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            segments.append(line)
+        else:
+            segments.extend(m.group(1) for m in _INLINE_CODE_RE.finditer(line))
+    return segments
+
+
 def _markdown_command_args(path: Path) -> list[tuple[str, ...]]:
     commands: list[tuple[str, ...]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if "bengal " not in line:
+    for segment in _code_segments(path.read_text(encoding="utf-8")):
+        if "bengal " not in segment:
             continue
-        line = line.split("#", 1)[0]
-        for match in re.finditer(r"bengal\s+([^`|&]+)", line):
+        segment = segment.split("#", 1)[0]
+        for match in _BENGAL_INVOCATION_RE.finditer(segment):
             command = "bengal " + match.group(1).strip()
             try:
                 tokens = shlex.split(command)
@@ -138,28 +167,38 @@ DOCS_TREE = ROOT / "site" / "content" / "docs"
 
 # Pre-existing doc-vs-CLI drift, keyed by the leading token of the invocation.
 # These are NOT fabricated-but-trivial typos; correcting each needs editorial
-# judgement (renamed/relocated command families) and is tracked as separate
-# follow-up doc work. ``project`` and ``init`` are deliberately absent so this
-# lint keeps guarding against the #435 regression.
+# judgement (renamed/relocated/removed command families). ``project`` and
+# ``init`` are deliberately absent so this lint keeps guarding against the #435
+# regression.
+#
+# #470 burndown: ``validate`` (-> ``check``), ``collections`` (-> ``content
+# collections`` / ``content schemas``) and ``sources`` (-> ``content sources`` /
+# ``content fetch``) were verified clean renames against ``bengal/cli/milo_app.py``
+# and corrected in the docs, so they no longer appear here. The prose false
+# positives (``from``/``server``/``capability``) are now excluded structurally —
+# ``_markdown_command_args`` only scans code context — so they no longer need
+# allow-listing either.
+#
+# Still allow-listed, with verified reasons:
+#   * ``graph``/``g`` — the rich ``bengal graph <report|orphans|pagerank|...>``
+#     subcommand surface documented in the analysis guides was collapsed on HEAD
+#     into a single ``bengal inspect graph`` (``--output-format console|json|
+#     mermaid``); those subcommands now exit non-zero. Re-pointing the guides is
+#     a dedicated graph-docs rewrite, not a token rename.
+#   * ``analyze``/``explain``/``shortcodes``/``utils``/``icons`` — referenced by
+#     docs but not registered in the CLI (they fall through to root help); these
+#     are legacy/aspirational and need product decisions before doc edits.
 _DOCS_DRIFT_ALLOWLIST: frozenset[str] = frozenset(
     {
-        # Renamed: `bengal check` (docs still say the old `validate`).
-        "validate",
-        # Relocated: the graph analysis family now lives under `bengal inspect graph`.
+        # Collapsed: the graph analysis family is now a single `bengal inspect graph`.
         "graph",
         "g",
+        # Not registered in the CLI (fall through to root help); legacy/aspirational.
         "analyze",
-        # Undocumented-in-registry power-user/legacy commands referenced by docs.
         "explain",
-        "collections",
-        "sources",
         "shortcodes",
         "utils",
         "icons",
-        # Prose false positives — sentence fragments that happen to start "bengal X".
-        "from",  # "...if you run `bengal` from the wrong directory..."
-        "server",  # "...the `bengal serve` server running..."
-        "capability",  # "...the core `bengal` capability boundary..."
     }
 )
 

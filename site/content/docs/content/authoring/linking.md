@@ -511,7 +511,7 @@ Once installed, configure your site as described in [[docs/reference/config#site
 If a link doesn't resolve:
 
 1. **Check path spelling** — Paths are case-sensitive
-2. **Verify page exists** — Use `bengal validate` to check
+2. **Verify page exists** — Use `bengal check` to check
 3. **Check path format** — Use path without `.md` extension
 4. **Try absolute path** — Use `/docs/page` instead of relative
 
@@ -520,7 +520,7 @@ If a link doesn't resolve:
 Bengal validates links during build:
 
 ```bash
-bengal validate
+bengal check
 ```
 
 This checks:

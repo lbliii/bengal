@@ -507,14 +507,14 @@ With directive styling
 ---
 title: API Reference
 api_version: "3.0"
-base_url: "https://api.example.com"
+baseurl: "https://api.example.com"
 ---
 
 # {{ page.title }}
 
 Current API version: **{{ page.metadata.api_version }}**
 
-Base URL: `{{ page.metadata.base_url }}`
+Base URL: `{{ page.metadata.baseurl }}`
 ````
 
 Docusaurus requires React state or MDX exports for this.

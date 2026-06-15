@@ -144,7 +144,7 @@ Before you merge to main or deploy:
 
 1. **Run `bengal config doctor`**: Checks for common configuration issues.
 2. **Run `bengal build --strict` locally**: Ensures no template errors.
-3. **Run `bengal validate`**: Runs health checks on your site content.
+3. **Run `bengal check`**: Runs health checks on your site content.
 4. **Check `config/environments/production.yaml`**: Ensure your `baseurl` is set to your production domain.
 
 ```yaml

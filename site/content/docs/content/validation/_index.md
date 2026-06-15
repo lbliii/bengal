@@ -36,22 +36,22 @@ flowchart LR
 :::{tab-item} Validate
 ```bash
 # Run all checks
-bengal validate
+bengal check
 
 # Validate specific files
-bengal validate --file content/page.md
+bengal check --file content/page.md
 
 # Only validate changed files (incremental)
-bengal validate --changed
+bengal check --changed
 
 # Verbose output (show all checks)
-bengal validate --verbose
+bengal check --verbose
 
 # Show quality suggestions
-bengal validate --suggestions
+bengal check --suggestions
 
 # Watch mode (validate on file changes)
-bengal validate --watch
+bengal check --watch
 ```
 :::
 
@@ -82,7 +82,7 @@ Fixes common issues:
 bengal build --strict
 
 # Validate and exit with error code
-bengal validate
+bengal check
 ```
 
 The `--strict` flag makes warnings into errors.
@@ -131,5 +131,5 @@ class RequireAuthorValidator(BaseValidator):
 ```
 
 :::{tip}
-**CI integration**: Add `bengal validate` to your CI pipeline to catch issues before deployment. Use `--verbose` to see all checks, or `--suggestions` for quality recommendations.
+**CI integration**: Add `bengal check` to your CI pipeline to catch issues before deployment. Use `--verbose` to see all checks, or `--suggestions` for quality recommendations.
 :::

@@ -26,7 +26,7 @@ Bengal's health system validates content and can automatically fix many common i
 
 ```bash
 # Run all validators
-bengal validate
+bengal check
 
 # Preview auto-fixes
 bengal fix --dry-run
@@ -43,16 +43,16 @@ bengal fix
 
 ```bash
 # Validate entire site
-bengal validate
+bengal check
 
 # Validate specific file
-bengal validate --file content/docs/getting-started.md
+bengal check --file content/docs/getting-started.md
 
 # Validate changed files only (git-aware)
-bengal validate --changed
+bengal check --changed
 
 # Verbose output - show all checks, not just errors
-bengal validate --verbose
+bengal check --verbose
 ```
 
 ### Validate During Build
@@ -128,7 +128,7 @@ Bengal includes validators organized by phase:
 ### Validation Output
 
 ```bash
-$ bengal validate
+$ bengal check
 
 🔍 Running health checks...
 
@@ -239,7 +239,7 @@ jobs:
         run: pip install bengal
 
       - name: Validate Content
-        run: bengal validate --verbose
+        run: bengal check --verbose
 
       - name: Check Links
         run: bengal health linkcheck --internal-only
@@ -257,7 +257,7 @@ repos:
     hooks:
       - id: bengal-validate
         name: Validate Bengal content
-        entry: bengal validate --changed
+        entry: bengal check --changed
         language: system
         pass_filenames: false
 ```
@@ -269,7 +269,7 @@ repos:
 bengal build --strict
 
 # Validate and exit with error code
-bengal validate && echo "Validation passed" || echo "Validation failed"
+bengal check && echo "Validation passed" || echo "Validation failed"
 ```
 
 ---
@@ -368,10 +368,10 @@ Different validation for different contexts:
 
 ```bash
 # Full validation (CI)
-bengal validate --verbose
+bengal check --verbose
 
 # Quick validation (local dev)
-bengal validate --changed
+bengal check --changed
 
 # Pre-deploy validation
 bengal health linkcheck && bengal build --strict
@@ -387,13 +387,13 @@ Available profiles:
 
 ```bash
 # Writer profile (fast, less strict) - default
-bengal validate --profile writer
+bengal check --profile writer
 
 # Theme developer profile
-bengal validate --profile theme-dev
+bengal check --profile theme-dev
 
 # Developer profile (strict, all checks)
-bengal validate --profile developer
+bengal check --profile developer
 ```
 
 ---
@@ -406,7 +406,7 @@ Suppress specific check codes via CLI:
 
 ```bash
 # Ignore specific check codes
-bengal validate --ignore H101 --ignore H202
+bengal check --ignore H101 --ignore H202
 ```
 
 Or in page frontmatter:
@@ -453,10 +453,10 @@ Validation uses the build cache for incremental checks:
 bengal clean --cache
 
 # Force full re-validation by clearing cache first
-bengal clean --cache && bengal validate
+bengal clean --cache && bengal check
 
 # Use incremental validation (only changed files)
-bengal validate --incremental
+bengal check --incremental
 ```
 
 ---
@@ -465,16 +465,16 @@ bengal validate --incremental
 
 ```bash
 # Validate
-bengal validate                    # Run all validators
-bengal validate --changed          # Only changed files
-bengal validate --incremental      # Use cached validation state
-bengal validate --verbose          # Show all checks
-bengal validate --suggestions      # Show quality suggestions
-bengal validate --file path.md     # Validate specific file
-bengal validate --profile writer   # Use writer profile (fast)
-bengal validate --ignore H101      # Ignore specific check codes
-bengal validate --watch            # Watch mode (experimental)
-bengal validate --templates        # Validate template syntax
+bengal check                    # Run all validators
+bengal check --changed          # Only changed files
+bengal check --incremental      # Use cached validation state
+bengal check --verbose          # Show all checks
+bengal check --suggestions      # Show quality suggestions
+bengal check --file path.md     # Validate specific file
+bengal check --profile writer   # Use writer profile (fast)
+bengal check --ignore H101      # Ignore specific check codes
+bengal check --watch            # Watch mode (experimental)
+bengal check --templates        # Validate template syntax
 
 # Auto-fix
 bengal fix --dry-run               # Preview fixes

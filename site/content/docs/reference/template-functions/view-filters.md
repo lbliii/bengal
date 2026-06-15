@@ -33,7 +33,7 @@ Convert release pages to normalized `ReleaseView` objects with smart version det
 3. Version pattern in title (e.g., "Bengal 0.1.8" → `0.1.8`)
 4. Full title as fallback
 
-**Sorting:** By default, releases are sorted by **version** (highest first) using semantic comparison. This means `0.1.10` correctly sorts before `0.1.9`.
+**Sorting:** By default, releases are sorted by **version** (highest first) using semantic comparison. This means `0.4.10` correctly sorts before `0.4.9`.
 
 **ReleaseView Properties:**
 
