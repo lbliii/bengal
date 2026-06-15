@@ -1,3 +1,10 @@
+## [0.4.3] - 2026-06-15
+
+### Fixed
+
+- Build error summaries and investigation hints no longer crash or report wrong counts during parallel builds on free-threaded Python. (`#439`)
+
+
 ## [0.4.2] - 2026-06-15
 
 ### Removed
