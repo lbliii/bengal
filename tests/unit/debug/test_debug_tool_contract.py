@@ -18,13 +18,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _has_shortcode_sandbox() -> bool:
-    """Check if the shortcode_sandbox module exists."""
-    import importlib.util
-
-    return importlib.util.find_spec("bengal.debug.shortcode_sandbox") is not None
-
-
 class TestDebugToolContract:
     """All DebugTool subclasses must properly initialize base class."""
 
@@ -151,10 +144,6 @@ class TestConfigInspectorContract:
         assert callable(inspector.analyze)
 
 
-@pytest.mark.skipif(
-    not _has_shortcode_sandbox(),
-    reason="ShortcodeSandbox module not yet implemented",
-)
 class TestShortcodeSandboxContract:
     """Specific contract tests for ShortcodeSandbox."""
 
