@@ -295,7 +295,7 @@ class SiteIndexGenerator:
         ]
         site_data["tags"] = [
             {"name": name, "count": count}
-            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
+            for name, count in sorted(site_data["tags"].items(), key=lambda x: (-x[1], x[0]))
         ]
         # Sort pages by URL for deterministic output (important for idempotent builds)
         site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
@@ -455,7 +455,7 @@ class SiteIndexGenerator:
         ]
         site_data["tags"] = [
             {"name": name, "count": count}
-            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
+            for name, count in sorted(site_data["tags"].items(), key=lambda x: (-x[1], x[0]))
         ]
         # Sort pages by URL for deterministic output (important for idempotent builds)
         site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))

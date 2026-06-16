@@ -146,16 +146,50 @@ class GraphVisualizer:
 
     def _get_page_id(self, page: Any) -> str:
         """
-        Get a stable ID for a page (using source_path hash).
+        Get a stable, build-reproducible ID for a page.
+
+        Hashes the *site-relative* source path with a fixed algorithm. Python's
+        built-in ``hash()`` is per-process randomized (PYTHONHASHSEED), and an
+        absolute path varies by checkout location — both make ``graph.json`` /
+        ``index.json`` node ids differ between otherwise-identical builds, which
+        breaks byte-reproducible output and the warm==cold parity contract. A
+        deterministic hash of the site-relative path is stable across builds and
+        machines while staying unique per page.
 
         Args:
             page: Page object
 
         Returns:
-            String ID for the page
+            Stable string ID for the page
         """
-        # Use hash of source_path for stable IDs (pages are hashable by source_path)
-        return str(hash(page.source_path))
+        from bengal.utils.primitives.hashing import hash_str
+
+        source_path = getattr(page, "source_path", None)
+        if source_path is None:
+            # Generated/virtual pages without a source file: derive a stable id
+            # from a location-independent identifier.
+            try:
+                seed = str(page.href)
+            except Exception:
+                seed = str(getattr(page, "title", "") or id(page))
+            return hash_str(seed, truncate=16)
+
+        rel: Any = source_path
+        root = getattr(self.site, "root_path", None)
+        if root is not None:
+            # Canonicalize both sides before taking the relative path: the page
+            # source and the site root can carry different symlink forms (e.g.
+            # macOS ``/var`` vs ``/private/var``), which would make a naive
+            # ``relative_to`` fall back to the absolute (location-dependent) path
+            # and reintroduce nondeterminism across build locations.
+            try:
+                rel = Path(source_path).resolve().relative_to(Path(root).resolve())
+            except ValueError, OSError:
+                try:
+                    rel = Path(source_path).relative_to(root)
+                except ValueError:
+                    rel = source_path
+        return hash_str(Path(rel).as_posix(), truncate=16)
 
     def generate_graph_data(self) -> dict[str, Any]:
         """
@@ -309,11 +343,15 @@ class GraphVisualizer:
         for page in content_pages:
             source_id = page_id_map[page]
             targets = self.graph.outgoing_refs.get(page, set())
-            for target in targets:
-                if target in page_id_map:
-                    target_id = page_id_map[target]
-                    raw_edges.append((source_id, target_id))
-                    edge_set.add((source_id, target_id))
+            # Iterate targets in a stable order: ``outgoing_refs`` is a set of
+            # Page objects whose iteration order varies per process/instance,
+            # which would make the emitted edge order (and thus graph.json)
+            # nondeterministic. Sort by the target's stable node id.
+            for target_id in sorted(
+                page_id_map[target] for target in targets if target in page_id_map
+            ):
+                raw_edges.append((source_id, target_id))
+                edge_set.add((source_id, target_id))
 
         # Second pass: create edges with weight based on bidirectionality
         seen_pairs = set()  # Avoid duplicate edges for bidirectional links
