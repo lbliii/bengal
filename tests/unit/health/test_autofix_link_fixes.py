@@ -170,6 +170,36 @@ def test_external_links_are_not_suggested(tmp_path):
     assert [f for f in fixer.suggest_fixes() if f.fix_type == "link_update"] == []
 
 
+def test_metadata_path_supports_more_than_five_broken_links(tmp_path):
+    """Production-shaped Links results expose every broken link via metadata (#508)."""
+    _build_content_tree(tmp_path)
+    source = tmp_path / "content" / "docs" / "configuration.md"
+    broken_links = [f"/docs/instalation-{index}/" for index in range(6)]
+    _write(
+        source,
+        "# Configuration\n\n"
+        + "\n".join(f"[link{i}]({link})" for i, link in enumerate(broken_links))
+        + "\n",
+    )
+
+    for index in range(len(broken_links)):
+        typo_page = tmp_path / "content" / "docs" / f"installation-{index}.md"
+        _write(typo_page, f"# Installation {index}\n")
+
+    result = CheckResult.error(
+        "6 broken internal link(s)",
+        code="H101",
+        metadata={
+            "source_path": str(source),
+            "broken_links": broken_links,
+        },
+    )
+    _report, fixer = _links_report(tmp_path, result)
+
+    link_fixes = [fix for fix in fixer.suggest_fixes() if fix.fix_type == "link_update"]
+    assert len(link_fixes) == 6
+
+
 def test_unfixable_link_yields_no_suggestion(tmp_path):
     """A link with no close valid target produces no (misleading) suggestion."""
     _build_content_tree(tmp_path)

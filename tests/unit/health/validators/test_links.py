@@ -178,6 +178,27 @@ class TestLinkValidatorWrapperBrokenLinks:
         assert len(error_results) >= 1
         assert error_results[0].details is not None
         assert len(error_results[0].details) >= 1
+        assert error_results[0].metadata["broken_links"] == ["/nonexistent/", "/missing-page/"]
+
+    def test_broken_links_are_not_truncated_to_five(self, validator):
+        """Per-source results expose every broken link for autofix/report consumers."""
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.link_registry = None
+
+        broken = [f"/missing-{index}/" for index in range(7)]
+        page = MagicMock()
+        page.url = "/docs/"
+        page.source_path = Path("/project/content/docs/_index.md")
+        _seed_links(page, broken)
+        site.pages = [page]
+
+        results = validator.validate(site)
+
+        assert len(results) == 1
+        assert results[0].metadata["broken_links"] == broken
+        assert len(results[0].details) == 7
 
 
 class TestLinkValidatorWrapperStats:
@@ -265,6 +286,7 @@ class TestLinkValidatorWrapperStats:
 
         assert len(results) == 1
         assert results[0].code == "H101"
+        assert results[0].metadata["broken_links"] == ["/cached-missing/"]
         assert "cached-missing" in results[0].details[0]
         assert validator.last_stats is not None
         assert validator.last_stats.metrics["cached_files"] == 1
@@ -356,12 +378,13 @@ class TestLinkValidatorHealthScopeIntegration:
         report = health_check.run(incremental=True, cache=cache)
 
         link_report = report.validator_reports[0]
-        assert link_report.results[0].code == "H101"
-        assert "2 broken internal link(s)" in link_report.results[0].message
-        details = link_report.results[0].details
-        assert details is not None
-        assert any("cached-missing" in detail for detail in details)
-        assert any("missing-now" in detail for detail in details)
+        error_results = [result for result in link_report.results if result.code == "H101"]
+        assert len(error_results) == 2
+        broken_links = {
+            link for result in error_results for link in result.metadata.get("broken_links", [])
+        }
+        assert "/cached-missing/" in broken_links
+        assert "/missing-now/" in broken_links
         cache.cache_validation_results.assert_called_once()
         cached_path, validator_name, file_results = cache.cache_validation_results.call_args.args
         assert cached_path == changed_page.source_path
