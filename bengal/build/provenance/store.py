@@ -205,17 +205,16 @@ class ProvenanceCache:
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
         """Load a provenance record by hash."""
-        # Check memory cache first
-        if combined_hash in self._records:
-            return self._records[combined_hash]
+        with self._lock:
+            cached = self._records.get(combined_hash)
+            if cached is not None:
+                return cached
 
-        # Load from disk
+        # Load from disk (I/O outside lock)
         record_path = self._records_dir / f"{combined_hash}.json"
         try:
             data = json_load(record_path)
             record = ProvenanceRecord.from_dict(data)
-            self._records[combined_hash] = record
-            return record
         except FileNotFoundError:
             return None
         except (JSONDecodeError, KeyError, TypeError, ValueError) as e:
@@ -225,6 +224,13 @@ class ProvenanceCache:
                 action="treating_record_as_missing",
             )
             return None
+
+        with self._lock:
+            existing = self._records.get(combined_hash)
+            if existing is not None:
+                return existing
+            self._records[combined_hash] = record
+            return record
 
     def get(self, page_path: CacheKey) -> ProvenanceRecord | None:
         """Get provenance record for a page (thread-safe)."""

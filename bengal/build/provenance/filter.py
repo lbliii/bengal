@@ -234,11 +234,13 @@ class ProvenanceFilter:
                     lambda item: self._verify_page_provenance(item[0], item[1]),
                     pages_to_verify,
                 )
-                for r in results:
+                for r, (page, _) in zip(results, pages_to_verify, strict=True):
                     if r.error:
                         raise r.error
                     assert r.value is not None  # guarded by r.error check above
-                    build, skip, tags, sections, paths = r.value
+                    build, skip, tags, sections, paths, cascade_invalidated = r.value
+                    if cascade_invalidated:
+                        page._cascade_invalidated = True
                     if build is not None:
                         pages_to_build.append(build)
                         affected_tags.update(tags)
@@ -248,7 +250,11 @@ class ProvenanceFilter:
                         pages_skipped.append(skip)
         else:
             for page, stored_hash in pages_to_verify:
-                build, skip, tags, sections, paths = self._verify_page_provenance(page, stored_hash)
+                build, skip, tags, sections, paths, cascade_invalidated = (
+                    self._verify_page_provenance(page, stored_hash)
+                )
+                if cascade_invalidated:
+                    page._cascade_invalidated = True
                 if build is not None:
                     pages_to_build.append(build)
                     affected_tags.update(tags)
@@ -321,17 +327,19 @@ class ProvenanceFilter:
         self,
         page: PageLike,
         stored_hash: ContentHash,
-    ) -> tuple[PageLike | None, PageLike | None, set[str], set[str], set[Path]]:
+    ) -> tuple[PageLike | None, PageLike | None, set[str], set[str], set[Path], bool]:
         """
         Verify if cached provenance still matches. Thread-safe.
 
         Returns:
-            (page_to_build, page_to_skip, affected_tags, affected_sections, changed_paths)
+            (page_to_build, page_to_skip, affected_tags, affected_sections,
+             changed_paths, cascade_invalidated)
             Exactly one of page_to_build or page_to_skip is non-None.
         """
         tags: set[str] = set()
         sections: set[str] = set()
         paths: set[Path] = set()
+        cascade_invalidated = False
         page_path = self._get_page_key(page)
         is_virtual = getattr(page, "virtual", False)
 
@@ -339,14 +347,14 @@ class ProvenanceFilter:
         if self._mtime_short_circuit(page, stored_hash):
             with self._session_lock:
                 self._mtime_short_circuit_hits += 1
-            return (None, page, tags, sections, paths)
+            return (None, page, tags, sections, paths, cascade_invalidated)
 
         if not is_virtual and page.source_path.exists():
             provenance_fast = self._compute_provenance_fast(page)
             if provenance_fast is not None and provenance_fast.combined_hash == stored_hash:
-                return (None, page, tags, sections, paths)
+                return (None, page, tags, sections, paths, cascade_invalidated)
             if provenance_fast is not None:
-                page._cascade_invalidated = True
+                cascade_invalidated = True
 
         try:
             provenance = self._compute_provenance(page)
@@ -359,7 +367,7 @@ class ProvenanceFilter:
             )
             self._collect_affected(page, tags, sections)
             paths.add(page.source_path)
-            return (page, None, tags, sections, paths)
+            return (page, None, tags, sections, paths, cascade_invalidated)
 
         if provenance.input_count == 0:
             logger.warning(
@@ -370,13 +378,13 @@ class ProvenanceFilter:
             )
             self._collect_affected(page, tags, sections)
             paths.add(page.source_path)
-            return (page, None, tags, sections, paths)
+            return (page, None, tags, sections, paths, cascade_invalidated)
 
         if provenance.combined_hash == stored_hash:
-            return (None, page, tags, sections, paths)
+            return (None, page, tags, sections, paths, cascade_invalidated)
         self._collect_affected(page, tags, sections)
         paths.add(page.source_path)
-        return (page, None, tags, sections, paths)
+        return (page, None, tags, sections, paths, cascade_invalidated)
 
     def record_build(self, page: PageLike, output_hash: ContentHash | None = None) -> None:
         """

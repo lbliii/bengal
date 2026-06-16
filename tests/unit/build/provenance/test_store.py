@@ -660,3 +660,45 @@ class TestProvenanceCacheThreadSafety:
             for i in range(5):
                 result = store.get(CacheKey(f"batch{batch_idx}/page{i}.md"))
                 assert result is not None
+
+    def test_concurrent_get_record_disk_load(self, cache_dir: Path) -> None:
+        """Concurrent _get_record disk loads do not corrupt the memory cache (#438)."""
+        import threading
+
+        record = ProvenanceRecord(
+            page_path=CacheKey("content/about.md"),
+            provenance=Provenance().with_input(
+                "content", CacheKey("content/about.md"), ContentHash("abc123")
+            ),
+            output_hash=ContentHash("output123"),
+        )
+        store = ProvenanceCache(cache_dir=cache_dir)
+        store.store(record)
+        store.save()
+
+        combined_hash = record.provenance.combined_hash
+
+        # Fresh store: memory cache empty, records on disk only.
+        fresh = ProvenanceCache(cache_dir=cache_dir)
+        errors: list[Exception] = []
+        results: list[ProvenanceRecord | None] = []
+        lock = threading.Lock()
+
+        def load_record() -> None:
+            try:
+                loaded = fresh._get_record(combined_hash)
+                with lock:
+                    results.append(loaded)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=load_record) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        assert not errors, f"Thread errors: {errors}"
+        assert len(results) == 20
+        assert all(r is not None for r in results)
+        assert all(r.page_path == record.page_path for r in results if r is not None)
