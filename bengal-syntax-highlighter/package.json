@@ -30,6 +30,11 @@
         "injectTo": ["text.html.markdown"]
       },
       {
+        "scopeName": "text.html.kida.injection",
+        "path": "./syntaxes/kida-html.injection.tmLanguage.json",
+        "injectTo": ["text.html"]
+      },
+      {
         "language": "kida",
         "scopeName": "source.kida",
         "path": "./syntaxes/kida.tmLanguage.json"

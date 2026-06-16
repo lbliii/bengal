@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bengal.cli.milo_commands.new import new_content_type
-from bengal.content_types import get_strategy
+from bengal.content_types import CONTENT_TYPE_REGISTRY, get_strategy
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -62,6 +62,8 @@ class TestNewContentTypeScaffold:
             assert type(strategy).__name__ == "CaseStudyStrategy"
         finally:
             sys.modules.pop("case_study_strategy", None)
+            # register_strategy() runs at import time — drop the leaked key (#518).
+            CONTENT_TYPE_REGISTRY.pop("case-study", None)
 
     def test_class_name_pascal_cased_from_hyphens(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
