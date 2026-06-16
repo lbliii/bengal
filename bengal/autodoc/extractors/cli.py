@@ -81,8 +81,8 @@ class CLIExtractor(Extractor):
     Supported frameworks:
     - Click (full support)
     - milo (full support)
-    - argparse (planned)
-    - Typer (planned)
+    - argparse (full support)
+    - Typer (full support)
 
     Example:
             >>> from bengal.cli import cli
@@ -896,18 +896,310 @@ class CLIExtractor(Extractor):
 
     def _extract_from_argparse(self, parser: Any) -> list[DocElement]:
         """
-        Extract documentation from argparse ArgumentParser.
+        Extract documentation from an argparse ArgumentParser.
+
+        Mirrors the Click path: the root parser becomes a command-group and
+        each subparser (registered via ``add_subparsers().add_parser(...)``)
+        becomes a command. Parsers without subparsers are emitted as a single
+        command. Positional arguments map to ``argument`` elements and
+        optionals to ``option`` elements; the implicit ``-h/--help`` action is
+        skipped.
 
         Args:
-            parser: ArgumentParser instance
+            parser: argparse.ArgumentParser instance
 
         Returns:
-            List of DocElements
-
-        Note:
-            This is a placeholder for future implementation
+            Flat list of DocElements (root + all commands/groups)
         """
-        raise NotImplementedError("argparse support is planned but not yet implemented")
+        import argparse
+
+        if not isinstance(parser, argparse.ArgumentParser):
+            from bengal.errors import BengalDiscoveryError, ErrorCode
+
+            raise BengalDiscoveryError(
+                f"Expected an argparse.ArgumentParser, got {type(parser).__name__}.",
+                suggestion="Pass an argparse.ArgumentParser instance",
+                code=ErrorCode.O004,
+            )
+
+        name = parser.prog or "cli"
+
+        if self._argparse_subparsers(parser):
+            # Parser with subcommands -> command-group root.
+            root = self._extract_argparse_group(parser, name, parent_name=None)
+        else:
+            # Flat parser (no subcommands) -> single command.
+            root = self._extract_argparse_command(parser, name, parent_name=None)
+
+        elements: list[DocElement] = [root]
+
+        def flatten(children: list[DocElement]) -> None:
+            for child in children:
+                elements.append(child)
+                if child.element_type == "command-group" and child.children:
+                    flatten(child.children)
+
+        # A flat command's children are its parameters, not subcommands, so
+        # only flatten the command-tree under a command-group root.
+        if root.element_type == "command-group":
+            flatten(root.children)
+        return elements
+
+    @staticmethod
+    def _argparse_subparsers(parser: Any) -> Any:
+        """
+        Return the _SubParsersAction for a parser, or None if it has none.
+
+        Args:
+            parser: argparse.ArgumentParser instance
+
+        Returns:
+            The _SubParsersAction instance or None
+        """
+        import argparse
+
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                return action
+        return None
+
+    def _extract_argparse_group(
+        self, parser: Any, name: str, parent_name: str | None
+    ) -> DocElement:
+        """
+        Extract an argparse parser that has subparsers as a command-group.
+
+        Args:
+            parser: argparse.ArgumentParser instance with subparsers
+            name: Display name for this group
+            parent_name: Parent qualified name (None for the root)
+
+        Returns:
+            DocElement of type 'command-group' with one child per subparser
+        """
+        qualified_name = f"{parent_name}.{name}" if parent_name else name
+
+        subparsers = self._argparse_subparsers(parser)
+
+        # Map subcommand name -> help string from the _choices_actions table.
+        help_by_name: dict[str, str] = {}
+        for choice_action in getattr(subparsers, "_choices_actions", []):
+            help_by_name[choice_action.dest] = choice_action.help or ""
+
+        children: list[DocElement] = []
+        seen_ids: set[int] = set()
+        for sub_name, sub_parser in subparsers.choices.items():
+            # argparse stores aliases as extra dict keys pointing at the same
+            # parser object; emit each parser once under its canonical name.
+            if id(sub_parser) in seen_ids:
+                continue
+            seen_ids.add(id(sub_parser))
+
+            help_text = help_by_name.get(sub_name)
+            if self._argparse_subparsers(sub_parser):
+                children.append(self._extract_argparse_group(sub_parser, sub_name, qualified_name))
+            else:
+                children.append(
+                    self._extract_argparse_command(
+                        sub_parser, sub_name, qualified_name, help_text=help_text
+                    )
+                )
+
+        description = sanitize_text(parser.description)
+
+        typed_meta = CLIGroupMetadata(
+            callback=None,
+            command_count=len(children),
+        )
+
+        return DocElement(
+            name=name,
+            qualified_name=qualified_name,
+            description=description,
+            element_type="command-group",
+            source_file=None,
+            line_number=None,
+            metadata={
+                "callback": None,
+                "command_count": len(children),
+            },
+            typed_metadata=typed_meta,
+            children=children,
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    def _extract_argparse_command(
+        self,
+        parser: Any,
+        name: str,
+        parent_name: str | None,
+        help_text: str | None = None,
+    ) -> DocElement:
+        """
+        Extract an argparse parser (without subparsers) as a command.
+
+        Args:
+            parser: argparse.ArgumentParser instance
+            name: Display name for this command
+            parent_name: Parent qualified name (None for the root)
+            help_text: Short help from the parent subparsers table, if any
+
+        Returns:
+            DocElement of type 'command' with one child per argument/option
+        """
+        import argparse
+
+        qualified_name = f"{parent_name}.{name}" if parent_name else name
+
+        arguments: list[DocElement] = []
+        options: list[DocElement] = []
+
+        for action in parser._actions:
+            # Skip the implicit help action and any nested subparsers action.
+            if isinstance(action, argparse._HelpAction | argparse._SubParsersAction):
+                continue
+
+            param_doc = self._extract_argparse_parameter(action, qualified_name)
+            if action.option_strings:
+                options.append(param_doc)
+            else:
+                arguments.append(param_doc)
+
+        children = arguments + options
+
+        # Prefer the parser's own description; fall back to the subparsers
+        # help string (argparse's `help=` on add_parser).
+        description = sanitize_text(parser.description or help_text)
+
+        typed_meta = CLICommandMetadata(
+            callback=None,
+            option_count=len(options),
+            argument_count=len(arguments),
+            is_group=False,
+            is_hidden=False,
+        )
+
+        return DocElement(
+            name=name,
+            qualified_name=qualified_name,
+            description=description,
+            element_type="command",
+            source_file=None,
+            line_number=None,
+            metadata={
+                "callback": None,
+                "option_count": len(options),
+                "argument_count": len(arguments),
+            },
+            typed_metadata=typed_meta,
+            children=children,
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    def _extract_argparse_parameter(self, action: Any, parent_name: str) -> DocElement:
+        """
+        Extract an argparse Action as an option or argument DocElement.
+
+        Args:
+            action: argparse.Action instance (not a help/subparsers action)
+            parent_name: Parent command qualified name
+
+        Returns:
+            DocElement of type 'option' (has option_strings) or 'argument'
+        """
+        is_option = bool(action.option_strings)
+        element_type = "option" if is_option else "argument"
+
+        # argparse uses `dest` as the canonical parameter name.
+        param_name = action.dest
+
+        # Flags/opt strings, e.g. ("-v", "--verbose"). Positionals expose none,
+        # so fall back to the metavar/dest for display.
+        if is_option:
+            opts: tuple[str, ...] = tuple(action.option_strings)
+        else:
+            opts = (action.metavar or param_name,)
+
+        type_name = self._argparse_type_name(action)
+        description = sanitize_text(action.help)
+
+        # A store_true/store_false/store_const optional with nargs==0 is a flag.
+        is_flag = is_option and action.nargs == 0
+        # `count` actions (-vvv) expose nargs==0 and integer accumulation.
+        is_count = is_option and action.__class__.__name__ == "_CountAction"
+        # Positionals are required unless they accept zero values.
+        required = bool(action.required) if is_option else action.nargs not in ("?", "*")
+        multiple = action.nargs in ("*", "+") or action.__class__.__name__ == "_AppendAction"
+
+        default = _format_default_value(action.default)
+
+        metadata: dict[str, Any] = {
+            "param_type": element_type,
+            "type": type_name,
+            "required": required,
+            "default": default,
+            "multiple": multiple,
+            "is_flag": is_flag,
+            "count": is_count,
+            "opts": list(opts),
+        }
+
+        if action.choices is not None:
+            # _SubParsersAction is filtered upstream, so choices here are values.
+            metadata["choices"] = [str(c) for c in action.choices]
+
+        typed_meta = CLIOptionMetadata(
+            name=param_name or "",
+            param_type="argument" if element_type == "argument" else "option",
+            type_name=type_name.upper() if type_name else "STRING",
+            required=required,
+            default=default,
+            multiple=multiple,
+            is_flag=is_flag,
+            count=is_count,
+            opts=opts,
+            envvar=None,
+            help_text=action.help or "",
+        )
+
+        return DocElement(
+            name=param_name or "",
+            qualified_name=f"{parent_name}.{param_name or ''}",
+            description=description,
+            element_type=element_type,
+            source_file=None,
+            line_number=None,
+            metadata=metadata,
+            typed_metadata=typed_meta,
+            children=[],
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    @staticmethod
+    def _argparse_type_name(action: Any) -> str:
+        """
+        Derive a display type name for an argparse Action.
+
+        Args:
+            action: argparse.Action instance
+
+        Returns:
+            Lowercase type name (e.g. 'int', 'str', 'bool', 'any')
+        """
+        # store_true/store_false present as booleans regardless of `type`.
+        if action.__class__.__name__ in ("_StoreTrueAction", "_StoreFalseAction"):
+            return "bool"
+
+        action_type = action.type
+        if action_type is None:
+            return "str" if action.option_strings or action.dest else "any"
+        return getattr(action_type, "__name__", str(action_type)).lower()
 
     def _extract_from_typer(self, app: Any) -> list[DocElement]:
         """
