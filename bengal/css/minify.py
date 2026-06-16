@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from bengal.css.cascade import resolve, tree_sig
 from bengal.css.config import MinifyLevel
 from bengal.css.errors import warn
+from bengal.css.nesting import flatten_nesting_tree, has_nested_rules
 from bengal.css.optimize import optimize_tree
 from bengal.css.parser import parse_stylesheet
 from bengal.css.serializer import serialize
@@ -29,7 +30,12 @@ def _parse(css: str) -> tuple[Node, ...]:
     return parse_stylesheet(tokenize(css))
 
 
-def minify_css(css: str, *, level: MinifyLevel | str = MinifyLevel.SAFE) -> str:
+def minify_css(
+    css: str,
+    *,
+    level: MinifyLevel | str = MinifyLevel.SAFE,
+    flatten_nesting: bool = False,
+) -> str:
     """Minify CSS text.
 
     Args:
@@ -37,6 +43,9 @@ def minify_css(css: str, *, level: MinifyLevel | str = MinifyLevel.SAFE) -> str:
         level: ``"safe"`` (default, lossless), ``"optimize"`` (value
             normalization), or ``"aggressive"`` (cascade-invariant structural
             rewrites). Accepts a :class:`MinifyLevel` or its string value.
+        flatten_nesting: When ``True``, de-sugar nested qualified rules into
+            flat selectors for legacy browser targets (opt-in; default preserves
+            native nesting).
 
     Returns:
         Minified CSS, guaranteed to be meaning-preserving. Returns the input
@@ -58,9 +67,22 @@ def minify_css(css: str, *, level: MinifyLevel | str = MinifyLevel.SAFE) -> str:
             warn("css_minifier_safe_guard_failed", input_length=len(css))
             return css
         best = safe_out
+        pipeline_tree = in_tree
+
+        if flatten_nesting and has_nested_rules(in_tree):
+            flat_tree = flatten_nesting_tree(in_tree)
+            flat_out = serialize(flat_tree)
+            reparsed = _parse(flat_out)
+            if not has_nested_rules(reparsed) and resolve(flat_tree, normalize=True) == resolve(
+                reparsed, normalize=True
+            ):
+                best = flat_out
+                pipeline_tree = flat_tree
+            else:
+                warn("css_minifier_nesting_guard_failed", input_length=len(css))
 
         if lvl in (MinifyLevel.OPTIMIZE, MinifyLevel.AGGRESSIVE):
-            opt_tree = optimize_tree(in_tree)
+            opt_tree = optimize_tree(pipeline_tree)
             opt_out = serialize(opt_tree)
             in_norm_sig = tree_sig(in_tree, normalize=True)
             if tree_sig(_parse(opt_out), normalize=True) == in_norm_sig:
@@ -70,7 +92,7 @@ def minify_css(css: str, *, level: MinifyLevel | str = MinifyLevel.SAFE) -> str:
                 return best
 
         if lvl is MinifyLevel.AGGRESSIVE:
-            agg_tree = structural_optimize(optimize_tree(in_tree))
+            agg_tree = structural_optimize(optimize_tree(pipeline_tree))
             agg_out = serialize(agg_tree)
             in_resolve = resolve(in_tree, normalize=True)
             if resolve(_parse(agg_out), normalize=True) == in_resolve:
