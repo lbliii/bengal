@@ -29,6 +29,7 @@ truth.
 | `epic-openapi-rest-layout-upgrade.md` | Active | Autodoc/API docs polish remains a production gap. |
 | `epic-performance.md` | Active | Prioritized performance goal/workflow. Measurement integrity first (published numbers contradict committed baselines; no benchmark CI gate), then the free-threading rendering hot path. |
 | `epic-ux-sharp-edges.md` | Active | User-visible CLI/error/directive/scaffold polish bucket. |
+| `rfc-css-minifier-tokenizer.md` | Implemented | Tokenizer-based CSS minifier (`bengal/css/`) with a cascade-safe aggressive tier and runtime meaning-signature guard; supersedes the heuristic minifier and fixes #510. `bengal.assets.css_minifier` is now a re-export shim. |
 | `rfc-effect-traced-incremental-builds.md` | Active | Long-term effect graph and template HMR direction. |
 | `rfc-health-diagnostics-audit.md` | Active implementation | Health, artifact audit, and reporting separation. |
 | `rfc-incremental-dependency-indexes.md` | Active / partially implemented | Dependency-index contracts, provenance persistence, conservative detector consultation, and template/data producer coverage exist; fallback removal still needs proof. |
