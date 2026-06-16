@@ -102,7 +102,7 @@ def _file_results_by_source(
                     recommendation="Fix broken internal links. They point to pages that don't exist.",
                     details=[
                         f"{_format_link_location(source_path, site.root_path)}: {link}"
-                        for link in internal_links[:5]
+                        for link in internal_links
                     ],
                     metadata={
                         "source_path": str(source_path),
@@ -118,7 +118,7 @@ def _file_results_by_source(
                     recommendation="External links may be temporarily unavailable or incorrect.",
                     details=[
                         f"{_format_link_location(source_path, site.root_path)}: {link}"
-                        for link in external_links[:5]
+                        for link in external_links
                     ],
                     metadata={
                         "source_path": str(source_path),
@@ -129,6 +129,15 @@ def _file_results_by_source(
         file_results[source_path] = results
 
     return file_results
+
+
+def _flatten_file_results(file_results: dict[Path, list[CheckResult]]) -> list[CheckResult]:
+    """Return per-source CheckResults in stable source-path order."""
+    return [
+        result
+        for source_path in sorted(file_results, key=str)
+        for result in file_results[source_path]
+    ]
 
 
 class LinkValidator:
@@ -726,47 +735,7 @@ class LinkValidatorWrapper(BaseValidator):
         self.last_file_results = _file_results_by_source(broken_links, site)
 
         if all_broken_links:
-            # broken_links is list of (page_path, link_url) tuples
-            # Group by type based on the link URL (second element)
-            internal_broken = [
-                (page, link)
-                for page, link in all_broken_links
-                if not link.startswith(("http://", "https://"))
-            ]
-            external_broken = [
-                (page, link)
-                for page, link in all_broken_links
-                if link.startswith(("http://", "https://"))
-            ]
-
-            if internal_broken:
-                # Format as "page: link" for display (using relative paths)
-                details = [
-                    f"{_format_link_location(page, site.root_path)}: {link}"
-                    for page, link in internal_broken[:5]
-                ]
-                results.append(
-                    CheckResult.error(
-                        f"{len(internal_broken)} broken internal link(s)",
-                        code="H101",
-                        recommendation="Fix broken internal links. They point to pages that don't exist.",
-                        details=details,
-                    )
-                )
-
-            if external_broken:
-                details = [
-                    f"{_format_link_location(page, site.root_path)}: {link}"
-                    for page, link in external_broken[:5]
-                ]
-                results.append(
-                    CheckResult.warning(
-                        f"{len(external_broken)} broken external link(s)",
-                        code="H102",
-                        recommendation="External links may be temporarily unavailable or incorrect.",
-                        details=details,
-                    )
-                )
+            results.extend(_flatten_file_results(_file_results_by_source(all_broken_links, site)))
         # No success message - if all links are valid, silence is golden
 
         # Store stats
