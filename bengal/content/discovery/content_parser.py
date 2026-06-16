@@ -180,6 +180,9 @@ class ContentParser:
         """
         Validate frontmatter against collection schema if applicable.
 
+        If the matching collection defines a ``transform`` callable, it is
+        applied to the metadata before validation.
+
         Args:
             file_path: Path to content file
             metadata: Parsed frontmatter metadata
@@ -199,6 +202,11 @@ class ContentParser:
             return metadata
 
         from bengal.collections import ContentValidationError, SchemaValidator
+
+        # Apply the optional transform hook before validation so callers can
+        # normalize legacy frontmatter (e.g. rename fields during a migration).
+        if config.transform is not None:
+            metadata = config.transform(metadata)
 
         # Validate
         validator = SchemaValidator(config.schema, strict=config.strict)
