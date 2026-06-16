@@ -1,0 +1,84 @@
+"""Public CSS minifier entry point.
+
+Pipeline: tokenize -> parse rule tree -> (optimize values) -> (structural
+rewrites) -> serialize. Every level is guarded at runtime: the engine re-parses
+its own output and compares an independent meaning signature against the input.
+On any mismatch — or any internal error — it returns the best previously-proven
+result (down to the original input), so the minifier can never emit corrupted
+CSS. This is what makes the #510 ``@scope … to (`` failure structurally
+impossible: ``to (`` and ``to(`` have different signatures, so a bad collapse is
+rejected.
+"""
+
+from typing import TYPE_CHECKING
+
+from bengal.css.cascade import resolve, tree_sig
+from bengal.css.config import MinifyLevel
+from bengal.css.errors import warn
+from bengal.css.optimize import optimize_tree
+from bengal.css.parser import parse_stylesheet
+from bengal.css.serializer import serialize
+from bengal.css.structural import structural_optimize
+from bengal.css.tokenizer import tokenize
+
+if TYPE_CHECKING:
+    from bengal.css.nodes import Node
+
+
+def _parse(css: str) -> tuple[Node, ...]:
+    return parse_stylesheet(tokenize(css))
+
+
+def minify_css(css: str, *, level: MinifyLevel | str = MinifyLevel.SAFE) -> str:
+    """Minify CSS text.
+
+    Args:
+        css: The CSS source to minify.
+        level: ``"safe"`` (default, lossless), ``"optimize"`` (value
+            normalization), or ``"aggressive"`` (cascade-invariant structural
+            rewrites). Accepts a :class:`MinifyLevel` or its string value.
+
+    Returns:
+        Minified CSS, guaranteed to be meaning-preserving. Returns the input
+        unchanged if minification cannot be proven safe.
+    """
+    if not isinstance(css, str):
+        warn("css_minifier_invalid_input", input_type=type(css).__name__)
+        return str(css) if css else ""
+    if not css:
+        return css
+
+    lvl = MinifyLevel.coerce(level)
+    try:
+        in_tree = _parse(css)
+        in_sig = tree_sig(in_tree, normalize=False)
+
+        safe_out = serialize(in_tree)
+        if tree_sig(_parse(safe_out), normalize=False) != in_sig:
+            warn("css_minifier_safe_guard_failed", input_length=len(css))
+            return css
+        best = safe_out
+
+        if lvl in (MinifyLevel.OPTIMIZE, MinifyLevel.AGGRESSIVE):
+            opt_tree = optimize_tree(in_tree)
+            opt_out = serialize(opt_tree)
+            in_norm_sig = tree_sig(in_tree, normalize=True)
+            if tree_sig(_parse(opt_out), normalize=True) == in_norm_sig:
+                best = opt_out
+            else:
+                warn("css_minifier_optimize_guard_failed", input_length=len(css))
+                return best
+
+        if lvl is MinifyLevel.AGGRESSIVE:
+            agg_tree = structural_optimize(optimize_tree(in_tree))
+            agg_out = serialize(agg_tree)
+            in_resolve = resolve(in_tree, normalize=True)
+            if resolve(_parse(agg_out), normalize=True) == in_resolve:
+                best = agg_out
+            else:
+                warn("css_minifier_aggressive_guard_failed", input_length=len(css))
+
+        return best
+    except Exception as exc:  # fail-safe: never corrupt output
+        warn("css_minifier_failed", error=str(exc), error_type=type(exc).__name__)
+        return css
