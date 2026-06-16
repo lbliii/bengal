@@ -114,12 +114,26 @@ class FixAction:
 
     def can_apply(self) -> bool:
         """
-        Check if this fix can be applied automatically.
+        Check if this fix can be applied automatically (without confirmation).
 
         Returns:
             True if safety is SAFE and apply callable is set.
         """
         return self.safety == FixSafety.SAFE and self.apply is not None
+
+    def can_apply_confirmed(self) -> bool:
+        """
+        Check if this fix may be applied once the user has confirmed it.
+
+        CONFIRM fixes (e.g. heuristic broken-link rewrites) are not eligible for
+        unattended application, but they may be applied after an explicit
+        confirmation. UNSAFE fixes still require manual review and are never
+        eligible here.
+
+        Returns:
+            True if safety is SAFE or CONFIRM and apply callable is set.
+        """
+        return self.safety in (FixSafety.SAFE, FixSafety.CONFIRM) and self.apply is not None
 
 
 class AutoFixer:
@@ -1257,7 +1271,9 @@ class AutoFixer:
 
         return apply_fix
 
-    def apply_fixes(self, fixes: list[FixAction] | None = None) -> dict[str, Any]:
+    def apply_fixes(
+        self, fixes: list[FixAction] | None = None, *, confirmed: bool = False
+    ) -> dict[str, Any]:
         """
         Apply specified fixes to files.
 
@@ -1265,8 +1281,15 @@ class AutoFixer:
         failure, and skip counts. Fixes that cannot be applied (wrong safety
         level or missing callable) are skipped.
 
+        By default only SAFE fixes are applied (``can_apply()``); CONFIRM fixes
+        are skipped. When ``confirmed=True`` the caller asserts the user has
+        explicitly approved the supplied fixes, so SAFE *and* CONFIRM fixes are
+        applied (``can_apply_confirmed()``). UNSAFE fixes are never applied here
+        regardless of ``confirmed`` -- they require manual review.
+
         Args:
             fixes: List of FixAction to apply. If None, uses self.fixes.
+            confirmed: If True, also apply CONFIRM fixes the user has approved.
 
         Returns:
             Dict with counts: {"applied": N, "failed": M, "skipped": K}
@@ -1279,7 +1302,8 @@ class AutoFixer:
         skipped = 0
 
         for fix in fixes:
-            if not fix.can_apply():
+            eligible = fix.can_apply_confirmed() if confirmed else fix.can_apply()
+            if not eligible:
                 skipped += 1
                 continue
 
