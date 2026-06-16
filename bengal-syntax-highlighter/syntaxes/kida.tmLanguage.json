@@ -3,8 +3,7 @@
     "scopeName": "source.kida",
     "name": "Kida",
     "fileTypes": [
-        "kida",
-        "html"
+        "kida"
     ],
     "patterns": [
         {

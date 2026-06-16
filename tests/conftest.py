@@ -460,6 +460,15 @@ def reset_bengal_state(request):
     except ImportError:
         logger.debug("Active plugin registry reset skipped: set_active_registry not available")
 
+    # Scaffold tests import generated modules that call register_strategy() at
+    # import time; restore the registry after each test so xdist workers stay clean.
+    try:
+        from bengal.content_types.registry import CONTENT_TYPE_REGISTRY
+
+        content_type_registry_snapshot = dict(CONTENT_TYPE_REGISTRY)
+    except ImportError:
+        content_type_registry_snapshot = None
+
     yield
 
     # Teardown: Reset all stateful components after each test
@@ -534,6 +543,12 @@ def reset_bengal_state(request):
         set_active_registry(None)
     except ImportError:
         logger.debug("Active plugin registry reset skipped: set_active_registry not available")
+
+    if content_type_registry_snapshot is not None:
+        from bengal.content_types.registry import CONTENT_TYPE_REGISTRY
+
+        CONTENT_TYPE_REGISTRY.clear()
+        CONTENT_TYPE_REGISTRY.update(content_type_registry_snapshot)
 
 
 @pytest.fixture(scope="class")

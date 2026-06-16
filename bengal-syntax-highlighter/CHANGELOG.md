@@ -2,6 +2,13 @@
 
 All notable changes to the "Bengal SSG Syntax Highlighter" extension will be documented in this file.
 
+## [1.2.0] - 2026-06-16
+
+### Fixed
+- Restored missing `language-configuration.json` referenced by `package.json`
+- Stopped Kida primary grammar from hijacking all `.html` files; Kida tags in HTML
+  templates now use a dedicated `text.html` injection grammar instead
+
 ## [1.1.0] - 2025-12-30
 
 ### Added
