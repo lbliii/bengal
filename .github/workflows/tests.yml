@@ -108,7 +108,7 @@ jobs:
         uv run pytest -n 4 -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow and not known_gap"
 
     - name: Upload coverage
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         files: coverage.xml
 
