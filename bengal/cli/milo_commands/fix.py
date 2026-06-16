@@ -127,6 +127,7 @@ def fix(
 
     cli.blank()
     fixes_to_apply = safe_fixes.copy()
+    confirmed = False
 
     if (
         (all or confirm)
@@ -134,6 +135,7 @@ def fix(
         and cli.confirm(f"Apply {len(confirm_fixes)} fix(es) requiring confirmation?")
     ):
         fixes_to_apply.extend(confirm_fixes)
+        confirmed = True
 
     if not fixes_to_apply:
         cli.info("No fixes to apply")
@@ -146,7 +148,7 @@ def fix(
         }
 
     cli.info(f"Applying {len(fixes_to_apply)} fix(es)...")
-    results = fixer.apply_fixes(fixes_to_apply)
+    results = fixer.apply_fixes(fixes_to_apply, confirmed=confirmed)
 
     cli.blank()
     cli.render_write(
