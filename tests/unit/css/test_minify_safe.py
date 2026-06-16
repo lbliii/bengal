@@ -32,6 +32,73 @@ class TestIssue510:
         assert "to right" in out
 
 
+class TestPreludeFunctionDistinction:
+    """The #510 bug class: an ``ident (`` prelude must keep its space (so the
+    ident stays a keyword), while a real functional notation (``ident(``) must
+    collapse (so it stays a single function token).
+
+    A space before ``(`` is *only* removable when the preceding ident is a
+    function name. Every at-rule prelude keyword below (``to``, ``not``,
+    ``and``, ``@supports``, ``@container <name>``) must therefore retain it.
+    """
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            # @scope prelude — both the scope-start and the `to` scope-end.
+            (
+                "@scope (.x) to (.x .x) { :scope { color: red; } }",
+                "@scope (.x) to (.x .x){:scope{color:red}}",
+            ),
+            # @supports prelude keeps the space before its condition group.
+            (
+                "@supports (display: grid) { a { color: red; } }",
+                "@supports (display:grid){a{color:red}}",
+            ),
+            (
+                "@supports not (display: grid) { a { color: red; } }",
+                "@supports not (display:grid){a{color:red}}",
+            ),
+            # @container with a name keeps the space before the query.
+            (
+                "@container sidebar (min-width: 200px) { a { color: red; } }",
+                "@container sidebar (min-width:200px){a{color:red}}",
+            ),
+            # Media-query combinators: and / or / not all keep the space.
+            (
+                "@media (min-width: 200px) and (max-width: 400px) { a { color: red; } }",
+                "@media (min-width:200px) and (max-width:400px){a{color:red}}",
+            ),
+            (
+                "@media (min-width: 200px) or (orientation: landscape) { a { color: red; } }",
+                "@media (min-width:200px) or (orientation:landscape){a{color:red}}",
+            ),
+            (
+                "@media not (min-width: 200px) { a { color: red; } }",
+                "@media not (min-width:200px){a{color:red}}",
+            ),
+        ],
+    )
+    def test_prelude_keywords_keep_space_before_paren(self, source: str, expected: str) -> None:
+        assert minify_css(source) == expected
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            # Real functional notations: the space before `(` must collapse so
+            # the ident + `(` stay a single function token.
+            ("a { width: clamp( 1rem , 2vw , 3rem ); }", "a{width:clamp(1rem,2vw,3rem)}"),
+            ("a { width: calc( 100% - 20px ); }", "a{width:calc(100% - 20px)}"),
+            ("a { width: min( 1rem , 2vw ); }", "a{width:min(1rem,2vw)}"),
+            ("a { width: max( 1rem , 2vw ); }", "a{width:max(1rem,2vw)}"),
+            ("a { color: var( --x , red ); }", "a{color:var(--x,red)}"),
+            ("a { color: rgb( 1 , 2 , 3 ); }", "a{color:rgb(1,2,3)}"),
+        ],
+    )
+    def test_function_notation_collapses_paren(self, source: str, expected: str) -> None:
+        assert minify_css(source) == expected
+
+
 class TestSafeCorrectness:
     @pytest.mark.parametrize(
         ("source", "expected"),
