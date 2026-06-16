@@ -12,8 +12,9 @@ rejected.
 
 from typing import TYPE_CHECKING
 
-from bengal.css.cascade import resolve, tree_sig
+from bengal.css.cascade import resolve, surviving_resolve_ok, tree_sig
 from bengal.css.config import MinifyLevel
+from bengal.css.dead_code import has_removable_dead_code, remove_dead_code_tree
 from bengal.css.errors import warn
 from bengal.css.nesting import flatten_nesting_tree, has_nested_rules
 from bengal.css.optimize import optimize_tree
@@ -35,6 +36,7 @@ def minify_css(
     *,
     level: MinifyLevel | str = MinifyLevel.SAFE,
     flatten_nesting: bool = False,
+    remove_dead_code: bool = False,
 ) -> str:
     """Minify CSS text.
 
@@ -46,6 +48,9 @@ def minify_css(
         flatten_nesting: When ``True``, de-sugar nested qualified rules into
             flat selectors for legacy browser targets (opt-in; default preserves
             native nesting).
+        remove_dead_code: When ``True``, drop unreferenced ``@keyframes``,
+            ``@font-face``, and custom-property definitions provable within the
+            stylesheet (opt-in; default preserves all definitions).
 
     Returns:
         Minified CSS, guaranteed to be meaning-preserving. Returns the input
@@ -80,6 +85,18 @@ def minify_css(
                 pipeline_tree = flat_tree
             else:
                 warn("css_minifier_nesting_guard_failed", input_length=len(css))
+
+        if remove_dead_code and has_removable_dead_code(pipeline_tree):
+            pruned_tree = remove_dead_code_tree(pipeline_tree)
+            pruned_out = serialize(pruned_tree)
+            reparsed = _parse(pruned_out)
+            if surviving_resolve_ok(pipeline_tree, pruned_tree, normalize=True) and (
+                surviving_resolve_ok(pipeline_tree, reparsed, normalize=True)
+            ):
+                best = pruned_out
+                pipeline_tree = pruned_tree
+            else:
+                warn("css_minifier_dead_code_guard_failed", input_length=len(css))
 
         if lvl in (MinifyLevel.OPTIMIZE, MinifyLevel.AGGRESSIVE):
             opt_tree = optimize_tree(pipeline_tree)
