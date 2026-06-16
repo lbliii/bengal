@@ -1,5 +1,5 @@
 """
-Tests for bengal/utils/css_minifier.py.
+Tests for the bengal.css minifier (legacy regression suite).
 
 Covers:
 - Comment removal
@@ -25,21 +25,21 @@ class TestMinifyCssBasics:
 
     def test_empty_string_returns_empty(self) -> None:
         """Test that empty string returns empty."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         result = minify_css("")
         assert result == ""
 
     def test_none_returns_empty(self) -> None:
         """Test that None-like input returns empty."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         result = minify_css("")
         assert result == ""
 
     def test_simple_rule_minified(self) -> None:
         """Test that simple rule is minified."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "body { color: red; }"
         result = minify_css(css)
@@ -53,7 +53,7 @@ class TestMinifyCssCommentRemoval:
 
     def test_removes_single_line_comment(self) -> None:
         """Test removal of single-line comment."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "/* comment */ body { color: red; }"
         result = minify_css(css)
@@ -63,7 +63,7 @@ class TestMinifyCssCommentRemoval:
 
     def test_removes_multiline_comment(self) -> None:
         """Test removal of multi-line comment."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = """/*
          * Multi-line
@@ -78,7 +78,7 @@ class TestMinifyCssCommentRemoval:
 
     def test_removes_multiple_comments(self) -> None:
         """Test removal of multiple comments."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "/* first */ body { /* second */ color: red; /* third */ }"
         result = minify_css(css)
@@ -93,7 +93,7 @@ class TestMinifyCssStringPreservation:
 
     def test_preserves_double_quoted_strings(self) -> None:
         """Test that double-quoted strings are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = 'body { content: "hello world"; }'
         result = minify_css(css)
@@ -102,7 +102,7 @@ class TestMinifyCssStringPreservation:
 
     def test_preserves_single_quoted_strings(self) -> None:
         """Test that single-quoted strings are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "body { content: 'hello world'; }"
         result = minify_css(css)
@@ -111,7 +111,7 @@ class TestMinifyCssStringPreservation:
 
     def test_preserves_escaped_quotes_in_strings(self) -> None:
         """Test that escaped quotes in strings are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = r'body { content: "say \"hello\""; }'
         result = minify_css(css)
@@ -120,7 +120,7 @@ class TestMinifyCssStringPreservation:
 
     def test_preserves_url_strings(self) -> None:
         """Test that url() strings are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = 'body { background: url("image.png"); }'
         result = minify_css(css)
@@ -133,7 +133,7 @@ class TestMinifyCssWhitespaceCollapsing:
 
     def test_collapses_multiple_spaces(self) -> None:
         """Test that multiple spaces are collapsed."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "body   {    color:    red;    }"
         result = minify_css(css)
@@ -143,7 +143,7 @@ class TestMinifyCssWhitespaceCollapsing:
 
     def test_removes_newlines(self) -> None:
         """Test that newlines are removed."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = """body {
             color: red;
@@ -156,7 +156,7 @@ class TestMinifyCssWhitespaceCollapsing:
 
     def test_removes_trailing_whitespace(self) -> None:
         """Test that trailing whitespace is removed."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "body { color: red;   }   "
         result = minify_css(css)
@@ -169,7 +169,7 @@ class TestMinifyCssSelectorHandling:
 
     def test_preserves_descendant_selector_space(self) -> None:
         """Test that space between selectors is preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ".parent .child { color: red; }"
         result = minify_css(css)
@@ -179,7 +179,7 @@ class TestMinifyCssSelectorHandling:
 
     def test_preserves_complex_selectors(self) -> None:
         """Test complex selector combinations."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div.class #id > p + span { color: red; }"
         result = minify_css(css)
@@ -190,17 +190,17 @@ class TestMinifyCssSelectorHandling:
     @pytest.mark.parametrize(
         ("source", "expected"),
         [
-            (".a :where(h1, h2) { color: red; }", ".a :where(h1, h2){color:red;}"),
-            (".a :is(h1, h2) { color: red; }", ".a :is(h1, h2){color:red;}"),
-            (".a :not(pre) > code { color: red; }", ".a :not(pre)>code{color:red;}"),
-            (".a :has(> img) { color: red; }", ".a :has(>img){color:red;}"),
-            (".a :hover { color: red; }", ".a :hover{color:red;}"),
-            (".a ::before { content: ''; }", ".a ::before{content:'';}"),
-            (".a [data-x] { color: red; }", ".a [data-x]{color:red;}"),
-            (".a * { color: red; }", ".a *{color:red;}"),
-            (".a .b { color: red; }", ".a .b{color:red;}"),
-            (".a #b { color: red; }", ".a #b{color:red;}"),
-            (".a button { color: red; }", ".a button{color:red;}"),
+            (".a :where(h1, h2) { color: red; }", ".a :where(h1,h2){color:red}"),
+            (".a :is(h1, h2) { color: red; }", ".a :is(h1,h2){color:red}"),
+            (".a :not(pre) > code { color: red; }", ".a :not(pre)>code{color:red}"),
+            (".a :has(> img) { color: red; }", ".a :has(>img){color:red}"),
+            (".a :hover { color: red; }", ".a :hover{color:red}"),
+            (".a ::before { content: ''; }", ".a ::before{content:''}"),
+            (".a [data-x] { color: red; }", ".a [data-x]{color:red}"),
+            (".a * { color: red; }", ".a *{color:red}"),
+            (".a .b { color: red; }", ".a .b{color:red}"),
+            (".a #b { color: red; }", ".a #b{color:red}"),
+            (".a button { color: red; }", ".a button{color:red}"),
         ],
     )
     def test_preserves_descendant_selector_space_before_compound_starts(
@@ -209,20 +209,20 @@ class TestMinifyCssSelectorHandling:
         expected: str,
     ) -> None:
         """Test that minification does not turn descendant selectors into same-element selectors."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         assert minify_css(source) == expected
 
     @pytest.mark.parametrize(
         ("source", "expected"),
         [
-            (".a:where(h1, h2) { color: red; }", ".a:where(h1, h2){color:red;}"),
-            (".a:is(h1, h2) { color: red; }", ".a:is(h1, h2){color:red;}"),
-            (".a:not(pre) > code { color: red; }", ".a:not(pre)>code{color:red;}"),
-            (".a:has(> img) { color: red; }", ".a:has(>img){color:red;}"),
-            (".a:hover { color: red; }", ".a:hover{color:red;}"),
-            (".a::before { content: ''; }", ".a::before{content:'';}"),
-            (".a[data-x] { color: red; }", ".a[data-x]{color:red;}"),
+            (".a:where(h1, h2) { color: red; }", ".a:where(h1,h2){color:red}"),
+            (".a:is(h1, h2) { color: red; }", ".a:is(h1,h2){color:red}"),
+            (".a:not(pre) > code { color: red; }", ".a:not(pre)>code{color:red}"),
+            (".a:has(> img) { color: red; }", ".a:has(>img){color:red}"),
+            (".a:hover { color: red; }", ".a:hover{color:red}"),
+            (".a::before { content: ''; }", ".a::before{content:''}"),
+            (".a[data-x] { color: red; }", ".a[data-x]{color:red}"),
         ],
     )
     def test_preserves_same_element_selector_compaction(
@@ -231,7 +231,7 @@ class TestMinifyCssSelectorHandling:
         expected: str,
     ) -> None:
         """Test that same-element pseudo and attribute selectors stay compact."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         assert minify_css(source) == expected
 
@@ -241,7 +241,7 @@ class TestMinifyCssCalcFunction:
 
     def test_preserves_calc_operator_spaces(self) -> None:
         """Test that calc() preserves spaces around + and -."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: calc(100% - 20px); }"
         result = minify_css(css)
@@ -251,7 +251,7 @@ class TestMinifyCssCalcFunction:
 
     def test_calc_with_addition(self) -> None:
         """Test calc() with addition."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: calc(10px + 20px); }"
         result = minify_css(css)
@@ -262,7 +262,7 @@ class TestMinifyCssCalcFunction:
 
     def test_nested_calc(self) -> None:
         """Test nested calc() functions."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: calc(100% - calc(20px + 10px)); }"
         result = minify_css(css)
@@ -275,7 +275,7 @@ class TestMinifyCssClampMinMax:
 
     def test_clamp_function(self) -> None:
         """Test clamp() function."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { font-size: clamp(1rem, 2vw, 3rem); }"
         result = minify_css(css)
@@ -284,7 +284,7 @@ class TestMinifyCssClampMinMax:
 
     def test_min_function(self) -> None:
         """Test min() function."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: min(100%, 500px); }"
         result = minify_css(css)
@@ -293,7 +293,7 @@ class TestMinifyCssClampMinMax:
 
     def test_max_function(self) -> None:
         """Test max() function."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: max(300px, 50%); }"
         result = minify_css(css)
@@ -306,7 +306,7 @@ class TestMinifyCssMultiValueProperties:
 
     def test_box_shadow_values(self) -> None:
         """Test box-shadow multi-value handling."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { box-shadow: 10px 10px 5px rgba(0,0,0,0.5); }"
         result = minify_css(css)
@@ -315,7 +315,7 @@ class TestMinifyCssMultiValueProperties:
 
     def test_background_values(self) -> None:
         """Test background multi-value handling."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { background: #fff url('img.png') no-repeat center; }"
         result = minify_css(css)
@@ -324,7 +324,7 @@ class TestMinifyCssMultiValueProperties:
 
     def test_transform_values(self) -> None:
         """Test transform multi-value handling."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { transform: rotate(45deg) scale(1.5); }"
         result = minify_css(css)
@@ -339,7 +339,7 @@ class TestMinifyCssGridSlashProperties:
 
     def test_border_radius_slash(self) -> None:
         """Test border-radius with slash notation."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { border-radius: 10px / 20px; }"
         result = minify_css(css)
@@ -350,7 +350,7 @@ class TestMinifyCssGridSlashProperties:
 
     def test_grid_area_slash(self) -> None:
         """Test grid-area with slash notation."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { grid-area: 1 / 2 / 3 / 4; }"
         result = minify_css(css)
@@ -363,7 +363,7 @@ class TestMinifyCssLayerSupport:
 
     def test_preserves_layer_block(self) -> None:
         """Test that @layer blocks are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@layer tokens { :root { --color: blue; } }"
         result = minify_css(css)
@@ -377,7 +377,7 @@ class TestMinifyCssImportSupport:
 
     def test_preserves_import(self) -> None:
         """Test that @import is preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = '@import "other.css"; body { color: red; }'
         result = minify_css(css)
@@ -391,7 +391,7 @@ class TestMinifyCssCustomProperties:
 
     def test_preserves_custom_property(self) -> None:
         """Test that custom properties are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ":root { --primary-color: blue; }"
         result = minify_css(css)
@@ -400,7 +400,7 @@ class TestMinifyCssCustomProperties:
 
     def test_preserves_var_function(self) -> None:
         """Test that var() is preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: var(--primary-color); }"
         result = minify_css(css)
@@ -413,7 +413,7 @@ class TestMinifyCssValidation:
 
     def test_balanced_braces(self) -> None:
         """Test that balanced braces pass validation."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "body { color: red; } div { margin: 0; }"
         result = minify_css(css)
@@ -422,7 +422,7 @@ class TestMinifyCssValidation:
 
     def test_balanced_parentheses(self) -> None:
         """Test that balanced parentheses pass validation."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: calc(100% - 20px); }"
         result = minify_css(css)
@@ -435,7 +435,7 @@ class TestMinifyCssNestingSyntax:
 
     def test_preserves_nesting(self) -> None:
         """Test that CSS nesting syntax is preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = """
         .parent {
@@ -456,7 +456,7 @@ class TestMinifyCssMediaQueries:
 
     def test_preserves_media_query(self) -> None:
         """Test that @media queries are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@media (min-width: 768px) { body { font-size: 16px; } }"
         result = minify_css(css)
@@ -470,7 +470,7 @@ class TestMinifyCssColorFunctions:
 
     def test_rgb_function(self) -> None:
         """Test rgb() function."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: rgb(255, 0, 0); }"
         result = minify_css(css)
@@ -479,7 +479,7 @@ class TestMinifyCssColorFunctions:
 
     def test_rgba_function(self) -> None:
         """Test rgba() function."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: rgba(255, 0, 0, 0.5); }"
         result = minify_css(css)
@@ -488,7 +488,7 @@ class TestMinifyCssColorFunctions:
 
     def test_hsl_function(self) -> None:
         """Test hsl() function."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: hsl(0, 100%, 50%); }"
         result = minify_css(css)
@@ -501,7 +501,7 @@ class TestMinifyCssEdgeCases:
 
     def test_empty_rule(self) -> None:
         """Test handling of empty rule."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "body { }"
         result = minify_css(css)
@@ -510,7 +510,7 @@ class TestMinifyCssEdgeCases:
 
     def test_comment_only(self) -> None:
         """Test CSS with only comment."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "/* only a comment */"
         result = minify_css(css)
@@ -519,7 +519,7 @@ class TestMinifyCssEdgeCases:
 
     def test_whitespace_only(self) -> None:
         """Test CSS with only whitespace."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "   \n\t   "
         result = minify_css(css)
@@ -528,7 +528,7 @@ class TestMinifyCssEdgeCases:
 
     def test_invalid_type_handled(self) -> None:
         """Test that invalid types are handled gracefully."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         # Pass a non-string type
         result = minify_css(123)  # type: ignore

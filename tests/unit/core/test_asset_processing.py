@@ -2,9 +2,9 @@
 Unit tests for asset processing functionality in Asset class.
 
 Tests cover:
-- CSS minification (with/without lightningcss)
+- CSS minification (bengal.css engine)
 - JavaScript minification
-- CSS nesting transformation
+- CSS nesting preservation
 - Asset fingerprinting
 - Image optimization
 - Copy to output
@@ -88,13 +88,15 @@ body { color: blue; }
         asset.minify()
 
         minified = asset._minified_content
-        assert ".docs :where(h1, h2){color:red;}" in minified
-        assert ".docs [data-x]{color:blue;}" in minified
-        assert ".docs *{box-sizing:border-box;}" in minified
-        assert ".docs:not(.compact){margin:0;}" in minified
+        # Descendant combinator spaces are preserved; comma-spaces and the final
+        # semicolon before "}" are dropped (safe, minimal).
+        assert ".docs :where(h1,h2){color:red}" in minified
+        assert ".docs [data-x]{color:blue}" in minified
+        assert ".docs *{box-sizing:border-box}" in minified
+        assert ".docs:not(.compact){margin:0}" in minified
 
-    def test_handles_css_nesting_transformation(self, temp_asset_dir):
-        """Test that CSS nesting is transformed when lightningcss unavailable."""
+    def test_preserves_css_nesting_through_minify(self, temp_asset_dir):
+        """Asset.minify() preserves native CSS nesting (Baseline 2023)."""
         css_file = temp_asset_dir / "nested.css"
         css_file.write_text("""
 .button {
@@ -113,9 +115,9 @@ body { color: blue; }
 
         assert asset.minified is True
         minified = asset._minified_content
-        # Nested selectors should be transformed
-        assert ".button:hover" in minified or ".button:hover" in minified.replace(" ", "")
-        assert ".button.active" in minified or ".button.active" in minified.replace(" ", "")
+        # Native nesting is preserved, not flattened.
+        assert "&:hover" in minified
+        assert "&.active" in minified
 
     def test_preserves_css_strings(self, temp_asset_dir):
         """Test that CSS strings are preserved during minification."""
@@ -427,68 +429,38 @@ class TestAssetTypeDetection:
         assert asset.asset_type == "other"
 
 
-class TestCSSNestingTransformation:
-    """Test CSS nesting transformation (fallback when lightningcss unavailable)."""
+class TestCSSNestingPreservation:
+    """The bengal.css engine preserves native CSS nesting (Baseline 2023)."""
 
-    def test_transforms_basic_nesting(self, temp_asset_dir):
-        """Test basic CSS nesting transformation."""
-        from bengal.core.asset import _transform_css_nesting
+    def test_preserves_basic_nesting(self, temp_asset_dir):
+        """Native &:hover nesting is preserved, not flattened."""
+        from bengal.css import minify_css
 
-        css = """
-.button {
-    color: blue;
-    &:hover {
-        color: red;
-    }
-}
-"""
+        css = ".button { color: blue; &:hover { color: red; } }"
+        out = minify_css(css)
 
-        transformed = _transform_css_nesting(css)
+        assert "&:hover" in out
+        assert "color:blue" in out
+        assert "color:red" in out
 
-        # Should transform &:hover to .button:hover
-        assert ".button:hover" in transformed
-        assert "&:hover" not in transformed
+    def test_preserves_class_nesting(self, temp_asset_dir):
+        """Native &.active nesting is preserved."""
+        from bengal.css import minify_css
 
-    def test_transforms_class_nesting(self, temp_asset_dir):
-        """Test class nesting transformation."""
-        from bengal.core.asset import _transform_css_nesting
+        css = ".card { padding: 1rem; &.active { border: 2px solid blue; } }"
+        out = minify_css(css)
 
-        css = """
-.card {
-    padding: 1rem;
-    &.active {
-        border: 2px solid blue;
-    }
-}
-"""
+        assert "&.active" in out
 
-        transformed = _transform_css_nesting(css)
+    def test_preserves_layer_blocks_with_nesting(self, temp_asset_dir):
+        """@layer wrappers and nested rules both survive minification."""
+        from bengal.css import minify_css
 
-        # Should transform &.active to .card.active
-        assert ".card.active" in transformed
-        assert "&.active" not in transformed
+        css = "@layer components { .button { color: blue; &:hover { color: red; } } }"
+        out = minify_css(css)
 
-    def test_preserves_layer_blocks(self, temp_asset_dir):
-        """Test that @layer blocks are preserved during nesting transformation."""
-        from bengal.core.asset import _transform_css_nesting
-
-        css = """
-@layer components {
-    .button {
-        color: blue;
-        &:hover {
-            color: red;
-        }
-    }
-}
-"""
-
-        transformed = _transform_css_nesting(css)
-
-        # @layer should be preserved
-        assert "@layer components" in transformed
-        # Nesting should still be transformed
-        assert ".button:hover" in transformed
+        assert "@layer components" in out
+        assert "&:hover" in out
 
 
 class TestCSSMinifierUtility:
@@ -507,7 +479,7 @@ class TestCSSMinifierUtility:
 
     def test_removes_comments(self, temp_asset_dir):
         """Test that CSS comments are removed."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "/* Comment */ body { color: blue; }"
         minified = minify_css(css)
@@ -518,7 +490,7 @@ class TestCSSMinifierUtility:
 
     def test_reduces_whitespace(self, temp_asset_dir):
         """Test that unnecessary whitespace is removed."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = """
 body {
@@ -534,7 +506,7 @@ body {
 
     def test_preserves_strings(self, temp_asset_dir):
         """Test that strings are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = 'body { font-family: "Helvetica Neue", sans-serif; }'
         minified = minify_css(css)
@@ -544,7 +516,7 @@ body {
 
     def test_preserves_layer_blocks(self, temp_asset_dir):
         """Test that @layer blocks are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@layer tokens { :root { --color: blue; } }"
         minified = minify_css(css)
@@ -554,7 +526,7 @@ body {
 
     def test_preserves_nesting(self, temp_asset_dir):
         """Test that CSS nesting syntax is preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ".parent { color: red; &:hover { color: blue; } }"
         minified = minify_css(css)
@@ -564,7 +536,7 @@ body {
 
     def test_handles_css_functions(self, temp_asset_dir):
         """Test that CSS functions like calc() are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { width: calc(100% - 20px); }"
         minified = minify_css(css)
@@ -575,7 +547,7 @@ body {
 
     def test_handles_color_mix_function(self, temp_asset_dir):
         """Test that color-mix() function preserves spaces before %."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: color-mix(in srgb, red 50%, blue 50%); }"
         minified = minify_css(css)
@@ -586,7 +558,7 @@ body {
 
     def test_handles_multiple_layer_blocks(self, temp_asset_dir):
         """Test that multiple @layer blocks are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@layer tokens { :root { --color: blue; } } @layer base { body { margin: 0; } }"
         minified = minify_css(css)
@@ -596,7 +568,7 @@ body {
 
     def test_handles_import_statements(self, temp_asset_dir):
         """Test that @import statements are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = '@import "reset.css"; body { color: blue; }'
         minified = minify_css(css)
@@ -606,7 +578,7 @@ body {
 
     def test_handles_media_queries(self, temp_asset_dir):
         """Test that @media queries are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@media (min-width: 768px) { body { font-size: 18px; } }"
         minified = minify_css(css)
@@ -617,7 +589,7 @@ body {
 
     def test_handles_custom_properties(self, temp_asset_dir):
         """Test that CSS custom properties are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ":root { --spacing: 1rem; --color: #333; }"
         minified = minify_css(css)
@@ -628,7 +600,7 @@ body {
 
     def test_handles_complex_selectors(self, temp_asset_dir):
         """Test that complex selectors with combinators are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ".parent > .child + .sibling { color: blue; }"
         minified = minify_css(css)
@@ -640,7 +612,7 @@ body {
 
     def test_handles_attribute_selectors(self, temp_asset_dir):
         """Test that attribute selectors are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = 'a[href^="https"] { color: green; }'
         minified = minify_css(css)
@@ -649,7 +621,7 @@ body {
 
     def test_handles_pseudo_elements(self, temp_asset_dir):
         """Test that pseudo-elements are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "p::before { content: ''; }"
         minified = minify_css(css)
@@ -658,7 +630,7 @@ body {
 
     def test_handles_descendant_selectors(self, temp_asset_dir):
         """Test that descendant selectors preserve required spaces."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ".parent .child { color: red; }"
         minified = minify_css(css)
@@ -668,7 +640,7 @@ body {
 
     def test_handles_multiple_selectors(self, temp_asset_dir):
         """Test that multiple selectors separated by commas are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ".a, .b, .c { color: red; }"
         minified = minify_css(css)
@@ -679,7 +651,7 @@ body {
 
     def test_handles_urls(self, temp_asset_dir):
         """Test that URLs in CSS are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = 'body { background: url("image.png"); }'
         minified = minify_css(css)
@@ -688,7 +660,7 @@ body {
 
     def test_handles_empty_rules(self, temp_asset_dir):
         """Test that empty CSS rules are handled."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = ".empty { } .not-empty { color: blue; }"
         minified = minify_css(css)
@@ -699,7 +671,7 @@ body {
 
     def test_handles_multiple_comments(self, temp_asset_dir):
         """Test that multiple CSS comments are all removed."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "/* First */ body { /* Second */ color: blue; /* Third */ }"
         minified = minify_css(css)
@@ -714,7 +686,7 @@ body {
 
     def test_handles_nested_layer_blocks(self, temp_asset_dir):
         """Test that nested @layer blocks are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@layer a { @layer b { div { color: red; } } }"
         minified = minify_css(css)
@@ -724,7 +696,7 @@ body {
 
     def test_handles_media_with_layer(self, temp_asset_dir):
         """Test that @media queries containing @layer blocks are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@media (min-width: 768px) { @layer tokens { :root { } } }"
         minified = minify_css(css)
@@ -734,7 +706,7 @@ body {
 
     def test_handles_keyframes(self, temp_asset_dir):
         """Test that @keyframes rules are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "@keyframes fade { from { opacity: 0; } to { opacity: 1; } }"
         minified = minify_css(css)
@@ -745,7 +717,7 @@ body {
 
     def test_handles_font_face(self, temp_asset_dir):
         """Test that @font-face rules are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = '@font-face { font-family: "Custom"; src: url("font.woff2"); }'
         minified = minify_css(css)
@@ -756,7 +728,7 @@ body {
 
     def test_handles_important(self, temp_asset_dir):
         """Test that !important declarations are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: red !important; margin: 0 !important; }"
         minified = minify_css(css)
@@ -766,7 +738,7 @@ body {
 
     def test_handles_unicode_in_strings(self, temp_asset_dir):
         """Test that Unicode characters in strings are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = 'div { content: "→ ← ↑ ↓"; }'
         minified = minify_css(css)
@@ -775,7 +747,7 @@ body {
 
     def test_validates_balanced_structures(self, temp_asset_dir):
         """Test that minifier produces balanced braces/parentheses."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "div { color: red; } .test { margin: calc(10px + 5px); }"
         minified = minify_css(css)
@@ -786,7 +758,7 @@ body {
 
     def test_preserves_spaces_after_commas_in_multivalue_properties(self, temp_asset_dir):
         """Test that spaces after commas in multi-value properties are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         # Neumorphic box-shadow with multiple values
         css = """box-shadow:
@@ -810,7 +782,7 @@ body {
 
     def test_preserves_spaces_after_inset_keyword(self, temp_asset_dir):
         """Test that spaces after 'inset' keyword in box-shadow are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         css = "box-shadow: inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1);"
         minified = minify_css(css)
@@ -827,27 +799,24 @@ body {
         # So we check that inset- doesn't appear where there should be a space
         assert "inset-0.5px" not in minified_no_spaces or "box-shadow:inset-" in minified_no_spaces
 
-    def test_preserves_spaces_after_commas_in_function_calls(self, temp_asset_dir):
-        """Test that spaces after commas inside CSS function calls are preserved."""
-        from bengal.assets.css_minifier import minify_css
+    def test_tightens_commas_in_function_calls(self, temp_asset_dir):
+        """Test that spaces after commas inside CSS function calls are dropped (safe)."""
+        from bengal.css import minify_css
 
         # Test rgba() function with multiple arguments
         css = "box-shadow: rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.2);"
         minified = minify_css(css)
 
-        # Critical: spaces after commas inside rgba() must be preserved
-        # Should NOT be: rgba(255,255,255,0.2) (broken)
-        # Should be: rgba(255, 255, 255, 0.2) (correct)
-        import re
-
-        rgba_matches = re.findall(r"rgba\([^)]+\)", minified)
-        for match in rgba_matches:
-            # Check that commas inside rgba() are followed by spaces
-            assert ", " in match or match.count(",") == 0, f"Missing spaces in {match}"
+        # Commas are explicit separators, so the spaces after them are safe to
+        # drop. The argument values must remain intact.
+        assert "rgba(255,255,255,0.3)" in minified
+        assert "rgba(0,0,0,0.1)" in minified
+        assert "rgba(255,255,255,0.2)" in minified
+        assert ", " not in minified
 
     def test_preserves_spaces_between_filter_functions(self, temp_asset_dir):
         """Test that spaces between filter/transform functions are preserved."""
-        from bengal.assets.css_minifier import minify_css
+        from bengal.css import minify_css
 
         # Test filter with multiple functions
         css = "filter: blur(5px) brightness(1.2);"
@@ -869,24 +838,12 @@ body {
         assert ") translateY" in minified3
         assert ") rotate" in minified3
 
-    def test_preserves_spaces_around_slashes_in_grid_properties(self, temp_asset_dir):
-        """Test that spaces around / in grid and border-radius properties are preserved."""
-        from bengal.assets.css_minifier import minify_css
+    def test_tightens_slashes_in_grid_properties(self, temp_asset_dir):
+        """Test that spaces around / in grid/border-radius are dropped (safe)."""
+        from bengal.css import minify_css
 
-        # Test grid-area with slashes
-        css = "grid-area: 1 / 1 / -1 / -1;"
-        minified = minify_css(css)
-
-        # Critical: spaces around / should be preserved for readability
-        # Should be: 1 / 1 / -1 / -1 (readable)
-        assert " / " in minified or "/ " in minified or " /" in minified
-
-        # Test grid-column
-        css2 = "grid-column: 1 / -1;"
-        minified2 = minify_css(css2)
-        assert " / " in minified2 or "/ " in minified2 or " /" in minified2
-
-        # Test border-radius with slash
-        css3 = "border-radius: 10px / 20px;"
-        minified3 = minify_css(css3)
-        assert " / " in minified3 or "/ " in minified3 or " /" in minified3
+        # The "/" is a self-delimiting operator, so surrounding spaces are safe
+        # to drop without changing meaning.
+        assert "grid-area:1/1/-1/-1" in minify_css("grid-area: 1 / 1 / -1 / -1;")
+        assert "grid-column:1/-1" in minify_css("grid-column: 1 / -1;")
+        assert "border-radius:10px/20px" in minify_css("border-radius: 10px / 20px;")
