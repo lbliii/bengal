@@ -80,7 +80,6 @@ _PARITY_FIXTURES = [
 ]
 
 
-@pytest.mark.known_gap  # experimental shard backend byte-parity → nightly signal, not a PR gate (see #376)
 @pytest.mark.serial
 @pytest.mark.parametrize(("root_name", "exclude"), _PARITY_FIXTURES)
 def test_shard_build_byte_identical_to_thread(tmp_path, root_name, exclude):
@@ -160,7 +159,6 @@ _FULL_OUTPUT_FIXTURES = [
 ]
 
 
-@pytest.mark.known_gap  # experimental shard backend byte-parity → nightly signal, not a PR gate (see #376)
 @pytest.mark.serial
 @pytest.mark.parametrize(("root_name", "sentinels"), _FULL_OUTPUT_FIXTURES)
 def test_shard_full_output_byte_identical_excluding_nondeterminism(tmp_path, root_name, sentinels):
