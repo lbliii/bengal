@@ -308,7 +308,7 @@ This is a warning message!
 
 ## 9. Plugin System
 
-**Purpose**: Unified extension framework with 9 extension points and thread-safe rendering
+**Purpose**: Unified extension framework with 6 wired extension points (directives, roles, template functions/filters/tests, build phase hooks) plus three more registered and planned (content sources, health validators, shortcodes), and thread-safe rendering
 
 **Protocol**: All plugins implement `Plugin` — a runtime-checkable protocol with `name`, `version`, and `register()`:
 
@@ -378,10 +378,11 @@ my-plugin = "my_package:MyPlugin"
 
 Use `bengal plugin list`, `bengal plugin info <name>`, and
 `bengal plugin validate` to inspect installed plugins. The CLI reports both
-registered capabilities and whether each capability is currently wired. For
-example, template filters and phase hooks are active; directive, role, content
-source, health validator, and shortcode injection are still reported as pending
-until those subsystem hooks are wired.
+registered capabilities and whether each capability is currently wired. Six
+capabilities are wired today: directives, roles, template functions, template
+filters, template tests, and build phase hooks. The remaining three are
+registered but still reported as pending until their subsystem hooks are wired:
+content sources, health validators, and shortcodes.
 
 ## Future: Custom CLI Commands
 
