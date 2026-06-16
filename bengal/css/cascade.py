@@ -162,3 +162,27 @@ def resolve(nodes: tuple[Node, ...], *, normalize: bool) -> dict[object, tuple[o
 
     walk(nodes, (), ())
     return {k: _canonical(v) for k, v in acc.items()}
+
+
+def surviving_resolve_ok(
+    before: tuple[Node, ...],
+    after: tuple[Node, ...],
+    *,
+    normalize: bool,
+) -> bool:
+    """True if ``after`` only drops declarations from ``before`` (dead-code guard)."""
+    before_r = resolve(before, normalize=normalize)
+    after_r = resolve(after, normalize=normalize)
+    for key, after_decls in after_r.items():
+        before_decls = before_r.get(key)
+        if before_decls is None or not _decls_subsequence(after_decls, before_decls):
+            return False
+    return True
+
+
+def _decls_subsequence(needle: tuple[object, ...], haystack: tuple[object, ...]) -> bool:
+    i = 0
+    for decl in haystack:
+        if i < len(needle) and decl == needle[i]:
+            i += 1
+    return i == len(needle)
