@@ -119,11 +119,18 @@ class SitemapGenerator:
 
         baseurl = self.site.baseurl or ""
 
+        # Stable page order so aggregate outputs (sitemap.xml) are byte-identical
+        # regardless of site.pages insertion order (shard vs thread backends).
+        pages_for_sitemap = sorted(
+            self.site.pages,
+            key=self._sitemap_page_sort_key,
+        )
+
         # Add each page to sitemap
         included_count = 0
         skipped_count = 0
 
-        for page in self.site.pages:
+        for page in pages_for_sitemap:
             # Skip pages that shouldn't be in sitemap (hidden, visibility.sitemap=false, drafts)
             if not page.in_sitemap:
                 skipped_count += 1
@@ -255,6 +262,17 @@ class SitemapGenerator:
                 suggestion="Check output directory permissions and available disk space.",
             )
             raise error from e
+
+    def _sitemap_page_sort_key(self, page: Any) -> str:
+        """Stable sort key for deterministic sitemap entry ordering."""
+        output_path = getattr(page, "output_path", None)
+        if output_path:
+            try:
+                return to_posix(output_path.relative_to(self.site.output_dir))
+            except ValueError:
+                pass
+        slug = getattr(page, "slug", None)
+        return slug if isinstance(slug, str) else ""
 
     def _get_version_priority(self, page: Any) -> str:
         """
