@@ -15,7 +15,7 @@ the transform code), used as runtime guards:
 """
 
 from bengal.css.nodes import Declaration, Node, QualifiedRule
-from bengal.css.optimize import _normalize_token
+from bengal.css.optimize import normalize_value
 from bengal.css.tokens import Token, TokenType
 
 _SKIP = (TokenType.WHITESPACE, TokenType.COMMENT)
@@ -61,14 +61,17 @@ def selector_sig(tokens: tuple[Token, ...]) -> tuple[object, ...]:
     return tuple(out)
 
 
-def value_sig(tokens: tuple[Token, ...], *, normalize: bool) -> tuple[object, ...]:
+def value_sig(
+    tokens: tuple[Token, ...], *, normalize: bool, property_name: str = ""
+) -> tuple[object, ...]:
     """Signature of a declaration value (token sequence, optionally normalized)."""
+    if normalize:
+        tokens = normalize_value(tokens, property_name=property_name)
     out: list[object] = []
     for tok in tokens:
         if tok.type in _SKIP:
             continue
-        t = _normalize_token(tok) if normalize else tok
-        out.append((t.type, t.value))
+        out.append((tok.type, tok.value))
     return tuple(out)
 
 
@@ -79,7 +82,14 @@ def tree_sig(nodes: tuple[Node, ...], *, normalize: bool) -> tuple[object, ...]:
         if isinstance(node, Declaration):
             name = node.name if node.name.startswith("--") else node.name.lower()
             norm = normalize and not node.name.startswith("--")
-            out.append(("d", name, node.important, value_sig(node.value, normalize=norm)))
+            out.append(
+                (
+                    "d",
+                    name,
+                    node.important,
+                    value_sig(node.value, normalize=norm, property_name=node.name),
+                )
+            )
         elif isinstance(node, QualifiedRule):
             out.append(("r", selector_sig(node.prelude), tree_sig(node.block, normalize=normalize)))
         else:  # AtRule
@@ -130,7 +140,12 @@ def resolve(nodes: tuple[Node, ...], *, normalize: bool) -> dict[object, tuple[o
                 norm = normalize and not node.name.startswith("--")
                 key = (at_ctx, sel_path)
                 acc.setdefault(key, []).append(
-                    ("d", name, node.important, value_sig(node.value, normalize=norm))
+                    (
+                        "d",
+                        name,
+                        node.important,
+                        value_sig(node.value, normalize=norm, property_name=node.name),
+                    )
                 )
             elif isinstance(node, QualifiedRule):
                 for sel in _split_selectors(node.prelude):
