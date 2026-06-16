@@ -1,3 +1,23 @@
+## [0.5.0] - 2026-06-15
+
+### Added
+
+- `bengal serve --drafts` and `bengal build --drafts` (or `drafts = true` under `[build]`) render pages marked `draft: true` so you can preview unpublished content locally; drafts stay hidden by default. (`#488`)
+- `bengal fix` now suggests and applies fixes for broken internal links — correcting typos in a page path, re-pointing a link to a page that moved, and fixing a stale `#anchor` — instead of only fixing directive fences. Link rewrites are offered as confirm-before-apply fixes so you can review each one. (`#491`)
+- `define_collection(..., transform=callable)` runs your callable on each record's frontmatter before schema validation, so you can normalize legacy field names during a migration without rewriting source files. (`#492`)
+- Autodoc CLI extraction now supports argparse: point it at an `argparse.ArgumentParser` with `framework="argparse"` and it documents subcommands, positional arguments, and options just like the Click and Typer paths. (`#493`)
+
+### Changed
+
+- Dev-server assets now serve through the fast static path; the hidden-buffer 404 workaround is removed (requires bengal-pounce 0.8.0+). (`#400`)
+- `bengal build --memory-optimized` is now labeled experimental, and its help text and docs no longer promise a fixed memory saving — measure peak memory with and without the flag on your own site before relying on it. (`#487`)
+
+### Fixed
+
+- Autodoc no longer turns illustrative cross-reference and directive examples in docstrings into live (often broken) links, so generated API pages and the broken-link health check stay clean. (`#485`)
+- The internal link checker now resolves relative links (such as `../other/`) against the page that references them and reports broken ones, instead of silently passing them. (`#489`)
+
+
 ## [0.4.3] - 2026-06-15
 
 ### Fixed
