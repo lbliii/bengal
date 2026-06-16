@@ -143,6 +143,7 @@ class AgentManifestGenerator:
                     "last_modified": last_mod,
                 }
             )
+        result.sort(key=lambda entry: entry["url"])
         return result
 
     def _build_sections(
@@ -175,6 +176,7 @@ class AgentManifestGenerator:
                         "last_modified": last_mod,
                     }
                 )
+            section_pages.sort(key=lambda entry: entry["url"])
 
             children = self._build_sections(
                 getattr(section, "sorted_subsections", section.subsections),
@@ -189,6 +191,7 @@ class AgentManifestGenerator:
                     "pages": section_pages,
                 }
             )
+        result.sort(key=lambda section: section["path"])
         return result
 
     def _get_last_modified(self, page: PageLike) -> str | None:
