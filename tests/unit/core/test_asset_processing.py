@@ -88,10 +88,12 @@ body { color: blue; }
         asset.minify()
 
         minified = asset._minified_content
-        assert ".docs :where(h1, h2){color:red;}" in minified
-        assert ".docs [data-x]{color:blue;}" in minified
-        assert ".docs *{box-sizing:border-box;}" in minified
-        assert ".docs:not(.compact){margin:0;}" in minified
+        # Descendant combinator spaces are preserved; comma-spaces and the final
+        # semicolon before "}" are dropped (safe, minimal).
+        assert ".docs :where(h1,h2){color:red}" in minified
+        assert ".docs [data-x]{color:blue}" in minified
+        assert ".docs *{box-sizing:border-box}" in minified
+        assert ".docs:not(.compact){margin:0}" in minified
 
     def test_handles_css_nesting_transformation(self, temp_asset_dir):
         """Test that CSS nesting is transformed when lightningcss unavailable."""
@@ -827,23 +829,20 @@ body {
         # So we check that inset- doesn't appear where there should be a space
         assert "inset-0.5px" not in minified_no_spaces or "box-shadow:inset-" in minified_no_spaces
 
-    def test_preserves_spaces_after_commas_in_function_calls(self, temp_asset_dir):
-        """Test that spaces after commas inside CSS function calls are preserved."""
+    def test_tightens_commas_in_function_calls(self, temp_asset_dir):
+        """Test that spaces after commas inside CSS function calls are dropped (safe)."""
         from bengal.assets.css_minifier import minify_css
 
         # Test rgba() function with multiple arguments
         css = "box-shadow: rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.2);"
         minified = minify_css(css)
 
-        # Critical: spaces after commas inside rgba() must be preserved
-        # Should NOT be: rgba(255,255,255,0.2) (broken)
-        # Should be: rgba(255, 255, 255, 0.2) (correct)
-        import re
-
-        rgba_matches = re.findall(r"rgba\([^)]+\)", minified)
-        for match in rgba_matches:
-            # Check that commas inside rgba() are followed by spaces
-            assert ", " in match or match.count(",") == 0, f"Missing spaces in {match}"
+        # Commas are explicit separators, so the spaces after them are safe to
+        # drop. The argument values must remain intact.
+        assert "rgba(255,255,255,0.3)" in minified
+        assert "rgba(0,0,0,0.1)" in minified
+        assert "rgba(255,255,255,0.2)" in minified
+        assert ", " not in minified
 
     def test_preserves_spaces_between_filter_functions(self, temp_asset_dir):
         """Test that spaces between filter/transform functions are preserved."""
@@ -869,24 +868,12 @@ body {
         assert ") translateY" in minified3
         assert ") rotate" in minified3
 
-    def test_preserves_spaces_around_slashes_in_grid_properties(self, temp_asset_dir):
-        """Test that spaces around / in grid and border-radius properties are preserved."""
+    def test_tightens_slashes_in_grid_properties(self, temp_asset_dir):
+        """Test that spaces around / in grid/border-radius are dropped (safe)."""
         from bengal.assets.css_minifier import minify_css
 
-        # Test grid-area with slashes
-        css = "grid-area: 1 / 1 / -1 / -1;"
-        minified = minify_css(css)
-
-        # Critical: spaces around / should be preserved for readability
-        # Should be: 1 / 1 / -1 / -1 (readable)
-        assert " / " in minified or "/ " in minified or " /" in minified
-
-        # Test grid-column
-        css2 = "grid-column: 1 / -1;"
-        minified2 = minify_css(css2)
-        assert " / " in minified2 or "/ " in minified2 or " /" in minified2
-
-        # Test border-radius with slash
-        css3 = "border-radius: 10px / 20px;"
-        minified3 = minify_css(css3)
-        assert " / " in minified3 or "/ " in minified3 or " /" in minified3
+        # The "/" is a self-delimiting operator, so surrounding spaces are safe
+        # to drop without changing meaning.
+        assert "grid-area:1/1/-1/-1" in minify_css("grid-area: 1 / 1 / -1 / -1;")
+        assert "grid-column:1/-1" in minify_css("grid-column: 1 / -1;")
+        assert "border-radius:10px/20px" in minify_css("border-radius: 10px / 20px;")

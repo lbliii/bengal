@@ -190,17 +190,17 @@ class TestMinifyCssSelectorHandling:
     @pytest.mark.parametrize(
         ("source", "expected"),
         [
-            (".a :where(h1, h2) { color: red; }", ".a :where(h1, h2){color:red;}"),
-            (".a :is(h1, h2) { color: red; }", ".a :is(h1, h2){color:red;}"),
-            (".a :not(pre) > code { color: red; }", ".a :not(pre)>code{color:red;}"),
-            (".a :has(> img) { color: red; }", ".a :has(>img){color:red;}"),
-            (".a :hover { color: red; }", ".a :hover{color:red;}"),
-            (".a ::before { content: ''; }", ".a ::before{content:'';}"),
-            (".a [data-x] { color: red; }", ".a [data-x]{color:red;}"),
-            (".a * { color: red; }", ".a *{color:red;}"),
-            (".a .b { color: red; }", ".a .b{color:red;}"),
-            (".a #b { color: red; }", ".a #b{color:red;}"),
-            (".a button { color: red; }", ".a button{color:red;}"),
+            (".a :where(h1, h2) { color: red; }", ".a :where(h1,h2){color:red}"),
+            (".a :is(h1, h2) { color: red; }", ".a :is(h1,h2){color:red}"),
+            (".a :not(pre) > code { color: red; }", ".a :not(pre)>code{color:red}"),
+            (".a :has(> img) { color: red; }", ".a :has(>img){color:red}"),
+            (".a :hover { color: red; }", ".a :hover{color:red}"),
+            (".a ::before { content: ''; }", ".a ::before{content:''}"),
+            (".a [data-x] { color: red; }", ".a [data-x]{color:red}"),
+            (".a * { color: red; }", ".a *{color:red}"),
+            (".a .b { color: red; }", ".a .b{color:red}"),
+            (".a #b { color: red; }", ".a #b{color:red}"),
+            (".a button { color: red; }", ".a button{color:red}"),
         ],
     )
     def test_preserves_descendant_selector_space_before_compound_starts(
@@ -216,13 +216,13 @@ class TestMinifyCssSelectorHandling:
     @pytest.mark.parametrize(
         ("source", "expected"),
         [
-            (".a:where(h1, h2) { color: red; }", ".a:where(h1, h2){color:red;}"),
-            (".a:is(h1, h2) { color: red; }", ".a:is(h1, h2){color:red;}"),
-            (".a:not(pre) > code { color: red; }", ".a:not(pre)>code{color:red;}"),
-            (".a:has(> img) { color: red; }", ".a:has(>img){color:red;}"),
-            (".a:hover { color: red; }", ".a:hover{color:red;}"),
-            (".a::before { content: ''; }", ".a::before{content:'';}"),
-            (".a[data-x] { color: red; }", ".a[data-x]{color:red;}"),
+            (".a:where(h1, h2) { color: red; }", ".a:where(h1,h2){color:red}"),
+            (".a:is(h1, h2) { color: red; }", ".a:is(h1,h2){color:red}"),
+            (".a:not(pre) > code { color: red; }", ".a:not(pre)>code{color:red}"),
+            (".a:has(> img) { color: red; }", ".a:has(>img){color:red}"),
+            (".a:hover { color: red; }", ".a:hover{color:red}"),
+            (".a::before { content: ''; }", ".a::before{content:''}"),
+            (".a[data-x] { color: red; }", ".a[data-x]{color:red}"),
         ],
     )
     def test_preserves_same_element_selector_compaction(
