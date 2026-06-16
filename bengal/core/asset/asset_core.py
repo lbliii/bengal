@@ -31,7 +31,7 @@ Processing Pipeline:
 5. copy_to_output() to write with fingerprinted filename
 
 Related Modules:
-bengal.core.asset.css_transforms: CSS nesting and minification
+bengal.css: CSS tokenizer/parser/minifier engine
 bengal.orchestration.asset: Asset discovery and build coordination
 bengal.assets.manifest: Asset manifest for fingerprint tracking
 
@@ -46,7 +46,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.asset.css_transforms import transform_css_nesting
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
@@ -398,12 +397,11 @@ class Asset:
 
     def _minify_css(self) -> None:
         """
-        Minify CSS content using simple, safe minifier.
+        Minify CSS content using the bengal.css tokenizer-based engine.
 
-        This minifier:
-        - Removes comments and unnecessary whitespace
-        - Transforms CSS nesting syntax for browser compatibility
-        - Preserves all other CSS syntax (@layer, @import, etc.)
+        The engine is correct by construction (CSS Syntax Level 3 tokenizer +
+        runtime meaning-signature guard) and preserves all CSS syntax, including
+        native nesting, @layer, and @import.
 
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
@@ -415,13 +413,8 @@ class Asset:
                 css_content = f.read()
 
         try:
-            # Transform CSS nesting first (for browser compatibility)
-            css_content = transform_css_nesting(css_content)
+            from bengal.css import minify_css
 
-            from bengal.assets.css_minifier import minify_css
-
-            # Simple minification: remove comments and whitespace only
-            # No transformations that could break CSS
             self._minified_content = minify_css(css_content)
         except Exception as e:
             emit_diagnostic(

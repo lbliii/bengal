@@ -478,12 +478,16 @@ nesting transform entirely, or (b) reimplement nesting expansion correctly on
 the parser. Recommend (a) with a deprecation note unless we still support old
 targets — needs maintainer call because it changes emitted CSS.
 
-### Phase 3 — Retire duplicates & core regex transforms
+### Phase 3 — Retire duplicates & core regex transforms ✅ DONE (2026-06-16)
 
-Remove `bengal/core/asset/css_transforms.py:lossless_minify_css` and the core
-regex transforms (`transform_css_nesting`, `remove_duplicate_bare_h1_rules`),
-migrating any remaining callers to `bengal/css/`. This also burns down Core-steward
-transitional debt (CSS string rewriting leaving `bengal/core/`).
+`bengal/core/asset/css_transforms.py` was deleted (`lossless_minify_css`,
+`remove_duplicate_bare_h1_rules`, `transform_css_nesting`) and the
+`bengal/assets/css_minifier.py` re-export shim removed. All callers (asset
+pipeline, tests, scripts) now import `minify_css` from `bengal.css` directly.
+The `transform_css_nesting` decision resolved to **option (a)**: drop the regex
+nesting transform and preserve native CSS nesting (Baseline 2023). Optional
+AST-based flattening for legacy targets is tracked in #516. This burns down the
+Core-steward transitional debt (CSS string rewriting left `bengal/core/`).
 
 ### Phase 4 — `level="optimize"` (value normalization)
 
@@ -515,8 +519,9 @@ per the 2026-06-16 decision; no early spin-out.
 
 ## Stop-and-ask checklist (per AGENTS.md)
 
-- [ ] New public subpackage `bengal/css/` and its API surface (public contract).
-- [ ] Changing/removing `transform_css_nesting` emitted output (Phase 2).
+- [x] New public subpackage `bengal/css/` and its API surface (public contract).
+- [x] Changing/removing `transform_css_nesting` emitted output — resolved to drop
+      the regex transform; native nesting preserved (legacy flatten → #516).
 - [ ] Any new config key for minify level (Phase 4/5).
 - [ ] Shipping the `aggressive` structural tier (cascade-rewriting output change).
 - [ ] Extraction into a standalone distributed package (Phase 6).
@@ -544,7 +549,8 @@ per the 2026-06-16 decision; no early spin-out.
 
 ## Open questions
 
-- Keep or drop `transform_css_nesting` (Phase 2 decision).
+- ~~Keep or drop `transform_css_nesting`~~ — resolved: dropped, native nesting
+  preserved; optional AST flatten tracked in #516.
 - Should any level above `safe` ever become the default, or stay always-opt-in?
 - Is there a justified, fully-specified longhand→shorthand subset worth adding to
   the aggressive set later (proven by `resolve`), or is it permanently excluded?
