@@ -1,1 +1,0 @@
-Removed the opt-in ``d3`` capability. The knowledge graph no longer depends on D3, so it works by default with no third-party scripts and nothing to self-host. The previous build also emitted a ``/graph/`` page that loaded D3 from a CDN at runtime; that external request is gone.
