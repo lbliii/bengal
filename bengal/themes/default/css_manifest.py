@@ -78,6 +78,7 @@ CSS_SHARED: list[str] = [
     "components/alerts.css",
     "components/admonitions.css",
     "components/tabs.css",
+    "components/tabs-native.css",
     "components/dropdowns.css",
     "components/code.css",
     "components/target-anchor.css",
@@ -92,6 +93,15 @@ CSS_SHARED: list[str] = [
     "utilities/scroll-animations.css",
     "utilities/gradient-borders.css",
     "utilities/fluid-blobs.css",
+    "utilities/micro-interactions.css",
+    "utilities/skeleton.css",
+    # Media embed components
+    "components/_video-embed.css",
+    "components/_audio-embed.css",
+    "components/_code-embed.css",
+    "components/_figure.css",
+    "components/_terminal-embed.css",
+    "components/link-preview.css",
 ]
 
 # ============================================================================
@@ -117,8 +127,10 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
         "components/action-bar.css",
         "components/nav-action-buttons.css",
         "components/versioning.css",
+        "components/stale-banner.css",
         "components/steps.css",
         "components/checklist.css",
+        "pages/docs-home.css",
     ],
     # Tutorial content type
     "tutorial": [
@@ -145,11 +157,6 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
         "components/autodoc.css",
         "components/reference-docs.css",
     ],
-    "api-reference": [
-        "components/autodoc.css",
-        "components/reference-docs.css",
-        "components/api-hub.css",
-    ],
     # Changelog
     "changelog": [
         "layouts/changelog.css",
@@ -157,6 +164,10 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
     # Resume
     "resume": [
         "layouts/resume.css",
+    ],
+    # Notebook layout
+    "notebook": [
+        "layouts/notebook.css",
     ],
     # Landing pages
     "landing": [
@@ -208,9 +219,14 @@ CSS_FEATURE_MAP: dict[str, list[str]] = {
         "components/interactive.css",
         "components/widgets.css",
     ],
-    # Experimental holographic effects
+    # Experimental holographic effects (JS: enhancements/holo.js)
     "holo_cards": [
         "experimental/holo-cards-advanced.css",
+        "experimental/holo-tcg-admonitions.css",
+    ],
+    # Link preview popovers
+    "link_previews": [
+        "components/link-preview.css",
     ],
 }
 

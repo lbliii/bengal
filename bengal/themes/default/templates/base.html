@@ -225,13 +225,8 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
     {% end %}
 
-    {# Preconnect #}
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://d3js.org" crossorigin>
-
-    {# Fonts #}
+    {# Self-hosted fonts (opt-in via [fonts] in bengal.toml — no runtime CDN) #}
     {% if config?.fonts ?? none %}
-    <link rel="preload" href="{{ asset_url('fonts/outfit-700.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ asset_url('fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link rel="stylesheet" href="{{ asset_url('fonts.css') }}">
@@ -243,8 +238,8 @@ HELPER: Render a menu item (desktop/mobile)
     {% if _view_transitions %}
     <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
     {% end %}
-    {% if 'content.math' in (theme.features ?? []) %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin>
+    {% if bengal?.capabilities?.katex ?? false %}
+    <link rel="stylesheet" href="{{ asset_url('vendor/katex.min.css') }}">
     {% end %}
     {% end %}{# /cache base-head-assets #}
 
@@ -271,7 +266,9 @@ HELPER: Render a menu item (desktop/mobile)
             'copy-link': '{{ asset_url("js/enhancements/copy-link.js") }}',
             'data-table': '{{ asset_url("js/enhancements/data-table.js") }}',
             'lazy-loaders': '{{ asset_url("js/enhancements/lazy-loaders.js") }}',
+            {% if 'holo_cards' in (site.features_detected ?? []) %}
             'holo': '{{ asset_url("js/enhancements/holo.js") }}',
+            {% end %}
             'link-previews': '{{ asset_url("js/enhancements/link-previews.js") }}',
             'api-catalog': '{{ asset_url("js/enhancements/api-catalog.js") }}'
         };
@@ -553,14 +550,34 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
     {% if 'content.lightbox' in theme.features %}
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
-    {% if 'content.math' in (theme.features ?? []) %}
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin></script>
-    <script defer src="{{ asset_url('js/enhancements/math.js') }}"></script>
-    {% end %}
     {% include "partials/link-previews.html" %}
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
+    {% if bengal?.capabilities?.katex ?? false %}
+    <script defer src="{{ asset_url('vendor/katex.min.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/math.js') }}"></script>
+    {% end %}
     <script>
-        window.BENGAL_LAZY_ASSETS = { tabulator: '{{ asset_url("js/tabulator.min.js") }}', dataTable: '{{ asset_url("js/data-table.js") }}', mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}', mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}', graphMinimap: '{{ asset_url("js/graph-minimap.js") }}', graphContextual: '{{ asset_url("js/graph-contextual.js") }}' };
+        window.BENGAL_LAZY_ASSETS = {
+            tabulator: '{{ asset_url("js/tabulator.min.js") }}',
+            dataTable: '{{ asset_url("js/data-table.js") }}',
+            {% if bengal?.capabilities?.mermaid ?? false %}
+            mermaid: '{{ asset_url("vendor/mermaid.min.js") }}',
+            {% end %}
+            mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}',
+            mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}',
+            {% if bengal?.capabilities?.d3 ?? false %}
+            d3: '{{ asset_url("vendor/d3.min.js") }}',
+            {% end %}
+            graphMinimap: '{{ asset_url("js/graph-minimap.js") }}',
+            graphContextual: '{{ asset_url("js/graph-contextual.js") }}'
+        };
+        {% if bengal?.capabilities?.iconify ?? false %}
+        window.BENGAL_MERMAID_ICON_PACKS = [
+            { name: 'fa', loader: function () { return fetch('{{ asset_url("vendor/iconify/fa.json") }}').then(function (r) { return r.json(); }); } },
+            { name: 'mdi', loader: function () { return fetch('{{ asset_url("vendor/iconify/mdi.json") }}').then(function (r) { return r.json(); }); } },
+            { name: 'logos', loader: function () { return fetch('{{ asset_url("vendor/iconify/logos.json") }}').then(function (r) { return r.json(); }); } }
+        ];
+        {% end %}
         window.BENGAL_ICONS = { close: '{{ asset_url("icons/close.svg") }}', enlarge: '{{ asset_url("icons/enlarge.svg") }}', copy: '{{ asset_url("icons/copy.svg") }}', 'download-svg': '{{ asset_url("icons/download.svg") }}', 'download-png': '{{ asset_url("icons/image.svg") }}', 'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}', 'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}', reset: '{{ asset_url("icons/reset.svg") }}' };
     </script>
     <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>

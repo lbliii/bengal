@@ -225,6 +225,44 @@ def phase_fonts(
             orchestrator.logger.warning("fonts_failed", error=str(e))
 
 
+def phase_capabilities(
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+) -> None:
+    """
+    Phase 1b: Provision opt-in capability vendor assets (Mermaid, D3, KaTeX, Iconify).
+
+    Downloads pinned vendor files into assets/vendor/ when enabled in [capabilities].
+    Network I/O is build-time only; runtime uses same-origin asset URLs.
+    """
+    caps_cfg = orchestrator.site.config.get("capabilities")
+    if not isinstance(caps_cfg, dict) or not any(
+        caps_cfg.get(k) for k in ("mermaid", "d3", "katex", "iconify")
+    ):
+        return
+
+    with orchestrator.logger.phase("capabilities"):
+        try:
+            from bengal.capabilities.vendors import CapabilityVendorHelper
+
+            helper = CapabilityVendorHelper(orchestrator.site.config, orchestrator.site.root_path)
+            result = helper.process()
+            if result.downloaded:
+                cli.info(f"   Downloaded capability vendors: {', '.join(result.downloaded)}")
+            if result.errors:
+                for err in result.errors:
+                    cli.warning(f"   Capability vendor download failed: {err}")
+            orchestrator.logger.info(
+                "capabilities_complete",
+                downloaded=result.downloaded,
+                skipped=result.skipped,
+                errors=result.errors,
+            )
+        except Exception as e:
+            cli.warning(f"Capability vendor provisioning failed: {e}")
+            orchestrator.logger.warning("capabilities_failed", error=str(e))
+
+
 def phase_template_validation(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,

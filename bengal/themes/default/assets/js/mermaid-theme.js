@@ -297,38 +297,13 @@
     }
 
     /**
-     * Register common icon packs for Mermaid diagrams
-     * Uses lazy loading - icons only load when used in diagrams
-     * See: https://docs.mermaidchart.com/mermaid-oss/config/icons.html
+     * Register icon packs for Mermaid diagrams.
+     * Icon packs require opt-in self-hosted assets (#550) — no CDN fetches in default output.
      */
     function registerIconPacks() {
-        // Only register if mermaid.registerIconPacks exists (v10+)
-        if (typeof mermaid !== 'undefined' && mermaid.registerIconPacks) {
-            // Register popular icon packs with lazy loading
-            // Users can use icons like: fa:fa-ban, mdi:github, logos:python
-            mermaid.registerIconPacks([
-                {
-                    name: 'fa',
-                    loader: () =>
-                        fetch('https://unpkg.com/@iconify-json/fa@1/icons.json')
-                            .then((res) => res.json())
-                            .catch(() => null) // Fail silently if CDN unavailable
-                },
-                {
-                    name: 'mdi',
-                    loader: () =>
-                        fetch('https://unpkg.com/@iconify-json/mdi@1/icons.json')
-                            .then((res) => res.json())
-                            .catch(() => null)
-                },
-                {
-                    name: 'logos',
-                    loader: () =>
-                        fetch('https://unpkg.com/@iconify-json/logos@1/icons.json')
-                            .then((res) => res.json())
-                            .catch(() => null)
-                }
-            ]);
+        // Self-hosted icon packs can be wired via window.BENGAL_MERMAID_ICON_PACKS when #550 lands.
+        if (typeof window.BENGAL_MERMAID_ICON_PACKS === 'object' && typeof mermaid !== 'undefined' && mermaid.registerIconPacks) {
+            mermaid.registerIconPacks(window.BENGAL_MERMAID_ICON_PACKS);
         }
     }
 

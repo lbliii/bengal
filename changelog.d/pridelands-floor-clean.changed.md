@@ -1,0 +1,1 @@
+The default theme no longer loads Mermaid, D3, KaTeX, or Google Fonts from third-party CDNs at runtime. Opt in via ``[capabilities]`` in ``bengal.toml`` to self-host diagram and math vendors at build time.
