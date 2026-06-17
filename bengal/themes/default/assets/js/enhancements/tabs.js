@@ -14,7 +14,6 @@
  * Without this JS, tabs still work via URL fragments (#tab-id).
  *
  * @requires utils.js (optional, for logging)
- * @requires bengal-enhance.js (for enhancement registration)
  */
 
 (function() {
@@ -467,47 +466,6 @@
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
-  }
-
-  // Register with progressive enhancement system if available
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('tabs', function(container, options) {
-      const navItems = Array.from(container.querySelectorAll(SELECTOR_NAV_ITEM)).filter(item =>
-        item.closest(SELECTOR_TABS) === container || item.closest('[data-bengal="tabs"]') === container
-      );
-
-      // Initialize first tab if none active
-      if (navItems.length > 0 && !navItems.some(item => item.classList.contains(CLASS_ACTIVE))) {
-        navItems[0].classList.add(CLASS_ACTIVE);
-        const link = navItems[0].querySelector('a');
-        if (link) {
-          const targetId = link.getAttribute('data-tab-target');
-          if (targetId) {
-            const pane = document.getElementById(targetId);
-            if (pane) pane.classList.add(CLASS_ACTIVE);
-          }
-        }
-      }
-
-      // Restore sync for this container if applicable
-      const syncKey = container.dataset.sync;
-      if (syncKey && syncKey !== 'none') {
-        try {
-          const saved = localStorage.getItem(`${STORAGE_PREFIX}${syncKey}`);
-          if (saved) {
-            const link = container.querySelector(`[data-sync-value="${saved}"]`);
-            if (link) {
-              const targetId = link.getAttribute('data-tab-target');
-              if (targetId) {
-                switchTab(container, link, targetId);
-              }
-            }
-          }
-        } catch (e) {
-          // localStorage unavailable
-        }
-      }
-    }, { override: true });
   }
 
   // ============================================================

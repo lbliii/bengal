@@ -26,7 +26,7 @@ def test_landing_catalog_emits_filter_and_rail_hooks(site, build_site) -> None:
     assert index.exists(), f"Catalog landing missing: {index}"
     html = index.read_text(encoding="utf-8")
 
-    assert 'data-bengal="api-catalog"' in html
+    assert "<bengal-api-catalog" in html
     assert "data-api-rail" in html
     assert "data-api-filter-input" in html
     assert "data-api-filter-empty" in html
@@ -43,7 +43,7 @@ def test_endpoint_and_tag_pages_have_rail_and_path_copy(site, build_site) -> Non
     endpoint = site.output_dir / "api" / "tags" / "Orders" / "get-orders" / "index.html"
     assert endpoint.exists(), f"Endpoint page missing: {endpoint}"
     ep_html = endpoint.read_text(encoding="utf-8")
-    assert 'data-bengal="api-catalog"' in ep_html
+    assert "<bengal-api-catalog" in ep_html
     assert "data-api-rail" in ep_html
     assert 'class="api-copy-btn"' in ep_html
     assert "data-copy=" in ep_html

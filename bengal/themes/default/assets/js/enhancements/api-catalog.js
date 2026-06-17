@@ -12,14 +12,14 @@
  * separately by the global `[data-copy]` delegation in tabs.js; this module
  * adds no copy logic.
  *
- * Activated by `data-bengal="api-catalog"` on a shell that contains:
+ * Runs as the `<bengal-api-catalog>` custom element wrapping a shell that contains:
  *   - `[data-api-filter-input]`  the filter search box (optional)
  *   - `[data-api-filter-item]`   each filterable card/tile
  *   - `[data-api-filter-group]`  a wrapper hidden when all its items are hidden
  *   - `[data-api-filter-empty]`  a no-results node (aria-live)
  *   - `[data-api-rail]`          a nav whose `a[href^="#"]` links drive scroll-spy
  *
- * @see bengal-enhance.js (loader), enhancements/toc.js (scroll-spy pattern)
+ * @see core/define.js (custom-element foundation), enhancements/toc.js (scroll-spy pattern)
  */
 
 (function () {
@@ -97,10 +97,14 @@
     });
   }
 
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-copy], .api-code-samples__copy, .copy-btn');
-    if (btn) announce('Copied to clipboard');
-  });
+  // The copy-announce listener is attached by the custom element (below) so it
+  // is scoped to pages that actually render a catalog — the module now loads on
+  // every page, but its behavior stays where the <bengal-api-catalog> element is.
+  function announceCopy(e) {
+    if (e.target.closest('[data-copy], .api-code-samples__copy, .copy-btn')) {
+      announce('Copied to clipboard');
+    }
+  }
 
   // ==========================================================================
   // Filtering
@@ -265,20 +269,19 @@
     }
   }
 
-  function autoInit() {
-    document
-      .querySelectorAll('[data-bengal="api-catalog"]')
-      .forEach((root) => init(root));
-  }
-
-  // Register with the progressive-enhancement loader (primary path).
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('api-catalog', function (el) {
-      init(el);
+  // <bengal-api-catalog> wraps the catalog/explorer shell. connectedCallback
+  // inits it when the element enters the DOM (incl. dynamically inserted), with
+  // the shell itself as the query root (all `init` lookups are descendants).
+  if (window.Bengal && window.Bengal.define) {
+    var initCatalog = init;
+    window.Bengal.define('bengal-api-catalog', class extends window.Bengal.Base {
+      init() {
+        initCatalog(this);
+        document.addEventListener('click', announceCopy);
+      }
+      teardown() {
+        document.removeEventListener('click', announceCopy);
+      }
     });
   }
-
-  // Backward-compatible auto-init (idempotent via data-api-catalog-ready).
-  ready(autoInit);
-  window.addEventListener('contentLoaded', autoInit);
 })();

@@ -14,7 +14,11 @@ All JavaScript is written in vanilla ES6+ with no framework dependencies. The co
 
 ## Progressive Enhancement System
 
-Bengal provides a unified **Progressive Enhancement Architecture** for declaring and managing JavaScript enhancements.
+Bengal uses **one enhancement model: autonomous custom elements** (`<bengal-*>`).
+Declarative, element-scoped enhancements are custom elements that initialize
+themselves through the platform's `connectedCallback` — the moment they enter the
+DOM, including content inserted after load — with no central registry, no
+`data-bengal` attribute, and no `MutationObserver`.
 
 ### Philosophy
 
@@ -22,107 +26,66 @@ Bengal provides a unified **Progressive Enhancement Architecture** for declaring
 
 ### Quick Start
 
-Declare enhancements using the `data-bengal` attribute:
+Wrap the server-rendered markup in the enhancement's element:
 
 ```html
-<!-- Theme toggle -->
-<button data-bengal="theme-toggle">Toggle Theme</button>
-
-<!-- Tabs -->
-<div data-bengal="tabs">
-  <ul class="tab-nav">
-    <li><a data-tab-target="tab-1">Tab 1</a></li>
-  </ul>
-  <div id="tab-1" class="tab-pane">Content</div>
-</div>
-
-<!-- Table of contents with scroll spy -->
-<nav data-bengal="toc" data-spy="true">
-  <a data-toc-item="#section-1">Section 1</a>
-</nav>
+<!-- Table of contents (scroll-spy + collapsible groups) -->
+<bengal-toc>
+  <div class="toc-sidebar"> ... server-rendered TOC ... </div>
+</bengal-toc>
 ```
 
-### Configuration via Data Attributes
+`<bengal-*>` elements are given `display: contents` (in `base/reset.css`) so they
+are layout-transparent: the inner markup still renders — and works — with JS off.
 
-Options are passed via additional `data-*` attributes:
-
-```html
-<nav data-bengal="toc" data-spy="true" data-offset="80">
-```
-
-- **Boolean values**: `data-spy="true"` or just `data-spy`
-- **Numbers**: `data-offset="80"`
-- **JSON**: `data-config='{"key": "value"}'`
-
-### Available Enhancements
-
-| Enhancement | Description | Options |
-|-------------|-------------|---------|
-| `theme-toggle` | Dark/light theme switching | `default` |
-| `mobile-nav` | Mobile slide-out navigation | `closeOnClick`, `closeOnEscape` |
-| `tabs` | Tabbed content panels | `defaultTab` |
-| `toc` | Table of contents with scroll spy | `spy`, `offset`, `smooth` |
-
-### Enhancement Loader API
+### Foundation: `core/define.js`
 
 ```javascript
-// Register a custom enhancement
-Bengal.enhance.register('my-feature', function(el, options) {
-  // el: The element with data-bengal="my-feature"
-  // options: Parsed data attributes
-  el.addEventListener('click', () => console.log('Enhanced!'));
+window.Bengal.define('bengal-thing', class extends window.Bengal.Base {
+  init() { /* element setup, scoped to `this` */ }
+  teardown() { /* remove window/document listeners added in init() */ }
 });
-
-// List registered enhancements
-Bengal.enhance.list();  // ['theme-toggle', 'tabs', 'toc', ...]
-
-// Check if an element is enhanced
-Bengal.enhance.isEnhanced(element);  // true/false
-
-// Manually enhance all unenhanced elements
-Bengal.enhance.enhanceAll();
-
-// Enhance a specific element
-Bengal.enhance.enhanceElement(element);
 ```
 
-### Creating Custom Enhancements
+- `window.Bengal.define(tag, ctor)` — idempotent `customElements.define` wrapper;
+  no-ops on engines without custom elements.
+- `window.Bengal.Base` — `HTMLElement` subclass: `connectedCallback` → `init()`
+  (guarded, never throws → graceful degradation), `disconnectedCallback` →
+  `teardown()`, plus `opt(name, fallback)` and deterministic `scopedId(suffix)`.
 
-Create a file in `enhancements/my-feature.js`:
+### Custom elements in this theme
 
-```javascript
-(function() {
-  'use strict';
+| Element | Module | Wraps |
+|---------|--------|-------|
+| `<bengal-toc>` | `enhancements/toc.js` | the `.toc-sidebar` |
+| `<bengal-docs-nav>` | `enhancements/interactive.js` | the docs `<nav>` |
+| `<bengal-track-nav>` | `enhancements/tracks.js` | the learning-track sidebar |
+| `<bengal-api-catalog>` | `enhancements/api-catalog.js` | the REST catalog shell |
 
-  if (!window.Bengal || !window.Bengal.enhance) {
-    console.warn('[Bengal] Enhancement system not loaded');
-    return;
-  }
+Document-global behavior (smooth scroll, code-copy, external links, keyboard
+detection, theme reconcile) stays in eager bootstrap modules — it is genuinely
+page-level, not element-scoped. Content-decorator modules that scan
+parser-emitted nodes (`tabs.js`, `lightbox.js`, `holo.js`) also self-init eagerly.
 
-  Bengal.enhance.register('my-feature', function(el, options) {
-    // Your enhancement logic here
-    console.log('Enhancing:', el, 'with options:', options);
-  });
-})();
-```
+### Creating a custom enhancement
 
-Then use it:
+Create `enhancements/my-feature.js` with the contract above, wrap the markup in
+`<bengal-my-feature>…</bengal-my-feature>`, then register the script in two
+places: the site-scripts block of `templates/base.html` (after `core/define.js`)
+and the bundle order in `bengal/assets/js_bundler.py`.
 
-```html
-<div data-bengal="my-feature" data-option1="value">Content</div>
-```
+### Determinism
 
-### Lazy Loading
-
-Non-preloaded enhancements are automatically lazy-loaded when their elements are detected. Scripts are fetched from `/assets/js/enhancements/{name}.js`.
+Runtime-generated element ids must be deterministic — derive from a sibling
+ordinal or content hash (e.g. `Base.scopedId()`), never `Math.random` or a clock
+— so build output stays byte-stable.
 
 ### Configuration
 
 ```toml
 # bengal.toml (optional)
 [enhancements]
-watch_dom = true   # Watch for dynamic content (MutationObserver)
-debug = false      # Enable debug logging
+debug = false      # Enable debug logging (window.Bengal.debug)
 ```
 
 See [`enhancements/README.md`](enhancements/README.md) for full documentation.
@@ -163,10 +126,10 @@ biome check --apply .
 ```
 js/
 ├── utils.js                    # Foundation utilities (load first)
-├── bengal-enhance.js           # Progressive enhancement registry
-├── main.js                     # Core initialization
+├── main.js                     # Document-global bootstrap
 │
 ├── core/                       # Always-loaded modules
+│   ├── define.js              # Custom-element foundation (load 2nd)
 │   ├── theme.js               # Theme/palette switching
 │   ├── search.js              # Full-text search with Lunr
 │   ├── nav-dropdown.js        # Navigation dropdowns
@@ -199,10 +162,10 @@ js/
 Scripts load in this order (configured in `base.html` and `js_bundler.py`):
 
 1. **`utils.js`** - Core utilities (`BengalUtils` namespace)
-2. **`bengal-enhance.js`** - Enhancement registry
+2. **`core/define.js`** - Custom-element foundation (`Bengal.define` / `Bengal.Base`)
 3. **`core/*.js`** - Always-needed functionality
-4. **`main.js`** - Core initialization
-5. **`enhancements/*.js`** - Interactive features
+4. **`main.js`** - Document-global bootstrap
+5. **`enhancements/*.js`** - Interactive features (custom elements + eager modules)
 
 ### Responsibility Matrix
 
@@ -213,11 +176,11 @@ Scripts load in this order (configured in `base.html` and `js_bundler.py`):
 | Nav dropdowns | `core/nav-dropdown.js` | Auto-init |
 | Code copy buttons | `main.js` | Auto-init |
 | External link icons | `main.js` | Auto-init |
-| Docs nav toggle | `enhancements/interactive.js` | `data-bengal="docs-nav"` |
+| Docs nav scroll-spy | `enhancements/interactive.js` | `<bengal-docs-nav>` |
 | Back to top | `enhancements/interactive.js` | Auto-init |
 | Reading progress | `enhancements/interactive.js` | Auto-init |
-| TOC + scroll spy | `enhancements/toc.js` | `data-bengal="toc"` |
-| Tabs | `enhancements/tabs.js` | `data-bengal="tabs"` |
+| TOC + scroll spy | `enhancements/toc.js` | `<bengal-toc>` |
+| Tabs | `enhancements/tabs.js` | Auto-init |
 | Mobile nav | `enhancements/mobile-nav.js` | Auto-init |
 | Lightbox | `enhancements/lightbox.js` | Feature-gated |
 | Holo effects | `enhancements/holo.js` | Auto-init |
@@ -815,93 +778,66 @@ if ('IntersectionObserver' in window) {
 
 ### Adding New Modules
 
-**Recommended: Use the Progressive Enhancement Pattern**
+**Element-scoped enhancement: custom element** (the default choice)
 
 1. **Create enhancement file** (`enhancements/new-feature.js`)
 
 ```javascript
 /**
  * Bengal Enhancement: New Feature
- * Description of what this enhancement does
- * @requires bengal-enhance.js
+ * @requires core/define.js
  */
-(function() {
+(function () {
   'use strict';
 
-  if (!window.Bengal || !window.Bengal.enhance) {
-    console.warn('[Bengal] Enhancement system not loaded');
-    return;
+  function initFeature(root) {
+    // root is the <bengal-new-feature> element; scope queries to it.
   }
 
-  Bengal.enhance.register('new-feature', function(el, options) {
-    // el: Element with data-bengal="new-feature"
-    // options: Parsed data-* attributes
-
-    console.log('Enhanced:', el, options);
-  });
+  if (window.Bengal && window.Bengal.define) {
+    window.Bengal.define('bengal-new-feature', class extends window.Bengal.Base {
+      init() { initFeature(this); }
+      teardown() { /* remove any window/document listeners init() added */ }
+    });
+  }
 })();
 ```
 
-2. **Use in HTML**
+2. **Wrap the markup in the element** (in the template)
 
 ```html
-<div data-bengal="new-feature" data-option="value">Content</div>
+<bengal-new-feature> ...server-rendered content... </bengal-new-feature>
 ```
 
-The enhancement will be lazy-loaded automatically when the element is detected.
+`connectedCallback` inits it automatically when it enters the DOM (incl.
+dynamically inserted content). Add `bengal-new-feature { display: contents }` to
+`base/reset.css` if it should be layout-transparent.
 
 ---
 
-**Alternative: Standalone Module Pattern** (for complex features)
-
-1. **Create module file** (`new-feature.js`)
+**Document-global behavior: eager bootstrap** (for page-level, non-element work)
 
 ```javascript
 /**
- * New Feature Module
- * Description of what this module does
+ * New Feature Module — document-global side effect (smooth scroll, decoration…)
  * @module NewFeature
  */
-(function() {
+(function () {
   'use strict';
 
-  /**
-   * Initialize the new feature
-   * @public
-   */
-  function init() {
-    console.log('New feature initialized');
-  }
+  function init() { /* document-wide setup */ }
 
-  // Auto-initialize
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-
-  // Optional: Register with enhancement system for hybrid approach
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('new-feature', function(el, options) {
-      // Enhancement-specific init
-    }, { override: true });
-  }
 })();
 ```
 
-2. **Add to base template**
-
-```html
-<script src="{{ url_for('assets/js/new-feature.js') }}" defer></script>
-```
-
-3. **Test**
-
-```bash
-# Open in browser
-python -m http.server 8000
-# Navigate to test page
-```
+**Register the script** in both `templates/base.html` (site-scripts block, after
+`core/define.js`) and the bundle order in `bengal/assets/js_bundler.py`, then test
+by building the site and loading a page (and again with JavaScript disabled).
 
 ### Code Style
 

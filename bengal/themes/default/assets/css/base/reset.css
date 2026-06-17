@@ -15,6 +15,25 @@
 }
 
 /* ============================================
+   CUSTOM ELEMENTS (enhancement model)
+   ============================================ */
+
+/*
+ * Autonomous custom elements (<bengal-*>) are enhancement wrappers around
+ * server-rendered markup. They carry no layout of their own, so they must be
+ * layout-transparent — the inner .toc-sidebar / <nav> / shell keeps doing the
+ * layout. Unknown elements default to display:inline, which would break the
+ * wrapped block; display:contents removes the box entirely. This applies with
+ * or without JS, so it also covers the graceful-degradation (JS-off) path.
+ */
+bengal-toc,
+bengal-docs-nav,
+bengal-track-nav,
+bengal-api-catalog {
+  display: contents;
+}
+
+/* ============================================
    ROOT & BODY
    ============================================ */
 

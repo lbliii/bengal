@@ -465,12 +465,9 @@
 
   // ============================================================================
   // Scroll Event Listener (Throttled for Performance)
+  // The handler is (re)created inside initTOC so it survives a
+  // disconnect/reconnect of <bengal-toc> — teardown()->cleanup() nulls it.
   // ============================================================================
-
-  /**
-   * Throttled scroll handler
-   */
-  scrollHandler = throttleScroll(updateOnScroll);
 
   // ============================================================================
   // Initialization
@@ -479,14 +476,18 @@
   /**
    * Initialize the TOC
    */
-  function initTOC() {
-    // Cache DOM elements
-    tocItems = Array.from(document.querySelectorAll('[data-toc-item]'));
-    progressBar = document.querySelector('.toc-progress-bar');
-    progressPosition = document.querySelector('.toc-progress-position');
-    tocNav = document.querySelector('.toc-nav');
-    tocGroups = Array.from(document.querySelectorAll('details.toc-group'));
-    tocScrollContainer = document.querySelector('.toc-scroll-container');
+  function initTOC(root) {
+    // Scope sidebar-internal lookups to the <bengal-toc> element when present;
+    // fall back to document for the public window.BengalTOC.init() entry point.
+    root = root || document;
+
+    // Cache DOM elements (sidebar-internal — scoped to root)
+    tocItems = Array.from(root.querySelectorAll('[data-toc-item]'));
+    progressBar = root.querySelector('.toc-progress-bar');
+    progressPosition = root.querySelector('.toc-progress-position');
+    tocNav = root.querySelector('.toc-nav');
+    tocGroups = Array.from(root.querySelectorAll('details.toc-group'));
+    tocScrollContainer = root.querySelector('.toc-scroll-container');
 
     if (!tocItems.length) return;
 
@@ -508,7 +509,9 @@
     initSmoothScroll();
     initKeyboardNavigation();
 
-    // Set up scroll listener
+    // Set up scroll listener (recreate the handler each init — cleanup() nulls
+    // it on disconnect, so a reconnect must not re-add a stale null listener).
+    scrollHandler = throttleScroll(updateOnScroll);
     window.addEventListener('scroll', scrollHandler, { passive: true });
 
     // Initial update
@@ -546,25 +549,18 @@
   }
 
   // ============================================================================
-  // Registration
+  // Custom element
   // ============================================================================
 
-  // Register with enhancement system (primary method)
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('toc', function(el, options) {
-      // Initialize TOC for this specific element
-      initTOC();
+  // <bengal-toc> auto-inits via connectedCallback when it enters the DOM
+  // (including dynamically inserted content), and tears its scroll/resize/
+  // keyboard listeners down on disconnect — fixing the previous re-init leak.
+  if (window.Bengal && window.Bengal.define) {
+    window.Bengal.define('bengal-toc', class extends window.Bengal.Base {
+      init() { initTOC(this); }
+      teardown() { cleanup(); }
     });
   }
-
-  // ============================================================================
-  // Auto-initialize
-  // ============================================================================
-
-  ready(initTOC);
-
-  // Re-initialize on dynamic content load
-  window.addEventListener('contentLoaded', initTOC);
 
   // Export for use by other scripts (backward compatibility)
   window.BengalTOC = {

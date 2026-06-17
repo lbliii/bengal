@@ -252,26 +252,7 @@ HELPER: Render a menu item (desktop/mobile)
             palette: '{{ theme.default_palette }}'
         };
         window.Bengal = window.Bengal || {};
-        window.Bengal.enhanceBaseUrl = '{{ asset_url("js/enhancements") }}';
-        window.Bengal.watchDom = {{ (config.enhancements?.watch_dom ?? true) | lower }};
         window.Bengal.debug = {{ (config.enhancements?.debug ?? false) | lower }};
-        window.Bengal.enhanceUrls = {
-            'toc': '{{ asset_url("js/enhancements/toc.js") }}',
-            'docs-nav': '{{ asset_url("js/enhancements/docs-nav.js") }}',
-            'tabs': '{{ asset_url("js/enhancements/tabs.js") }}',
-            'lightbox': '{{ asset_url("js/enhancements/lightbox.js") }}',
-            'interactive': '{{ asset_url("js/enhancements/interactive.js") }}',
-            'mobile-nav': '{{ asset_url("js/enhancements/mobile-nav.js") }}',
-            'action-bar': '{{ asset_url("js/enhancements/action-bar.js") }}',
-            'copy-link': '{{ asset_url("js/enhancements/copy-link.js") }}',
-            'data-table': '{{ asset_url("js/enhancements/data-table.js") }}',
-            'lazy-loaders': '{{ asset_url("js/enhancements/lazy-loaders.js") }}',
-            {% if 'holo_cards' in (site.features_detected ?? []) %}
-            'holo': '{{ asset_url("js/enhancements/holo.js") }}',
-            {% end %}
-            'link-previews': '{{ asset_url("js/enhancements/link-previews.js") }}',
-            'api-catalog': '{{ asset_url("js/enhancements/api-catalog.js") }}'
-        };
     </script>
 
     {# Inline theme init #}
@@ -539,7 +520,7 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
     {% else %}
     <script defer src="{{ asset_url('js/utils.js') }}"></script>
-    <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/define.js') }}"></script>
     <script defer src="{{ asset_url('js/core/theme.js') }}"></script>
     <script defer src="{{ asset_url('js/core/search.js') }}"></script>
     <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
@@ -555,6 +536,8 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/tracks.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
+    {# <bengal-api-catalog> custom element (openapi pages); inert no-op elsewhere #}
+    <script defer src="{{ asset_url('js/enhancements/api-catalog.js') }}"></script>
     {% if 'content.lightbox' in theme.features %}
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
     {% include "partials/link-previews.html" %}

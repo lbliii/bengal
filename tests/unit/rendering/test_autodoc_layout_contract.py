@@ -329,7 +329,7 @@ def test_openapi_catalog_landing_has_filter_and_rail_hooks() -> None:
     """The catalog landing must expose filter + scroll-spy + group hooks (#287)."""
     home = _read_openapi_template("home.html")
 
-    assert 'data-bengal="api-catalog"' in home
+    assert "<bengal-api-catalog" in home
     assert "data-api-rail" in home  # left-rail scroll-spy
     assert "data-api-filter-input" in home
     assert "data-api-filter-empty" in home
@@ -343,7 +343,7 @@ def test_openapi_catalog_landing_has_filter_and_rail_hooks() -> None:
 def test_openapi_explorer_shell_and_rails_enable_scroll_spy() -> None:
     """The shared app shell activates the enhancement; in-page navs are rails."""
     explorer = _read_openapi_template("layouts/explorer.html")
-    assert 'data-bengal="api-catalog"' in explorer
+    assert "<bengal-api-catalog" in explorer
 
     for name in ("list.html", "endpoint.html", "schema.html"):
         template = _read_openapi_template(name)
@@ -372,17 +372,17 @@ def test_openapi_path_copy_buttons_present() -> None:
 
 
 def test_base_template_registers_api_catalog_enhancement() -> None:
-    """The enhancement loader must be able to resolve the api-catalog module."""
+    """The base template must load the api-catalog custom-element module."""
     base = Path("bengal/themes/default/templates/base.html").read_text(encoding="utf-8")
-    assert "'api-catalog': '{{ asset_url(\"js/enhancements/api-catalog.js\") }}'" in base
+    assert "js/enhancements/api-catalog.js" in base
 
 
 def test_api_catalog_enhancement_module_exists_and_registers() -> None:
-    """The vanilla-JS module exists and self-registers (no npm dependency)."""
+    """The vanilla-JS module defines the <bengal-api-catalog> element (no npm dep)."""
     module = Path("bengal/themes/default/assets/js/enhancements/api-catalog.js").read_text(
         encoding="utf-8"
     )
-    assert "Bengal.enhance.register('api-catalog'" in module
+    assert "Bengal.define('bengal-api-catalog'" in module
     # Reduced-motion is honored (the toc.js scroll-spy gap this module closes).
     assert "prefers-reduced-motion" in module
     # Deep links must survive filtering: the module reveals filtered-out targets.

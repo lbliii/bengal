@@ -105,7 +105,7 @@ def get_theme_js_bundle_order() -> list[str]:
 
     This order ensures dependencies are loaded before dependents:
     1. utils.js - Core utilities (BengalUtils namespace)
-    2. bengal-enhance.js - Enhancement registry (load second)
+    2. core/define.js - Custom-element foundation (Bengal.define + Bengal.Base)
     3. core/theme.js - Theme switching (merged from theme-toggle.js + theme-init.js)
     4. core/search.js - Search (merged from search.js, search-modal.js, search-page.js, search-preload.js)
     5. core/nav-dropdown.js - Navigation dropdowns (always needed)
@@ -128,7 +128,7 @@ def get_theme_js_bundle_order() -> list[str]:
     """
     return [
         "utils.js",
-        "bengal-enhance.js",
+        "core/define.js",
         "core/theme.js",
         "core/search.js",
         "core/nav-dropdown.js",

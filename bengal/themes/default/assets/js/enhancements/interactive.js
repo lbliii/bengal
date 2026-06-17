@@ -224,12 +224,15 @@
    * Performance: Caches section offsets and batches DOM reads/writes
    * to avoid forced reflows during scroll.
    */
-  function setupScrollSpy() {
+  function setupScrollSpy(root, cleanupList) {
+    root = root || document;
+    cleanupList = cleanupList || cleanupHandlers.scroll;
+    // Article headings live outside the nav element, so stay document-scoped.
     const sections = document.querySelectorAll('h2[id], h3[id]');
     if (sections.length === 0) return;
 
     // Only select docs-nav links, not TOC links (toc.js handles those)
-    const navLinks = document.querySelectorAll('.docs-nav a');
+    const navLinks = root.querySelectorAll('.docs-nav a');
     if (navLinks.length === 0) return;
 
     let currentSection = '';
@@ -253,7 +256,7 @@
     // Rebuild cache on resize (layout may change)
     const debouncedCacheUpdate = debounce(updateSectionCache, 250);
     window.addEventListener('resize', debouncedCacheUpdate, { passive: true });
-    cleanupHandlers.resize.push(() => {
+    cleanupList.push(() => {
       window.removeEventListener('resize', debouncedCacheUpdate);
     });
 
@@ -290,7 +293,7 @@
     // Throttle scroll events
     const throttledHighlight = throttleScroll(highlightNavigation);
     window.addEventListener('scroll', throttledHighlight, { passive: true });
-    cleanupHandlers.scroll.push(() => {
+    cleanupList.push(() => {
       window.removeEventListener('scroll', throttledHighlight);
     });
 
@@ -309,9 +312,10 @@
    * The template already sets `open` attribute on active trail items via Jinja,
    * but this provides a fallback for dynamic scenarios.
    */
-  function setupDocsNavigation() {
-    // Find the active navigation link
-    const activeLink = document.querySelector(
+  function setupDocsNavigation(root) {
+    root = root || document;
+    // Find the active navigation link (scoped to the nav element)
+    const activeLink = root.querySelector(
       '.docs-nav-link.active, .docs-nav-link[aria-current="page"], ' +
       '.docs-nav-group-link.active, .docs-nav-group-link[aria-current="page"]'
     );
@@ -466,12 +470,11 @@
       document.documentElement.classList.add('reduce-motion');
     }
 
-    // Setup features
+    // Setup document-global features. Docs-nav scroll-spy + active-trail are
+    // element-scoped and run from the <bengal-docs-nav> custom element instead.
     setupBackToTop();
     setupReadingProgress();
     setupSmoothScroll();
-    setupScrollSpy();
-    setupDocsNavigation();
     setupMobileSidebar();
     setupChangelogFilter();
 
@@ -493,24 +496,24 @@
   }
 
   // ============================================================
-  // Registration
+  // Custom element: <bengal-docs-nav>
   // ============================================================
 
-  // Register with enhancement system (multiple registrations for different features)
-  if (window.Bengal && window.Bengal.enhance) {
-    // Back to top button
-    Bengal.enhance.register('back-to-top', function(el, options) {
-      setupBackToTop();
-    });
-
-    // Reading progress bar
-    Bengal.enhance.register('reading-progress', function(el, options) {
-      setupReadingProgress();
-    });
-
-    // Docs navigation scroll spy
-    Bengal.enhance.register('docs-nav', function(el, options) {
-      setupScrollSpy();
+  // Owns the docs-nav scroll-spy + active-trail expansion, scoped to the nav
+  // element. connectedCallback auto-inits (incl. dynamically inserted content);
+  // disconnectedCallback removes its scroll/resize listeners (kept in a private
+  // list so they don't collide with the document-global cleanupHandlers).
+  if (window.Bengal && window.Bengal.define) {
+    window.Bengal.define('bengal-docs-nav', class extends window.Bengal.Base {
+      init() {
+        this._docsNavCleanup = [];
+        setupScrollSpy(this, this._docsNavCleanup);
+        setupDocsNavigation(this);
+      }
+      teardown() {
+        (this._docsNavCleanup || []).forEach((fn) => fn());
+        this._docsNavCleanup = [];
+      }
     });
   }
 

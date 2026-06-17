@@ -168,7 +168,8 @@ per-call overhead of {% include %} (context copy, template lookup).
     {% let page_section = page?._section %}
     {% let root_section = page_section?.root ?? none %}
 
-    <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
+    <bengal-docs-nav>
+    <nav class="docs-nav" aria-label="Documentation pages">
       {# Version Selector - only show if page is versioned (not autodoc) #}
       {% unless is_autodoc %}
       {% include 'partials/version-selector.html' %}
@@ -191,3 +192,4 @@ per-call overhead of {% include %} (context copy, template lookup).
         {% end %}
       </div>
     </nav>
+    </bengal-docs-nav>

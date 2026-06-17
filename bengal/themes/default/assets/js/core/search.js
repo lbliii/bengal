@@ -19,7 +19,6 @@
  * - Accessible with ARIA labels
  *
  * @requires utils.js
- * @requires bengal-enhance.js (for enhancement registration)
  */
 
 (function () {
@@ -2002,18 +2001,6 @@
     window.BengalSearchPreload = {
         trigger: preloadSearch
     };
-
-    // ============================================================
-    // Registration
-    // ============================================================
-
-    // Register with enhancement system (if available)
-    if (window.Bengal && window.Bengal.enhance) {
-        Bengal.enhance.register('search', function (el, options) {
-            // Search page initialization
-            initSearchPage();
-        });
-    }
 
     // ============================================================
     // Auto-initialize

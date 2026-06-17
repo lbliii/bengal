@@ -69,7 +69,7 @@ the pressed gradient, blob geometry) keep a small `[data-theme="dark"]` block in
 
 ### JavaScript model
 
-Progressive enhancement via `data-bengal` attributes and the `Bengal.enhance` registry (`bengal-enhance.js`). Heavy libraries (Mermaid, D3, KaTeX) are **opt-in, self-hosted capabilities** — never loaded from CDN in default output. Enable in `bengal.toml`:
+Progressive enhancement via autonomous custom elements (`<bengal-*>`): `core/define.js` provides `Bengal.define` / `Bengal.Base`, and interactive regions (TOC, docs nav, track sidebar, API catalog) initialize themselves through `connectedCallback`. Document-global behavior lives in eager bootstrap scripts. Heavy libraries (Mermaid, D3, KaTeX) are **opt-in, self-hosted capabilities** — never loaded from CDN in default output. Enable in `bengal.toml`:
 
 ```toml
 [capabilities]
