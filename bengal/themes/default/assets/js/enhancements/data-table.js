@@ -41,6 +41,39 @@
   }
 
   /**
+   * Convert the core renderer-agnostic contract to Tabulator config.
+   * @param {Object} spec - Generic data-table spec from core
+   * @returns {Object} Tabulator configuration
+   */
+  function specToTabulatorConfig(spec) {
+    const options = spec.options || {};
+    const paginated = options.paginated;
+    const pageSize = typeof paginated === 'number' ? paginated : (options.page_size || 50);
+
+    const config = {
+      columns: (spec.columns || []).map(col => ({
+        title: col.title,
+        field: col.field,
+        headerFilter: options.filterable ? 'input' : false,
+      })),
+      data: spec.rows || [],
+      layout: 'fitColumns',
+      responsiveLayout: 'collapse',
+      pagination: Boolean(paginated),
+      paginationSize: pageSize,
+      movableColumns: true,
+      resizableColumnFit: true,
+      sort: options.sortable !== false,
+    };
+
+    if (options.height && options.height !== 'auto') {
+      config.height = options.height;
+    }
+
+    return config;
+  }
+
+  /**
    * Initialize a single data table
    * @param {HTMLElement} wrapper - Table wrapper element
    */
@@ -48,7 +81,9 @@
     const tableId = wrapper.getAttribute('data-table-id');
     const tableElement = wrapper.querySelector(`#${tableId}`);
     const searchInput = wrapper.querySelector(`#${tableId}-search`);
-    const configScript = wrapper.querySelector(`script[data-table-config="${tableId}"]`);
+    const specScript = wrapper.querySelector(`script[data-table-spec="${tableId}"]`);
+    const legacyConfigScript = wrapper.querySelector(`script[data-table-config="${tableId}"]`);
+    const configScript = specScript || legacyConfigScript;
 
     if (!tableElement || !configScript) {
       console.error(`Data table ${tableId} missing required elements`);
@@ -58,7 +93,8 @@
     // Parse configuration
     let config;
     try {
-      config = JSON.parse(configScript.textContent);
+      const payload = JSON.parse(configScript.textContent);
+      config = specScript ? specToTabulatorConfig(payload) : payload;
     } catch (e) {
       console.error(`Failed to parse config for table ${tableId}:`, e);
       return;

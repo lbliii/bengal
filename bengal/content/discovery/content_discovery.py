@@ -533,6 +533,8 @@ class ContentDiscovery:
         self.sections = self._section_builder.sections
         self.pages = self._section_builder.pages
 
+        self._enrich_git_lastmod()
+
         # Log metrics
         top_sections, top_pages = self._section_builder.get_top_level_counts()
         logger.info(
@@ -785,6 +787,27 @@ class ContentDiscovery:
             )
 
         return enriched
+
+    def _enrich_git_lastmod(self) -> None:
+        """Populate optional git-derived lastmod dates on the site instance."""
+        if self.site is None or not self.pages:
+            return
+
+        content_config = (
+            self.site.config.get("content", {}) if isinstance(self.site.config, dict) else {}
+        )
+        git_info = content_config.get("git_info", {}) if isinstance(content_config, dict) else {}
+        if not git_info.get("enabled") or not git_info.get("lastmod", True):
+            return
+
+        from bengal.utils.scm.git_dates import batch_git_last_modified
+
+        source_paths = [
+            page.source_path for page in self.pages if getattr(page, "source_path", None)
+        ]
+        git_dates = batch_git_last_modified(source_paths)
+        if git_dates:
+            self.site.git_lastmod_by_source = git_dates
 
     def _build_source_page(
         self,

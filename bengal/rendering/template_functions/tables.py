@@ -2,12 +2,15 @@
 Table functions for templates.
 
 Provides functions for rendering interactive data tables from YAML/CSV files.
+Core emits a renderer-agnostic table contract; the default theme adapts it to
+Tabulator when the vendored runtime is present.
 """
 
 from __future__ import annotations
 
 import csv
 import json
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from kida import Markup
@@ -24,7 +27,47 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-__all__ = ["data_table", "register"]
+__all__ = [
+    "DataTableColumn",
+    "DataTableOptions",
+    "DataTableSpec",
+    "build_data_table_spec",
+    "data_table",
+    "load_data_table",
+    "register",
+    "render_data_table_html",
+    "spec_to_contract",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class DataTableColumn:
+    """Renderer-agnostic column descriptor."""
+
+    field: str
+    title: str
+
+
+@dataclass(frozen=True, slots=True)
+class DataTableOptions:
+    """Renderer-agnostic table behavior flags."""
+
+    search: bool = True
+    filterable: bool = True
+    sortable: bool = True
+    paginated: int | bool = 50
+    height: str = "auto"
+    visible_columns: tuple[str, ...] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DataTableSpec:
+    """Canonical data-table payload consumed by theme renderers."""
+
+    table_id: str
+    columns: tuple[DataTableColumn, ...]
+    rows: tuple[dict[str, Any], ...]
+    options: DataTableOptions
 
 
 def register(env: TemplateEnvironment, site: SiteConfig) -> None:
@@ -70,6 +113,11 @@ def _load_data(path: str, root_path: Path) -> dict[str, Any]:
     if suffix == ".csv":
         return _load_csv_data(file_path)
     return {"error": f"Unsupported file format: {suffix} (use .yaml, .yml, or .csv)"}
+
+
+def load_data_table(path: str, root_path: Path) -> dict[str, Any]:
+    """Load table columns and rows from a data file."""
+    return _load_data(path, root_path)
 
 
 def _load_yaml_data(file_path: Path) -> dict[str, Any]:
@@ -160,52 +208,78 @@ def _parse_pagination(value: str | bool | int) -> int | bool:
         return 50
 
 
-def _parse_columns(value: str) -> list[str] | None:
+def _parse_columns(value: str) -> tuple[str, ...] | None:
     """Parse visible columns option."""
     if not value or not value.strip():
         return None
-    return [col.strip() for col in value.split(",") if col.strip()]
+    return tuple(col.strip() for col in value.split(",") if col.strip())
 
 
-def render_data_table_html(
-    columns: list[dict[str, Any]],
-    data: list[dict[str, Any]],
-    table_id: str,
-    search: bool = True,
-    filter_enabled: bool = True,
-    pagination: int | bool = 50,
-    height: str = "auto",
-    visible_columns: list[str] | None = None,
-) -> str:
-    """Render data table to HTML."""
-    if visible_columns:
-        columns = [col for col in columns if col["field"] in visible_columns]
+def build_data_table_spec(
+    path: str, root_path: Path, **options: Any
+) -> DataTableSpec | dict[str, Any]:
+    """Load data and build a renderer-agnostic table spec."""
+    data_result = _load_data(path, root_path)
+    if "error" in data_result:
+        return data_result
 
-    config: dict[str, Any] = {
+    table_options = DataTableOptions(
+        search=_parse_bool(options.get("search", True)),
+        filterable=_parse_bool(options.get("filter", True)),
+        sortable=_parse_bool(options.get("sort", True)),
+        paginated=_parse_pagination(options.get("pagination", 50)),
+        height=str(options.get("height", "auto")),
+        visible_columns=_parse_columns(str(options.get("columns", ""))),
+    )
+
+    columns = tuple(
+        DataTableColumn(field=str(col["field"]), title=str(col.get("title", col["field"])))
+        for col in data_result["columns"]
+    )
+    rows = tuple(dict(row) for row in data_result["data"])
+
+    return DataTableSpec(
+        table_id=_generate_table_id(path),
+        columns=columns,
+        rows=rows,
+        options=table_options,
+    )
+
+
+def spec_to_contract(spec: DataTableSpec) -> dict[str, Any]:
+    """Serialize a table spec to the generic JSON contract."""
+    columns = [{"field": col.field, "title": col.title} for col in spec.columns]
+    if spec.options.visible_columns:
+        visible = set(spec.options.visible_columns)
+        columns = [col for col in columns if col["field"] in visible]
+
+    paginated = spec.options.paginated
+    return {
+        "table_id": spec.table_id,
         "columns": columns,
-        "data": data,
-        "layout": "fitColumns",
-        "responsiveLayout": "collapse",
-        "pagination": pagination if pagination else False,
-        "paginationSize": pagination if isinstance(pagination, int) else 50,
-        "movableColumns": True,
-        "resizableColumnFit": True,
+        "rows": list(spec.rows),
+        "options": {
+            "search": spec.options.search,
+            "filterable": spec.options.filterable,
+            "sortable": spec.options.sortable,
+            "paginated": paginated if paginated else False,
+            "page_size": paginated if isinstance(paginated, int) else 50,
+            "height": spec.options.height,
+        },
     }
 
-    if height and height != "auto":
-        config["height"] = height
 
-    if filter_enabled:
-        for col in config["columns"]:
-            col["headerFilter"] = "input"
-
-    config_json = json.dumps(config, indent=None)
+def render_data_table_html(spec: DataTableSpec) -> str:
+    """Render a data table wrapper with the generic JSON contract embedded."""
+    contract = spec_to_contract(spec)
+    contract_json = json.dumps(contract, indent=None, sort_keys=True)
+    table_id = spec.table_id
 
     html_parts = [
         f'<div class="bengal-data-table-wrapper" data-table-id="{table_id}">',
     ]
 
-    if search:
+    if spec.options.search:
         html_parts.append(
             f'  <div class="bengal-data-table-toolbar">'
             f'    <input type="text" id="{table_id}-search" '
@@ -216,11 +290,9 @@ def render_data_table_html(
         )
 
     html_parts.append(f'  <div id="{table_id}" class="bengal-data-table"></div>')
-
     html_parts.append(
-        f'  <script type="application/json" data-table-config="{table_id}">{config_json}</script>'
+        f'  <script type="application/json" data-table-spec="{table_id}">{contract_json}</script>'
     )
-
     html_parts.append("</div>")
 
     return "\n".join(html_parts)
@@ -282,43 +354,21 @@ def data_table(path: str, site: Any, **options: Any) -> Markup:
     if not hasattr(site, "root_path"):
         raise TypeError("Site object missing required 'root_path' attribute")
 
-    # Load data
-    data_result = _load_data(path, site.root_path)
-
-    if "error" in data_result:
+    spec_result = build_data_table_spec(path, site.root_path, **options)
+    if isinstance(spec_result, dict) and "error" in spec_result:
         logger.error(
             "data_table_load_error",
             path=path,
-            error=data_result["error"],
+            error=spec_result["error"],
             caller="template",
             error_code=ErrorCode.R003.value,
             suggestion="Check that data file exists and is valid JSON/YAML/CSV",
         )
         return Markup(
             f'<div class="bengal-data-table-error" role="alert">'
-            f"<strong>Data Table Error:</strong> {data_result['error']}"
+            f"<strong>Data Table Error:</strong> {spec_result['error']}"
             f"<br><small>File: {path}</small>"
             f"</div>"
         )
 
-    # Parse options
-    table_id = _generate_table_id(path)
-    search = _parse_bool(options.get("search", True))
-    filter_enabled = _parse_bool(options.get("filter", True))
-    _parse_bool(options.get("sort", True))
-    pagination = _parse_pagination(options.get("pagination", 50))
-    height = options.get("height", "auto")
-    visible_columns = _parse_columns(options.get("columns", ""))
-
-    html = render_data_table_html(
-        columns=data_result["columns"],
-        data=data_result["data"],
-        table_id=table_id,
-        search=search,
-        filter_enabled=filter_enabled,
-        pagination=pagination,
-        height=height,
-        visible_columns=visible_columns,
-    )
-
-    return Markup(html)
+    return Markup(render_data_table_html(spec_result))

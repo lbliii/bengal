@@ -202,8 +202,15 @@ class SitemapGenerator:
             included_count += 1
 
             # Add lastmod if available
-            if page.date:
+            lastmod_dt = getattr(page, "lastmod", None)
+            if lastmod_dt is not None:
+                lastmod = lastmod_dt.strftime("%Y-%m-%d")
+            elif page.date:
                 lastmod = page.date.strftime("%Y-%m-%d")
+            else:
+                lastmod = None
+
+            if lastmod:
                 ET.SubElement(url_elem, "lastmod").text = lastmod
 
             # Add default priority and changefreq

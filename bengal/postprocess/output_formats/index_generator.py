@@ -77,6 +77,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats.utils import (
+    build_heading_index_records,
     generate_excerpt,
     get_i18n_output_path,
     get_page_relative_url,
@@ -141,6 +142,7 @@ class SiteIndexGenerator:
         excerpt_length: int = 200,
         json_indent: int | None = None,
         include_full_content: bool = False,
+        include_heading_index: bool = False,
     ) -> None:
         """
         Initialize the index generator.
@@ -150,11 +152,13 @@ class SiteIndexGenerator:
             excerpt_length: Length of excerpts in characters
             json_indent: JSON indentation (None for compact)
             include_full_content: Include full content in index (increases size)
+            include_heading_index: Emit per-heading search records (default: False)
         """
         self.site = site
         self.excerpt_length = excerpt_length
         self.json_indent = json_indent
         self.include_full_content = include_full_content
+        self.include_heading_index = include_heading_index
 
     def generate(
         self,
@@ -299,6 +303,9 @@ class SiteIndexGenerator:
         ]
         # Sort pages by URL for deterministic output (important for idempotent builds)
         site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
+
+        if self.include_heading_index:
+            site_data["headings"] = self._build_heading_records(pages)
 
         logger.debug(
             "site_index_data_aggregated",
@@ -460,6 +467,9 @@ class SiteIndexGenerator:
         # Sort pages by URL for deterministic output (important for idempotent builds)
         site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
 
+        if self.include_heading_index:
+            site_data["headings"] = self._build_heading_records(pages)
+
         # Determine output path
         if version_id is None or self._is_latest_version(version_id):
             # Latest version: output_dir/index.json
@@ -521,6 +531,47 @@ class SiteIndexGenerator:
         - Hash stored in .hash sidecar file
         """
         write_if_content_changed(path, content, hash_suffix=".hash")
+
+    def _build_heading_records(self, pages: Sequence[PageLike]) -> list[dict[str, Any]]:
+        """Build deterministic per-heading search records across pages."""
+        records: list[dict[str, Any]] = []
+        baseurl = (self.site.baseurl or "").rstrip("/")
+
+        for page in pages:
+            if getattr(page, "draft", False):
+                continue
+
+            metadata = getattr(page, "metadata", {}) or {}
+            visibility = metadata.get("visibility")
+            search_exclude = bool(
+                metadata.get("search_exclude")
+                or metadata.get("hidden", False)
+                or (isinstance(visibility, dict) and not visibility.get("search", True))
+            )
+
+            page_uri = get_page_relative_url(page, self.site)
+            page_url = f"{baseurl}{page_uri}" if baseurl else page_uri
+            html_content = (
+                getattr(page, "html_content", None)
+                or getattr(page, "rendered_html", None)
+                or getattr(page, "_html_cache", None)
+                or ""
+            )
+            toc_items = getattr(page, "toc_items", None) or []
+
+            records.extend(
+                build_heading_index_records(
+                    page_uri=page_uri,
+                    page_url=page_url,
+                    page_title=page.title,
+                    html_content=html_content,
+                    toc_items=list(toc_items),
+                    excerpt_length=self.excerpt_length,
+                    search_exclude=search_exclude,
+                )
+            )
+
+        return sorted(records, key=lambda record: record.get("objectID", ""))
 
     def page_to_summary(self, page: PageLike) -> dict[str, Any]:
         """

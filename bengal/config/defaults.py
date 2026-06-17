@@ -227,6 +227,10 @@ DEFAULTS: dict[str, Any] = {
         "toc_style": "nested",  # nested | flat
         "sort_pages_by": "weight",  # weight | date | title | modified
         "sort_order": "asc",  # asc | desc
+        "git_info": {
+            "enabled": False,
+            "lastmod": True,
+        },
     },
     # -------------------------------------------------------------------------
     # Search
@@ -362,6 +366,7 @@ DEFAULTS: dict[str, Any] = {
             "json_indent": None,
             "llm_separator_width": 80,
             "include_full_content_in_index": False,
+            "include_heading_index": False,
             "include_chunks": True,
             "exclude_sections": [],
             "exclude_patterns": ["404.html", "search.html"],

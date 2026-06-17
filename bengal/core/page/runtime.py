@@ -226,6 +226,16 @@ class RuntimePage:
         return parse_date(self.metadata.get("date"))
 
     @property
+    def lastmod(self) -> datetime | None:
+        """Last modified timestamp (frontmatter, optional git, or file mtime)."""
+        from bengal.core.page.lastmod import resolve_page_lastmod
+
+        git_dates = None
+        if self._site is not None:
+            git_dates = getattr(self._site, "git_lastmod_by_source", None)
+        return resolve_page_lastmod(self, git_dates=git_dates)
+
+    @property
     def slug(self) -> str:
         return infer_slug(self.metadata, self.source_path)
 

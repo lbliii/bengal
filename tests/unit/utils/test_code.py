@@ -4,7 +4,9 @@ Tests for code processing utilities.
 
 from bengal.utils.primitives.code import (
     HL_LINES_PATTERN,
+    CodeFenceAttrs,
     parse_code_info,
+    parse_fence_attrs,
     parse_hl_lines,
 )
 
@@ -98,6 +100,40 @@ class TestParseCodeInfo:
         """Test language names with special characters."""
         assert parse_code_info("c++") == ("c++", [])
         assert parse_code_info("c#") == ("c#", [])
+
+
+class TestParseFenceAttrs:
+    """Tests for parse_fence_attrs."""
+
+    def test_title_and_highlights(self):
+        attrs = parse_fence_attrs('python title="app.py" {1,3}')
+        assert attrs == CodeFenceAttrs(
+            language="python",
+            hl_lines=(1, 3),
+            title="app.py",
+            diff=False,
+            show_linenos=False,
+        )
+        assert attrs.highlight_language == "python"
+
+    def test_diff_flag(self):
+        attrs = parse_fence_attrs("python diff")
+        assert attrs.diff is True
+        assert attrs.highlight_language == "diff"
+
+    def test_diff_language(self):
+        attrs = parse_fence_attrs("diff")
+        assert attrs.language == "diff"
+        assert attrs.highlight_language == "diff"
+
+    def test_linenos(self):
+        attrs = parse_fence_attrs("python linenos")
+        assert attrs.show_linenos is True
+
+    def test_title_after_braces(self):
+        attrs = parse_fence_attrs('python {2} title="late-title.py"')
+        assert attrs.title == "late-title.py"
+        assert attrs.hl_lines == (2,)
 
 
 class TestHlLinesPattern:

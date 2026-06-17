@@ -33,39 +33,13 @@ from bengal.parsing.backends.patitas.renderers.utils import (
     escape_attr,
     escape_html,
 )
-from bengal.utils.primitives.code import HL_LINES_PATTERN, parse_hl_lines
+from bengal.rendering.highlighting.deferred import wrap_code_block_title
+from bengal.utils.primitives.code import CodeFenceAttrs, parse_fence_attrs
 
 if TYPE_CHECKING:
     from patitas.stringbuilder import StringBuilder
 
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
-
-# Alias for internal use (maintains backward compatibility)
-_HL_LINES_PATTERN = HL_LINES_PATTERN
-_parse_hl_lines = parse_hl_lines
-
-
-def _parse_code_info(info: str) -> tuple[str, list[int]]:
-    """Parse code fence info string for language and line highlights.
-
-    Args:
-        info: Code fence info string (e.g., "python {1,3-5}")
-
-    Returns:
-        Tuple of (language, hl_lines list)
-    """
-    if not info:
-        return "", []
-
-    match = _HL_LINES_PATTERN.match(info.strip())
-    if match:
-        lang = match.group(1)
-        hl_spec = match.group(2)
-        hl_lines = _parse_hl_lines(hl_spec) if hl_spec else []
-        return lang, hl_lines
-
-    # Fallback: just take first word as language
-    return info.split()[0], []
 
 
 class BlockRendererMixin:
@@ -336,12 +310,13 @@ class BlockRendererMixin:
             end = node.source_end
             if end > node.source_start and self._source[end - 1] == "\n":
                 end -= 1
-            highlighted = self._try_highlight_range(node.source_start, end, info)
+            fence_attrs = parse_fence_attrs(info)
+            highlighted = self._try_highlight_range(node.source_start, end, fence_attrs)
             if highlighted:
                 # Rosettes parity: ensure trailing newline before closing tags
                 if highlighted.endswith("</code></pre></div>"):
                     highlighted = highlighted[:-19] + "\n</code></pre></div>"
-                sb.append(highlighted)
+                sb.append(wrap_code_block_title(highlighted, fence_attrs.title))
                 return
 
         # Plain code block extraction
@@ -389,7 +364,10 @@ class BlockRendererMixin:
         sb.append("\n</code></pre></div>\n")
 
     def _try_highlight_range(
-        self: HtmlRendererProtocol, start: int, end: int, info: str
+        self: HtmlRendererProtocol,
+        start: int,
+        end: int,
+        fence_attrs: CodeFenceAttrs,
     ) -> str | None:
         """Try to highlight a source range using internal rosettes.
 
@@ -400,7 +378,7 @@ class BlockRendererMixin:
         if not self._rosettes_available:
             return None
 
-        lang, hl_lines = _parse_code_info(info)
+        lang = fence_attrs.highlight_language
         if not lang:
             return None
 
@@ -413,7 +391,8 @@ class BlockRendererMixin:
                 css_class_style=self._highlight_style,
                 start=start,
                 end=end,
-                hl_lines=frozenset(hl_lines) if hl_lines else None,
+                hl_lines=frozenset(fence_attrs.hl_lines) if fence_attrs.hl_lines else None,
+                show_linenos=fence_attrs.show_linenos,
             )
         except LookupError, ValueError:
             return None

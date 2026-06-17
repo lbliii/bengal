@@ -75,7 +75,6 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
 
@@ -378,28 +377,14 @@ class PageJSONGenerator:
         return nav if nav else None
 
     def _get_last_modified(self, page: PageLike) -> str | None:
-        """Resolve last-modified timestamp from frontmatter or file mtime."""
-        # Frontmatter takes priority
-        for key in ("lastmod", "last_modified", "updated"):
-            val = page.metadata.get(key)
-            if val:
-                if isinstance(val, datetime):
-                    return val.isoformat()
-                if hasattr(val, "isoformat"):
-                    return val.isoformat()
-                if isinstance(val, str):
-                    return val
+        """Resolve last-modified timestamp from frontmatter, git, or file mtime."""
+        from bengal.core.page.lastmod import resolve_page_lastmod_iso
 
-        # Fall back to source file mtime
-        source: Path | None = getattr(page, "source_path", None)
-        if source:
-            try:
-                mtime = source.stat().st_mtime
-                return datetime.fromtimestamp(mtime).isoformat()
-            except OSError, ValueError:
-                pass
-
-        return None
+        git_dates = None
+        site = getattr(self, "site", None)
+        if site is not None:
+            git_dates = getattr(site, "git_lastmod_by_source", None)
+        return resolve_page_lastmod_iso(page, git_dates=git_dates)
 
     def _build_graph_indexes(self, graph_data: dict[str, Any]) -> None:
         """

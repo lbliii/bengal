@@ -211,8 +211,7 @@ class TestDataTableFunction:
         )
 
         html = str(result)
-        # Filter adds headerFilter to columns in config
-        assert "headerFilter" in html
+        assert '"filterable": true' in html
 
     def test_with_pagination(self, mock_env, yaml_data_file):
         """Test data table with pagination."""
@@ -221,7 +220,7 @@ class TestDataTableFunction:
         )
 
         html = str(result)
-        assert '"paginationSize": 100' in html
+        assert '"page_size": 100' in html
 
     def test_without_pagination(self, mock_env, yaml_data_file):
         """Test data table without pagination."""
@@ -230,7 +229,7 @@ class TestDataTableFunction:
         )
 
         html = str(result)
-        assert '"pagination": false' in html
+        assert '"paginated": false' in html
 
     def test_with_custom_height(self, mock_env, yaml_data_file):
         """Test data table with custom height."""
@@ -286,7 +285,7 @@ class TestDataTableInTemplate:
         result = template.render(path=f"data/{yaml_data_file.name}")
 
         assert "bengal-data-table-search" in result
-        assert '"paginationSize": 50' in result
+        assert '"page_size": 50' in result
         assert '"height": "400px"' in result
 
     def test_conditional_rendering_in_template(self, mock_env, yaml_data_file):
