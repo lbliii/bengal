@@ -373,11 +373,13 @@ class OutputFormatsGenerator:
             excerpt_length = options.get("excerpt_length", 200)
             json_indent = options.get("json_indent")
             include_full_content = options.get("include_full_content_in_index", False)
+            include_heading_index = options.get("include_heading_index", False)
             index_gen = SiteIndexGenerator(
                 self.site,
                 excerpt_length=excerpt_length,
                 json_indent=json_indent,
                 include_full_content=include_full_content,
+                include_heading_index=include_heading_index,
             )
             # OPTIMIZATION: Pass accumulated page data for hybrid mode
             # See: plan/drafted/rfc-unified-page-data-accumulation.md
@@ -390,6 +392,7 @@ class OutputFormatsGenerator:
                     "excerpt_length": excerpt_length,
                     "json_indent": json_indent,
                     "include_full_content": include_full_content,
+                    "include_heading_index": include_heading_index,
                 },
                 self._expected_site_wide_outputs("site_index_json"),
                 lambda: index_gen.generate(

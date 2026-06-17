@@ -54,7 +54,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
@@ -470,6 +470,89 @@ def extract_heading_chunks(
         )
 
     return chunks
+
+
+def normalize_toc_items(toc_items: list[dict[str, str | int]]) -> list[dict[str, str | int]]:
+    """Normalize Patitas/HTML TOC item shapes to ``{id, title, level}``."""
+    normalized: list[dict[str, str | int]] = []
+    for item in toc_items:
+        anchor = item.get("id") or item.get("slug") or ""
+        title = item.get("title") or item.get("text") or ""
+        level = item.get("level", 2)
+        if anchor or title:
+            normalized.append(
+                {
+                    "id": str(anchor),
+                    "title": str(title),
+                    "level": int(level),
+                }
+            )
+    return normalized
+
+
+def build_heading_index_records(
+    *,
+    page_uri: str,
+    page_url: str,
+    page_title: str,
+    html_content: str,
+    toc_items: list[dict[str, str | int]],
+    excerpt_length: int,
+    search_exclude: bool = False,
+) -> list[dict[str, Any]]:
+    """
+    Build per-heading search index records for a page.
+
+    Uses rendered HTML + TOC anchors when available; falls back to TOC-only
+    records (title/anchor without section body) when HTML is absent.
+    """
+    if search_exclude:
+        return []
+
+    normalized_toc = normalize_toc_items(toc_items)
+    chunks = extract_heading_chunks(html_content, normalized_toc, page_uri) if html_content else []
+
+    chunk_by_anchor = {
+        str(chunk.get("anchor", "")): chunk for chunk in chunks if chunk.get("anchor")
+    }
+
+    records: list[dict[str, Any]] = []
+    seen_anchors: set[str] = set()
+
+    for item in normalized_toc:
+        anchor = str(item.get("id", ""))
+        if not anchor or anchor in seen_anchors:
+            continue
+        seen_anchors.add(anchor)
+
+        chunk = chunk_by_anchor.get(anchor, {})
+        heading_title = str(chunk.get("title") or item.get("title") or anchor)
+        content = str(chunk.get("content") or "")
+        if content:
+            content = generate_excerpt(content, excerpt_length * 3)
+
+        anchor_url = str(chunk.get("anchor_url") or f"{page_url.rstrip('/')}#{anchor}")
+        object_id = f"{page_uri.rstrip('/')}#{anchor}"
+
+        records.append(
+            {
+                "objectID": object_id,
+                "kind": "heading",
+                "title": heading_title,
+                "anchor": anchor,
+                "url": anchor_url,
+                "href": anchor_url,
+                "parent_objectID": page_uri,
+                "parent_url": page_url,
+                "parent_title": page_title,
+                "breadcrumb": f"{page_title} › {heading_title}",
+                "level": int(chunk.get("level") or item.get("level") or 2),
+                "content": content,
+                "section": "",
+            }
+        )
+
+    return records
 
 
 def write_if_content_changed(

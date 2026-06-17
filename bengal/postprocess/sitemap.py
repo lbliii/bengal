@@ -202,8 +202,20 @@ class SitemapGenerator:
             included_count += 1
 
             # Add lastmod if available
-            if page.date:
+            from bengal.core.page.lastmod import resolve_page_lastmod
+
+            git_dates = getattr(self.site, "git_lastmod_by_source", None)
+            if not isinstance(git_dates, dict):
+                git_dates = None
+            lastmod_dt = resolve_page_lastmod(page, git_dates=git_dates)
+            if lastmod_dt is not None:
+                lastmod = lastmod_dt.strftime("%Y-%m-%d")
+            elif page.date:
                 lastmod = page.date.strftime("%Y-%m-%d")
+            else:
+                lastmod = None
+
+            if lastmod:
                 ET.SubElement(url_elem, "lastmod").text = lastmod
 
             # Add default priority and changefreq

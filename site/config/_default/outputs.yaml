@@ -14,6 +14,11 @@ features:
   llm_txt: true    # Generate LLM-friendly text files (index.txt, llm-full.txt)
   markdown: true   # Generate per-page .md files for agent markdown URL support
 
+# Output format options (search index, per-page JSON, etc.)
+output_formats:
+  options:
+    include_heading_index: true   # Per-heading search records for deep-link results (#546)
+
 # Social Cards Configuration
 # ==========================
 # Auto-generates Open Graph images for social media sharing.

@@ -88,6 +88,7 @@ class LunrIndexGenerator:
         "author": 2,
         "search_keywords": 8,
         "kind": 1,
+        "parent_title": 3,
     }
 
     def __init__(self, site: SiteLike) -> None:
@@ -152,6 +153,9 @@ class LunrIndexGenerator:
 
             # Build documents for Lunr
             documents = self._build_documents(pages)
+            headings = data.get("headings", [])
+            if headings:
+                documents.extend(self._build_heading_documents(headings))
 
             if not documents:
                 logger.warning(
@@ -235,6 +239,31 @@ class LunrIndexGenerator:
             }
 
             documents.append(doc)
+
+        return documents
+
+    def _build_heading_documents(self, headings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Build Lunr documents from per-heading index records."""
+        documents: list[dict[str, Any]] = []
+
+        for heading in headings:
+            if not heading.get("title"):
+                continue
+
+            documents.append(
+                {
+                    "objectID": heading.get("objectID") or heading.get("url", ""),
+                    "title": heading.get("title", ""),
+                    "description": heading.get("breadcrumb", ""),
+                    "content": heading.get("content", ""),
+                    "section": heading.get("section", ""),
+                    "parent_title": heading.get("parent_title", ""),
+                    "kind": "heading",
+                    "anchor": heading.get("anchor", ""),
+                    "parent_objectID": heading.get("parent_objectID", ""),
+                    "url": heading.get("url", ""),
+                }
+            )
 
         return documents
 

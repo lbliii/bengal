@@ -35,3 +35,9 @@ content:
   # Content Organization
   sort_pages_by: "weight"    # Options: "weight", "date", "title", "modified"
   sort_order: "asc"          # Options: "asc", "desc"
+
+  # Git-derived metadata (Pridelands #548)
+  # Derives "last updated" from git commit dates when frontmatter is absent.
+  git_info:
+    enabled: true
+    lastmod: true

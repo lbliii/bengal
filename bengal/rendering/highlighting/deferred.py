@@ -34,22 +34,13 @@ from typing import TYPE_CHECKING
 
 from bengal.rendering.highlighting.rosettes import RosettesBackend
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.primitives.code import parse_hl_lines
+from bengal.utils.primitives.code import parse_fence_attrs
 
 if TYPE_CHECKING:
     from bengal.rendering.highlighting.cache import HighlightCache
 
-# Pattern to extract line highlight syntax from code fence info string
-# Matches: python {5} or yaml {1,3,5} or js {1-3,5,7-9}
+# Pattern kept for backward compatibility with external imports/tests.
 HL_LINES_PATTERN = re.compile(r"^(\S+)\s*\{([^}]+)\}$")
-
-# Pattern to parse code fence info with optional title and line highlights
-# Matches: python, python title="file.py", python {1,3}, python title="file.py" {1,3}
-CODE_INFO_PATTERN = re.compile(
-    r"^(?P<lang>\S+)"  # Language (required, no spaces)
-    r'(?:\s+title="(?P<title>[^"]*)")?'  # title="..." (optional)
-    r"(?:\s*\{(?P<hl>[^}]+)\})?$"  # {1,3-5} line highlights (optional)
-)
 
 logger = get_logger(__name__)
 
@@ -169,7 +160,7 @@ class CodeBlockCollector:
                 key = _cache_key(block)
                 cached = cache.get(key)
                 if cached is not None:
-                    results[block.placeholder_id] = _wrap_with_title(cached, block.title)
+                    results[block.placeholder_id] = wrap_code_block_title(cached, block.title)
                     continue
                 uncached.append((block, key))
             else:
@@ -213,7 +204,7 @@ class CodeBlockCollector:
             for (block, key), html in zip(uncached, highlighted, strict=True):
                 if cache and key:
                     cache.set(key, html)
-                results[block.placeholder_id] = _wrap_with_title(html, block.title)
+                results[block.placeholder_id] = wrap_code_block_title(html, block.title)
         else:
             # Fallback for rosettes < 0.2.0: simple blocks parallel, complex sequential
             simple_blocks: list[tuple[str, str, PendingCodeBlock, str]] = []
@@ -230,7 +221,7 @@ class CodeBlockCollector:
                 for (_, _, block, key), html in zip(simple_blocks, highlighted, strict=True):
                     if cache and key:
                         cache.set(key, html)
-                    results[block.placeholder_id] = _wrap_with_title(html, block.title)
+                    results[block.placeholder_id] = wrap_code_block_title(html, block.title)
 
             backend = RosettesBackend()
             for block, key in complex_blocks:
@@ -243,7 +234,7 @@ class CodeBlockCollector:
                     )
                     if cache and key:
                         cache.set(key, html)
-                    results[block.placeholder_id] = _wrap_with_title(html, block.title)
+                    results[block.placeholder_id] = wrap_code_block_title(html, block.title)
                 except Exception as e:
                     logger.warning("highlight_failed", language=block.language, error=str(e))
                     results[block.placeholder_id] = _fallback_code_block(
@@ -280,6 +271,23 @@ def _fallback_code_block(code: str, language: str, title: str | None) -> str:
     plain_block = f'<pre><code class="language-{language}">{escaped_code}</code></pre>\n'
 
     return _wrap_with_title(plain_block, title)
+
+
+def wrap_code_block_title(html: str, title: str | None) -> str:
+    """Wrap highlighted code with an optional filename/title label."""
+    return _wrap_with_title(html, title)
+
+
+def parse_fence_info(info: str) -> tuple[str, list[int], str | None, bool, bool]:
+    """Parse a fence info string into highlight kwargs for deferred mode."""
+    attrs = parse_fence_attrs(info)
+    return (
+        attrs.highlight_language,
+        list(attrs.hl_lines),
+        attrs.title,
+        attrs.diff,
+        attrs.show_linenos,
+    )
 
 
 # =============================================================================
@@ -352,5 +360,6 @@ __all__ = [
     "enable_deferred_highlighting",
     "flush_deferred_highlighting",
     "is_deferred_highlighting_enabled",
-    "parse_hl_lines",
+    "parse_fence_info",
+    "wrap_code_block_title",
 ]
