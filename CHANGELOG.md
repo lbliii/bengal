@@ -1,3 +1,78 @@
+## [0.5.1] - 2026-06-17
+
+### Added
+
+- Add opt-in intra-stylesheet removal of unused @keyframes, @font-face, and custom properties. (`#512`)
+- The CSS minifier accepts ``flatten_nesting=True`` to de-sugar nested rules into flat
+  selectors for legacy browser targets while preserving the cascade. (`#516`)
+
+### Changed
+
+- Consolidated free-threading detection to the canonical ``bengal.utils.concurrency``
+  helper so executor selection and render paths no longer drift on GIL fallback logic. (`#381`)
+- Re-gate shard render byte-parity tests now that aggregate output ordering is deterministic (#431, #529). (`#431`)
+- The CSS minifier's `optimize` level now shortens more safe spellings: named colors
+  when shorter than hex, unquoted `url()` bodies, length-context unitless zeros
+  (`margin:0px` → `margin:0`), and repeated shorthand values (`margin:0 0 0 0` →
+  `margin:0`). (`#515`)
+- The default theme no longer loads Mermaid, D3, KaTeX, or Google Fonts from third-party CDNs at runtime. Opt in via ``[capabilities]`` in ``bengal.toml`` to self-host diagram and math vendors at build time. (`#533`)
+- The default theme's color system is now authored in OKLCH for wide-gamut richness, and the five built-in palettes are defined as a handful of anchors whose hover, active, border, surface, and state variants derive automatically via relative-color and ``color-mix`` — retuning a palette no longer means editing a hand-painted hex matrix. The global focus ring is now palette-aware (it previously fell back to a fixed Material blue in every non-default palette). (`#534`)
+- The default theme's dark mode now renders correctly in every named palette and follows the operating-system preference with no flash of the wrong theme. Dark colors flow through one `light-dark()` token set selected by `color-scheme` (wired from the existing theme toggle), replacing the duplicated dark token matrix; focus rings now track the active palette instead of falling back to a fixed blue. (`#535`)
+- The default theme now emits correct ``og:type`` per page kind, ``WebSite``/``CollectionPage`` JSON-LD on landing and list surfaces, ``BreadcrumbList`` structured data, and consolidates the docs right-sidebar graph minimap into shared partials. (`#536`)
+- The default theme's JavaScript now uses a single, web-standard enhancement model. Interactive regions — the table of contents, documentation navigation, learning-track sidebar, and REST API catalog — are custom elements (`<bengal-toc>`, `<bengal-docs-nav>`, `<bengal-track-nav>`, `<bengal-api-catalog>`) that initialize themselves the moment they appear in the page, including content inserted after load, and tear their scroll and resize listeners down when removed. This retires the second, redundant script-loading registry that shadowed the eager scripts, trimming the theme's JavaScript and making enhancements start more reliably. Every page still renders and degrades gracefully with JavaScript disabled. (`#537`)
+- Core: emit per-heading search index records for deep-link search results. (`#546`)
+- Core: renderer-agnostic data-table contract decoupled from Tabulator config. (`#547`)
+- Core: optional git-derived last-modified field for pages. (`#548`)
+- Core: parse code-fence attributes (title, diff, line ranges) through to the highlighter. (`#549`)
+- The knowledge graph minimap and the full ``/graph/`` explorer are now rendered by a dependency-free, first-party engine. Node positions are computed at build time and the explorer draws to a canvas, so it stays responsive on large sites instead of bogging down. The per-page minimap reads its layout from each page's JSON, the same way link previews do.
+
+### Removed
+
+- Removed the obsolete ``@supports (color: color-mix(...))`` feature-query fallbacks throughout the default theme's stylesheets. ``color-mix()`` is now Baseline across supported browsers, so the guarded branches are applied unconditionally and the old-browser fallback blocks are gone. (`#534`)
+- Removed the opt-in ``d3`` capability. The knowledge graph no longer depends on D3, so it works by default with no third-party scripts and nothing to self-host. The previous build also emitted a ``/graph/`` page that loaded D3 from a CDN at runtime; that external request is gone.
+
+### Fixed
+
+- Sitemap and agent.json aggregate outputs now use stable URL/path ordering so
+  byte-identical results do not depend on page discovery order. (`#431`)
+- Fixed provenance cache races that could return stale warm-build output under
+  free-threaded Python when provenance records were loaded or verified concurrently. (`#438`)
+- Link autofix now receives per-source `CheckResult` metadata from the Links
+  validator, so `bengal fix` can suggest repairs for every broken internal link on
+  a page (not just the first five shown in validator details). (`#508`)
+- Fixed the CSS minifier gluing `@scope (...) to (...)` into `to(...)`, which made
+  the parser treat `to` as a function and silently drop the scoped rule (#510). The
+  minifier is now a proper CSS Syntax Level 3 engine (`bengal.css`): it tokenizes
+  before serializing, so an identifier followed by whitespace and `(` can never
+  collapse into a function token.
+
+  The legacy CSS code paths were removed so Bengal dogfoods the new engine
+  entirely: the `bengal.assets.css_minifier` shim and the regex-based
+  `bengal/core/asset/css_transforms.py` (`lossless_minify_css`,
+  `remove_duplicate_bare_h1_rules`, `transform_css_nesting`) are gone. Native CSS
+  nesting (`&:hover`) is now preserved rather than flattened (Baseline 2023);
+  import `minify_css` from `bengal.css`.
+
+  Correctness is enforced at runtime: after minifying, the engine re-parses its own
+  output and compares an independent meaning signature (selector descendant
+  combinators, declaration values, and — at the aggressive level — the resolved
+  cascade) against the input, returning the input unchanged on any mismatch. It can
+  therefore never emit corrupted CSS.
+
+  `minify_css` also gained an optional `level` argument: `"safe"` (default, lossless
+  whitespace/comment removal), `"optimize"` (adds color/number normalization), and
+  `"aggressive"` (adds cascade-invariant structural rewrites such as empty-rule
+  removal, exact-duplicate dedup, and adjacent-rule merging). The default build path
+  is unchanged. (`#510`)
+- `graph/graph.json` and the search `index.json` are now byte-identical across
+  rebuilds of unchanged content. Knowledge-graph node ids previously used a
+  per-process randomized hash (and an absolute path), graph edges came out in a
+  process-dependent order, and equally-weighted tags were ordered
+  nondeterministically — so two builds of the same site produced diffing output.
+  IDs are now a stable hash of the site-relative path, edges and tags sort
+  deterministically.
+
+
 ## [0.5.0] - 2026-06-15
 
 ### Added
