@@ -9,147 +9,74 @@
 :root[data-palette="silver-bengal"],
 html[data-palette="silver-bengal"] {
     /* Primary (cool pure silver - MONOCHROMATIC) */
-    --color-primary: oklch(55.10% 0.0234 264.4);
-    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
-    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
-    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
-    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
+    --color-primary: light-dark(oklch(55.10% 0.0234 264.4), #D1D5DB);
+    --color-primary-hover: light-dark(oklch(from var(--color-primary) calc(l - 0.07) c h), #E5E7EB);
+    --color-primary-active: light-dark(oklch(from var(--color-primary) calc(l - 0.13) c h), #9CA3AF);
+    --color-primary-light: light-dark(oklch(from var(--color-primary) 0.96 calc(c * 0.22) h), rgba(209, 213, 219, 0.20));
+    --color-primary-dark: light-dark(oklch(from var(--color-primary) calc(l - 0.2) c h), #6B7280);
 
     /* Backgrounds (pure monochrome - NO color tint) */
-    --color-bg-primary: oklch(100.00% 0 0);
-    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
-    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
-    --color-bg-elevated: oklch(100.00% 0 0);
+    --color-bg-primary: light-dark(oklch(100.00% 0 0), #000000);
+    --color-bg-secondary: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%), #0F0F0F);
+    --color-bg-tertiary: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%), #1A1A1A);
+    --color-bg-elevated: light-dark(oklch(100.00% 0 0), #0A0A0A);
     --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
-    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
-    --color-bg-active: oklch(92.76% 0.0058 264.5);
-    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
+    --color-bg-hover: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%), #262626);
+    --color-bg-active: light-dark(oklch(92.76% 0.0058 264.5), #333333);
+    --color-bg-code: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%), #0F0F0F);
+    --color-surface: light-dark(var(--white), #0A0A0A);
 
     /* Text (pure blacks and grays - maximum contrast) */
-    --color-text-primary: oklch(0.00% 0 0);
-    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
-    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
-    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
-    --color-text-inverse: oklch(100.00% 0 0);
+    --color-text-primary: light-dark(oklch(0.00% 0 0), #FFFFFF);
+    --color-text-secondary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%), #D1D5DB);
+    --color-text-tertiary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%), #9CA3AF);
+    --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #6B7280);
+    --color-text-inverse: light-dark(oklch(100.00% 0 0), #111827);
     /* Silver's primary is a near-neutral gray, so links use the deeper accent for affordance */
-    --color-text-link: var(--color-accent);
-    --color-text-link-hover: var(--color-accent-hover);
+    --color-text-link: light-dark(var(--color-accent), #94A3B8);
+    --color-text-link-hover: light-dark(var(--color-accent-hover), #CBD5E1);
 
     /* Borders (neutral grays) */
-    --color-border: oklch(87.17% 0.0093 258.3);
-    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
-    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border: light-dark(oklch(87.17% 0.0093 258.3), #262626);
+    --color-border-light: light-dark(oklch(from var(--color-border) calc(l + 0.035) c h), #1A1A1A);
+    --color-border-strong: light-dark(oklch(from var(--color-border) calc(l - 0.09) c h), #404040);
     --color-border-focus: var(--color-primary);
 
     /* Semantic states (cool tones) */
-    --color-success: oklch(49.07% 0.0790 148.5);
-    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
-    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
-    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
+    --color-success: light-dark(oklch(49.07% 0.0790 148.5), #6B9B6F);
+    --color-success-bg: light-dark(oklch(from var(--color-success) 0.96 calc(c * 0.18) h), rgba(63, 109, 71, 0.15));
+    --color-success-border: light-dark(oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h), #4A7450);
+    --color-success-text: light-dark(oklch(from var(--color-success) calc(l - 0.14) c h), #9BB29F);
 
-    --color-warning: oklch(68.06% 0.1423 75.8);
-    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
-    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
-    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
+    --color-warning: light-dark(oklch(68.06% 0.1423 75.8), #FFB020);
+    --color-warning-bg: light-dark(oklch(from var(--color-warning) 0.96 calc(c * 0.18) h), rgba(217, 119, 6, 0.15));
+    --color-warning-border: light-dark(oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h), #F59E0B);
+    --color-warning-text: light-dark(oklch(from var(--color-warning) calc(l - 0.14) c h), #FCD34D);
 
-    --color-error: oklch(53.86% 0.1937 26.7);
-    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
-    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
-    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
+    --color-error: light-dark(oklch(53.86% 0.1937 26.7), #EF5350);
+    --color-error-bg: light-dark(oklch(from var(--color-error) 0.96 calc(c * 0.18) h), rgba(198, 40, 40, 0.15));
+    --color-error-border: light-dark(oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h), #C62828);
+    --color-error-text: light-dark(oklch(from var(--color-error) calc(l - 0.14) c h), #FCA5A5);
 
-    --color-info: oklch(44.61% 0.0263 256.8);
-    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
-    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
-    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
+    --color-info: light-dark(oklch(44.61% 0.0263 256.8), #D1D5DB);
+    --color-info-bg: light-dark(oklch(from var(--color-info) 0.96 calc(c * 0.18) h), rgba(107, 114, 128, 0.15));
+    --color-info-border: light-dark(oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h), #6B7280);
+    --color-info-text: light-dark(oklch(from var(--color-info) calc(l - 0.14) c h), #E5E7EB);
 
     /* Accent color (pure silver - monochromatic) */
-    --color-accent: oklch(44.61% 0.0263 256.8);
-    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
-    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent: light-dark(oklch(44.61% 0.0263 256.8), #D1D5DB);
+    --color-accent-hover: light-dark(oklch(from var(--color-accent) calc(l - 0.06) c h), #E5E7EB);
+    --color-accent-active: light-dark(oklch(from var(--color-accent) calc(l - 0.12) c h), #9CA3AF);
     --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
     --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (pure monochrome - high contrast) */
-    --color-code-type: oklch(37.29% 0.0306 259.7);
-    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
-    --color-code-keyword: oklch(27.81% 0.0296 256.8);
-    --color-code-string: oklch(44.61% 0.0263 256.8);
-    --color-code-number: oklch(55.10% 0.0234 264.4);
-    --color-code-text: oklch(37.29% 0.0306 259.7);
-}
-
-/* Dark-mode adjustments while Silver Bengal palette is active */
-:root[data-theme="dark"][data-palette="silver-bengal"],
-html[data-theme="dark"][data-palette="silver-bengal"] {
-    /* Bright pure silver for dark mode - NO color tint */
-    --color-primary: #D1D5DB;
-    --color-primary-hover: #E5E7EB;
-    --color-primary-active: #9CA3AF;
-    --color-primary-light: rgba(209, 213, 219, 0.20);
-    --color-primary-dark: #6B7280;
-    --color-primary-muted: rgba(209, 213, 219, 0.25);
-
-    /* Pure black backgrounds - monochromatic */
-    --color-bg-primary: #000000;
-    --color-bg-secondary: #0F0F0F;
-    --color-bg-tertiary: #1A1A1A;
-    --color-bg-elevated: #0A0A0A;
-    --color-bg-hover: #262626;
-    --color-bg-active: #333333;
-    --color-bg-code: #0F0F0F;
-
-    /* Surface color for components */
-    --color-surface: #0A0A0A;
-
-    /* Pure grayscale text - high contrast */
-    --color-text-primary: #FFFFFF;
-    --color-text-secondary: #D1D5DB;
-    --color-text-tertiary: #9CA3AF;
-    --color-text-muted: #6B7280;
-    /* CRITICAL: Inverse text must be dark for contrast against light primary */
-    --color-text-inverse: #111827;
-    /* Links: Steel blue with cool undertones - visible and recognizable */
-    --color-text-link: #94A3B8;
-    --color-text-link-hover: #CBD5E1;
-
-    /* Adjusted borders for dark mode */
-    --color-border: #262626;
-    --color-border-light: #1A1A1A;
-    --color-border-strong: #404040;
-
-    /* Semantic states for dark mode */
-    --color-success: #6B9B6F;
-    --color-success-bg: rgba(63, 109, 71, 0.15);
-    --color-success-border: #4A7450;
-    --color-success-text: #9BB29F;
-
-    --color-warning: #FFB020;
-    --color-warning-bg: rgba(217, 119, 6, 0.15);
-    --color-warning-border: #F59E0B;
-    --color-warning-text: #FCD34D;
-
-    --color-error: #EF5350;
-    --color-error-bg: rgba(198, 40, 40, 0.15);
-    --color-error-border: #C62828;
-    --color-error-text: #FCA5A5;
-
-    --color-info: #D1D5DB;
-    --color-info-bg: rgba(107, 114, 128, 0.15);
-    --color-info-border: #6B7280;
-    --color-info-text: #E5E7EB;
-
-    /* Accent color for dark mode */
-    --color-accent: #D1D5DB;
-    --color-accent-hover: #E5E7EB;
-    --color-accent-active: #9CA3AF;
-
-    /* Code colors for dark mode (bright monochrome - pure contrast) */
-    --color-code-type: #D1D5DB;
-    --color-code-type-bg: rgba(209, 213, 219, 0.08);
-    --color-code-keyword: #E5E7EB;
-    --color-code-string: #9CA3AF;
-    --color-code-number: #B8BFC7;
-    --color-code-text: #D1D5DB;
+    --color-code-type: light-dark(oklch(37.29% 0.0306 259.7), #D1D5DB);
+    --color-code-type-bg: light-dark(oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h), rgba(209, 213, 219, 0.08));
+    --color-code-keyword: light-dark(oklch(27.81% 0.0296 256.8), #E5E7EB);
+    --color-code-string: light-dark(oklch(44.61% 0.0263 256.8), #9CA3AF);
+    --color-code-number: light-dark(oklch(55.10% 0.0234 264.4), #B8BFC7);
+    --color-code-text: light-dark(oklch(37.29% 0.0306 259.7), #D1D5DB);
 }
 
 /* ============================================

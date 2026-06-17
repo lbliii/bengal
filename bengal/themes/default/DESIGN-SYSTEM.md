@@ -45,8 +45,27 @@ block is a small set of **anchors** (`--color-primary`, `--color-accent`,
 every hover/active/dark/light, surface tint, border, text shade, and state
 variant is **derived** from those anchors via relative-color
 (`oklch(from var(--anchor) calc(l - 0.07) c h)`) or `color-mix(in oklab, …)`.
-Retuning a palette means editing the anchors, not a hand-painted matrix. The
-dark-mode mechanism is owned separately (#535).
+Retuning a palette means editing the anchors, not a hand-painted matrix.
+
+### Dark mode (`light-dark()`, #535)
+
+Color tokens carry **both** modes in a single declaration:
+`--color-bg-primary: light-dark(<light>, <dark>);`. The active branch is chosen
+by the CSS `color-scheme` property, which is wired from the `data-theme`
+attribute the theme toggle already sets:
+
+```css
+:root { color-scheme: light dark; }            /* no choice → follow system */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+```
+
+There is **no** duplicated dark token matrix and **no**
+`@media (prefers-color-scheme)` color block — system preference is honored
+natively by `light-dark()` when no explicit theme is set. Because `light-dark()`
+is `<color>`-only, the few non-color dark values (shadows, neumorphic effects,
+the pressed gradient, blob geometry) keep a small `[data-theme="dark"]` block in
+`semantic.css`. Palettes redefine only the color tokens they tint per mode.
 
 ### JavaScript model
 
