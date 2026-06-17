@@ -96,7 +96,8 @@ def get_breadcrumbs(page: PageLike) -> list[dict[str, Any]]:
         return items
 
     # Handle pages without ancestors (fallback)
-    if not hasattr(page, "ancestors") or not page.ancestors:
+    ancestors_list = _page_ancestors(page)
+    if not ancestors_list:
         # If page doesn't have enough info to generate breadcrumbs, return empty
         has_title = hasattr(page, "title") and isinstance(getattr(page, "title", None), str)
         has_url = hasattr(page, "_path") and isinstance(getattr(page, "_path", None), str)
@@ -110,7 +111,6 @@ def get_breadcrumbs(page: PageLike) -> list[dict[str, Any]]:
         return items
 
     # Get ancestors in reverse order (root to current)
-    ancestors_list = list(page.ancestors)
     reversed_ancestors = list(reversed(ancestors_list))
 
     # Limit to last 2 ancestors (skip Home and deep nesting)
@@ -158,6 +158,19 @@ def get_breadcrumbs(page: PageLike) -> list[dict[str, Any]]:
         items.append({"title": page_title, "href": page_url, "is_current": True})
 
     return items
+
+
+def _page_ancestors(page: PageLike) -> list[Any]:
+    """Return page ancestors as a list; treat missing/non-iterable as empty."""
+    ancestors_raw = getattr(page, "ancestors", None)
+    if ancestors_raw is None:
+        return []
+    if isinstance(ancestors_raw, list):
+        return ancestors_raw
+    try:
+        return list(ancestors_raw)
+    except TypeError:
+        return []
 
 
 def _derive_title(obj: Any, url: str) -> str:
