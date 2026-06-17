@@ -830,7 +830,9 @@ class PatitasParser(BaseMarkdownParser):
         """
         import patitas
 
-        result = patitas.to_dict(node)
+        from bengal.utils.serialization import to_jsonable
+
+        result = to_jsonable(patitas.to_dict(node))
         _capture_zclh_code(node, result, source)
         _annotate_bengal_type(result)
         return result

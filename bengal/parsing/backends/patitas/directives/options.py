@@ -27,11 +27,13 @@ import logging
 from dataclasses import MISSING, dataclass, fields
 from typing import Any, ClassVar, Self, get_type_hints
 
+from patitas.directives.options import DirectiveOptions as PatitasDirectiveOptions
+
 _logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
-class DirectiveOptions:
+class DirectiveOptions(PatitasDirectiveOptions):
     """Base class for typed directive options.
 
     Subclass this to define options for your directive. Options are

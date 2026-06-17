@@ -98,13 +98,15 @@
    * @param {string} syncKey - The sync group key (e.g., "language")
    * @param {string} syncValue - The value to sync to (e.g., "python")
    */
-  function syncTabs(syncKey, syncValue) {
+  function syncTabs(syncKey, syncValue, skipContainer = null) {
     if (!syncKey || syncKey === 'none') return;
 
     // Find all containers with this sync key
     const containers = document.querySelectorAll(`[data-sync="${syncKey}"]`);
 
     containers.forEach(container => {
+      if (container === skipContainer) return;
+
       // Find link with matching sync value
       const matchingLink = container.querySelector(
         `[data-sync-value="${syncValue}"]`
@@ -353,12 +355,12 @@
     const syncKey = container.dataset.sync;
     const syncValue = link.dataset.syncValue;
 
+    // Always switch the clicked tab first — sync must not override local selection.
+    switchTab(container, link, targetId);
+
     if (syncKey && syncValue && syncKey !== 'none') {
-      // Sync all containers with same key
-      syncTabs(syncKey, syncValue);
-    } else {
-      // Just switch this tab
-      switchTab(container, link, targetId);
+      // Sync peer containers only (skip the one the user clicked).
+      syncTabs(syncKey, syncValue, container);
     }
   });
 

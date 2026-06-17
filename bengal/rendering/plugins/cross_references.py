@@ -123,11 +123,6 @@ class CrossReferencePlugin:
     # Pattern to find [[...]] spans that contain pipes (for table protection)
     _BRACKET_PATTERN = re.compile(r"\[\[[^\]]*\|[^\]]*\]\]")
 
-    # Pattern to split HTML by code blocks (pre/code) for xref substitution
-    _CODE_BLOCK_SPLIT = re.compile(
-        r"(<pre.*?</pre>|<code[^>]*>.*?</code>)", re.DOTALL | re.IGNORECASE
-    )
-
     @staticmethod
     def protect_table_pipes(source: str) -> str:
         """Pre-process markdown source to protect pipes inside [[...]] from table splitting.
@@ -204,16 +199,73 @@ class CrossReferencePlugin:
         if "[[" not in html:
             return html
 
-        # Split by code blocks (both pre/code blocks and inline code)
-        # Use non-greedy matching for content
-        # Pattern captures delimiters so they are included in parts
-        parts = self._CODE_BLOCK_SPLIT.split(html)
-
+        # Fenced blocks are always literal — never substitute inside <pre>.
+        parts = self._PRE_BLOCK_SPLIT.split(html)
         for i in range(0, len(parts), 2):
-            # Even indices are text outside code blocks
-            parts[i] = self._replace_xrefs_in_text(parts[i])
-
+            parts[i] = self._substitute_xrefs_outside_code(parts[i])
         return "".join(parts)
+
+    # Fenced code only. Inline <code> inside [[alias|...]] must not be split out.
+    _PRE_BLOCK_SPLIT = re.compile(r"(<pre\b.*?</pre>)", re.DOTALL | re.IGNORECASE)
+
+    @staticmethod
+    def _find_xref_span(text: str, start: int) -> tuple[str, int] | None:
+        """Return a full ``[[...]]`` span starting at *start*, allowing inline HTML in aliases."""
+        if not text.startswith("[[", start):
+            return None
+        i = start + 2
+        length = len(text)
+        while i < length:
+            if text.startswith("]]", i):
+                return text[start : i + 2], i + 2
+            if text[i] == "<":
+                tag_end = text.find(">", i)
+                if tag_end == -1:
+                    return None
+                i = tag_end + 1
+                continue
+            i += 1
+        return None
+
+    def _substitute_xrefs_outside_code(self, segment: str) -> str:
+        """Substitute xrefs in *segment*, skipping standalone ``<code>`` blocks."""
+        if "[[" not in segment:
+            return segment
+
+        result: list[str] = []
+        i = 0
+        length = len(segment)
+
+        while i < length:
+            next_code = segment.find("<code", i)
+            next_xref = segment.find("[[", i)
+
+            if next_xref == -1 and next_code == -1:
+                result.append(segment[i:])
+                break
+
+            # Standalone inline code (including ``<code>[[...]]</code>``) stays literal.
+            if next_code != -1 and (next_xref == -1 or next_code < next_xref):
+                code_end = segment.find("</code>", next_code)
+                if code_end == -1:
+                    result.append(segment[i:])
+                    break
+                result.append(segment[i : code_end + 7])
+                i = code_end + 7
+                continue
+
+            result.append(segment[i:next_xref])
+            found = self._find_xref_span(segment, next_xref)
+            if found is None:
+                result.append("[[")
+                i = next_xref + 2
+                continue
+
+            xref_span, end = found
+            result.append(self._replace_xrefs_in_text(xref_span))
+            i = end
+
+        return "".join(result)
 
     def _replace_xrefs_in_text(self, text: str) -> str:
         """
