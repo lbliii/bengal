@@ -16,146 +16,73 @@
 :root[data-palette="snow-lynx"],
 html[data-palette="snow-lynx"] {
     /* Primary (ice blue eyes - piercing and cool) */
-    --color-primary: oklch(67.49% 0.0863 187.5);
-    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
-    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
-    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
-    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
+    --color-primary: light-dark(oklch(67.49% 0.0863 187.5), #6EC4BC);
+    --color-primary-hover: light-dark(oklch(from var(--color-primary) calc(l - 0.07) c h), #87D3CC);
+    --color-primary-active: light-dark(oklch(from var(--color-primary) calc(l - 0.13) c h), #55B5AC);
+    --color-primary-light: light-dark(oklch(from var(--color-primary) 0.96 calc(c * 0.22) h), rgba(110, 196, 188, 0.18));
+    --color-primary-dark: light-dark(oklch(from var(--color-primary) calc(l - 0.2) c h), #3C9B93);
 
     /* Backgrounds (layered white → cream for depth through temperature) */
-    --color-bg-primary: oklch(99.70% 0 0);
-    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
-    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
-    --color-bg-elevated: oklch(100.00% 0 0);
+    --color-bg-primary: light-dark(oklch(99.70% 0 0), #18191A);
+    --color-bg-secondary: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%), #252729);
+    --color-bg-tertiary: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%), #333538);
+    --color-bg-elevated: light-dark(oklch(100.00% 0 0), #1E2022);
     --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
-    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
-    --color-bg-active: oklch(94.12% 0.0103 81.8);
-    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
+    --color-bg-hover: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%), #3A3D40);
+    --color-bg-active: light-dark(oklch(94.12% 0.0103 81.8), #454850);
+    --color-bg-code: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%), #252729);
+    --color-surface: light-dark(var(--white), #1E2022);
 
     /* Text (soft charcoal with cooler undertone) */
-    --color-text-primary: oklch(26.45% 0 0);
-    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
-    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
-    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
-    --color-text-inverse: oklch(100.00% 0 0);
-    --color-text-link: var(--color-primary);
-    --color-text-link-hover: var(--color-primary-hover);
+    --color-text-primary: light-dark(oklch(26.45% 0 0), #F5F5F3);
+    --color-text-secondary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%), #C9C7C3);
+    --color-text-tertiary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%), #9D9B97);
+    --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #75736F);
+    --color-text-inverse: light-dark(oklch(100.00% 0 0), #18191A);
+    --color-text-link: light-dark(var(--color-primary), #6EC4BC);
+    --color-text-link-hover: light-dark(var(--color-primary-hover), #87D3CC);
 
     /* Borders (subtle warmth against clean white) */
-    --color-border: oklch(92.00% 0.0104 81.8);
-    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
-    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border: light-dark(oklch(92.00% 0.0104 81.8), #3A3D40);
+    --color-border-light: light-dark(oklch(from var(--color-border) calc(l + 0.035) c h), #2D3032);
+    --color-border-strong: light-dark(oklch(from var(--color-border) calc(l - 0.09) c h), #4F5356);
     --color-border-focus: var(--color-primary);
 
     /* Semantic states (harmonized with icy cream) */
-    --color-success: oklch(53.12% 0.0955 161.2);
-    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
-    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
-    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
+    --color-success: light-dark(oklch(53.12% 0.0955 161.2), #5FB8A5);
+    --color-success-bg: light-dark(oklch(from var(--color-success) 0.96 calc(c * 0.18) h), rgba(46, 125, 90, 0.15));
+    --color-success-border: light-dark(oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h), #3D9287);
+    --color-success-text: light-dark(oklch(from var(--color-success) calc(l - 0.14) c h), #8AC9B5);
 
-    --color-warning: oklch(66.58% 0.1574 58.3);
-    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
-    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
-    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
+    --color-warning: light-dark(oklch(66.58% 0.1574 58.3), #FFA726);
+    --color-warning-bg: light-dark(oklch(from var(--color-warning) 0.96 calc(c * 0.18) h), rgba(217, 119, 6, 0.15));
+    --color-warning-border: light-dark(oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h), #E67E22);
+    --color-warning-text: light-dark(oklch(from var(--color-warning) calc(l - 0.14) c h), #FFCC80);
 
-    --color-error: oklch(53.86% 0.1937 26.7);
-    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
-    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
-    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
+    --color-error: light-dark(oklch(53.86% 0.1937 26.7), #EF5350);
+    --color-error-bg: light-dark(oklch(from var(--color-error) 0.96 calc(c * 0.18) h), rgba(198, 40, 40, 0.15));
+    --color-error-border: light-dark(oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h), #C62828);
+    --color-error-text: light-dark(oklch(from var(--color-error) calc(l - 0.14) c h), #FFAB91);
 
-    --color-info: oklch(64.71% 0.0920 212.2);
-    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
-    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
-    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
+    --color-info: light-dark(oklch(64.71% 0.0920 212.2), #42A5F5);
+    --color-info-bg: light-dark(oklch(from var(--color-info) 0.96 calc(c * 0.18) h), rgba(30, 136, 229, 0.15));
+    --color-info-border: light-dark(oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h), #1976D2);
+    --color-info-text: light-dark(oklch(from var(--color-info) calc(l - 0.14) c h), #90CAF9);
 
     /* Accent color (ice blue-teal accent) */
-    --color-accent: oklch(72.33% 0.0898 187.1);
-    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
-    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent: light-dark(oklch(72.33% 0.0898 187.1), #6EC4BC);
+    --color-accent-hover: light-dark(oklch(from var(--color-accent) calc(l - 0.06) c h), #87D3CC);
+    --color-accent-active: light-dark(oklch(from var(--color-accent) calc(l - 0.12) c h), #5AAFA7);
     --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
     --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (icy blue-teal with cream undertones) */
-    --color-code-type: oklch(67.49% 0.0863 187.5);
-    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
-    --color-code-keyword: oklch(64.71% 0.0920 212.2);
-    --color-code-string: oklch(57.00% 0.0706 168.8);
-    --color-code-number: oklch(65.54% 0.0860 59.4);
-    --color-code-text: oklch(47.33% 0.0095 73.7);
-}
-
-/* Dark-mode adjustments while Snow Lynx palette is active */
-:root[data-theme="dark"][data-palette="snow-lynx"],
-html[data-theme="dark"][data-palette="snow-lynx"] {
-    /* Icy teal for dark mode - muted and cool like moonlit ice */
-    --color-primary: #6EC4BC;
-    --color-primary-hover: #87D3CC;
-    --color-primary-active: #55B5AC;
-    --color-primary-light: rgba(110, 196, 188, 0.18);
-    --color-primary-dark: #3C9B93;
-    --color-primary-muted: rgba(110, 196, 188, 0.25);
-
-    /* Dark backgrounds with cool ash-gray tint (less warm, more snow/ice) */
-    --color-bg-primary: #18191A;
-    --color-bg-secondary: #252729;
-    --color-bg-tertiary: #333538;
-    --color-bg-elevated: #1E2022;
-    --color-bg-hover: #3A3D40;
-    --color-bg-active: #454850;
-    --color-bg-code: #252729;
-
-    /* Surface color for components */
-    --color-surface: #1E2022;
-
-    /* Cool text colors for dark mode */
-    --color-text-primary: #F5F5F3;
-    --color-text-secondary: #C9C7C3;
-    --color-text-tertiary: #9D9B97;
-    --color-text-muted: #75736F;
-    /* Inverse text - dark for contrast against light teal primary */
-    --color-text-inverse: #18191A;
-    /* Links: Icy teal glow - matches theme */
-    --color-text-link: #6EC4BC;
-    --color-text-link-hover: #87D3CC;
-
-    /* Cool borders for dark mode */
-    --color-border: #3A3D40;
-    --color-border-light: #2D3032;
-    --color-border-strong: #4F5356;
-
-    /* Semantic states for dark mode (notices/admonitions) */
-    --color-success: #5FB8A5;
-    --color-success-bg: rgba(46, 125, 90, 0.15);
-    --color-success-border: #3D9287;
-    --color-success-text: #8AC9B5;
-
-    --color-warning: #FFA726;
-    --color-warning-bg: rgba(217, 119, 6, 0.15);
-    --color-warning-border: #E67E22;
-    --color-warning-text: #FFCC80;
-
-    --color-error: #EF5350;
-    --color-error-bg: rgba(198, 40, 40, 0.15);
-    --color-error-border: #C62828;
-    --color-error-text: #FFAB91;
-
-    --color-info: #42A5F5;
-    --color-info-bg: rgba(30, 136, 229, 0.15);
-    --color-info-border: #1976D2;
-    --color-info-text: #90CAF9;
-
-    /* Accent color for dark mode */
-    --color-accent: #6EC4BC;
-    --color-accent-hover: #87D3CC;
-    --color-accent-active: #5AAFA7;
-
-    /* Code colors for dark mode (moonlit ice teal) */
-    --color-code-type: #6EC4BC;
-    --color-code-type-bg: rgba(110, 196, 188, 0.10);
-    --color-code-keyword: #87D3CC;
-    --color-code-string: #7FAA8E;
-    --color-code-number: #CCA173;
-    --color-code-text: #D9E5E3;
+    --color-code-type: light-dark(oklch(67.49% 0.0863 187.5), #6EC4BC);
+    --color-code-type-bg: light-dark(oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h), rgba(110, 196, 188, 0.10));
+    --color-code-keyword: light-dark(oklch(64.71% 0.0920 212.2), #87D3CC);
+    --color-code-string: light-dark(oklch(57.00% 0.0706 168.8), #7FAA8E);
+    --color-code-number: light-dark(oklch(65.54% 0.0860 59.4), #CCA173);
+    --color-code-text: light-dark(oklch(47.33% 0.0095 73.7), #D9E5E3);
 }
 
 /* ============================================

@@ -191,16 +191,10 @@
 
 [data-theme="dark"] .tab-nav {
   border-bottom-color: var(--color-border-dark);
-  background-color: var(--color-bg-secondary);
 }
 
 [data-theme="dark"] .tab-nav li.active a {
-  background-color: var(--color-primary-light);
   border-bottom-width: 3px;
-}
-
-[data-theme="dark"] .tab-nav a:hover {
-  background-color: var(--color-bg-hover);
 }
 
 /* ============================================
@@ -216,7 +210,6 @@
 }
 
 [data-theme="dark"][data-palette="brown-bengal"] .tab-nav li.active a {
-  background-color: var(--color-primary-light);
   border-bottom-width: 3px;
 }
 
@@ -229,7 +222,6 @@
 }
 
 [data-theme="dark"][data-palette="blue-bengal"] .tab-nav li.active a {
-  background-color: var(--color-primary-light);
   border-bottom-width: 3px;
 }
 
@@ -242,7 +234,6 @@
 }
 
 [data-theme="dark"][data-palette="silver-bengal"] .tab-nav li.active a {
-  background-color: var(--color-primary-light);
   border-bottom-width: 3px;
 }
 
@@ -255,7 +246,6 @@
 }
 
 [data-theme="dark"][data-palette="charcoal-bengal"] .tab-nav li.active a {
-  background-color: var(--color-primary-light);
   border-bottom-width: 3px;
 }
 
@@ -335,15 +325,6 @@
   background: var(--color-text-disabled);
 }
 
-/* Dark mode adjustments */
-[data-theme="dark"] .tab-badge {
-  color: var(--color-text-inverse);
-}
-
-[data-theme="dark"] .tab-nav li.disabled a {
-  color: var(--color-text-disabled);
-}
-
 /* ==============================================
    CODE TABS ENHANCED (RFC: Enhanced Code Tabs)
    - Language icons
@@ -376,10 +357,6 @@
   color: var(--color-text-secondary);
   background: color-mix(in srgb, var(--color-primary) 15%, transparent);
   opacity: 1;
-}
-
-[data-theme="dark"] .code-tabs .tab-filename {
-  background: var(--color-bg-tertiary);
 }
 
 [data-theme="dark"] .tab-nav li.active .tab-filename {

@@ -727,7 +727,7 @@
 .track-progress__step--current {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px var(--color-primary-muted, rgba(var(--color-primary-rgb, 99, 102, 241), 0.2));
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-primary), transparent 80%);
     transform: scale(1.1);
 }
 
@@ -798,10 +798,10 @@
 /* Animation for step transitions */
 @keyframes track-step-pulse {
     0%, 100% {
-        box-shadow: 0 0 0 4px var(--color-primary-muted, rgba(99, 102, 241, 0.2));
+        box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-primary), transparent 80%);
     }
     50% {
-        box-shadow: 0 0 0 8px var(--color-primary-muted, rgba(99, 102, 241, 0.1));
+        box-shadow: 0 0 0 8px color-mix(in oklab, var(--color-primary), transparent 90%);
     }
 }
 
@@ -1617,14 +1617,8 @@
    DARK MODE SUPPORT
    ============================================ */
 
-@media (prefers-color-scheme: dark) {
-    .track-card:hover {
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
-    }
-
-    .track-syllabus-item:hover:not(.disabled) {
-        background: var(--color-surface-elevated);
-    }
+[data-theme="dark"] .track-card:hover {
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
 }
 
 /* ============================================

@@ -100,44 +100,42 @@
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .marimo-cell {
-        background: var(--code-bg-dark, #2d2d2d);
-    }
+[data-theme="dark"] .marimo-cell {
+    background: var(--code-bg-dark, #2d2d2d);
+}
 
-    .marimo-cell pre {
-        background: var(--code-bg-dark, #2d2d2d);
-    }
+[data-theme="dark"] .marimo-cell pre {
+    background: var(--code-bg-dark, #2d2d2d);
+}
 
-    .marimo-cell table th {
-        background: var(--table-header-bg-dark, #3d3d3d);
-    }
+[data-theme="dark"] .marimo-cell table th {
+    background: var(--table-header-bg-dark, #3d3d3d);
+}
 
-    .marimo-cell table tr:nth-child(even) {
-        background: var(--table-stripe-bg-dark, #333);
-    }
+[data-theme="dark"] .marimo-cell table tr:nth-child(even) {
+    background: var(--table-stripe-bg-dark, #333);
+}
 
-    .marimo-cell table th,
-    .marimo-cell table td {
-        border-color: var(--border-color-dark, #555);
-    }
+[data-theme="dark"] .marimo-cell table th,
+[data-theme="dark"] .marimo-cell table td {
+    border-color: var(--border-color-dark, #555);
+}
 
-    .marimo-error {
-        background: #4a1a1a;
-        border-inline-start-color: #e55;
-    }
+[data-theme="dark"] .marimo-error {
+    background: #4a1a1a;
+    border-inline-start-color: #e55;
+}
 
-    .marimo-error .admonition-title {
-        color: #ff6b6b;
-    }
+[data-theme="dark"] .marimo-error .admonition-title {
+    color: #ff6b6b;
+}
 
-    .marimo-error code {
-        background: #3a1515;
-    }
+[data-theme="dark"] .marimo-error code {
+    background: #3a1515;
+}
 
-    .marimo-error pre {
-        background: #3a1515;
-    }
+[data-theme="dark"] .marimo-error pre {
+    background: #3a1515;
 }
 
 /* Responsive adjustments */

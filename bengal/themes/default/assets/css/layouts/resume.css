@@ -709,13 +709,4 @@
 /* Manual theme toggle support */
 [data-theme="dark"] .timeline-item::before {
     border-color: var(--color-bg-primary);
-    box-shadow: 0 0 0 2px var(--color-primary);
-}
-
-/* System preference support */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .timeline-item::before {
-        border-color: var(--color-bg-primary);
-        box-shadow: 0 0 0 2px var(--color-primary);
-    }
 }

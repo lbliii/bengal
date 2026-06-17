@@ -146,10 +146,6 @@
 }
 
 /* Dark theme adjustments */
-[data-theme="dark"] .checklist {
-  background: var(--color-bg-secondary);
-}
-
 [data-theme="dark"] .checklist-content input[type="checkbox"] {
   background-color: var(--color-bg-tertiary);
   border-color: var(--color-border);

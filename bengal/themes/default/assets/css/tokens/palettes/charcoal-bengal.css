@@ -16,148 +16,74 @@
 :root[data-palette="charcoal-bengal"],
 html[data-palette="charcoal-bengal"] {
     /* Primary (true ink black - the rosette markings) */
-    --color-primary: oklch(22.93% 0.0090 255.6);
-    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
-    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
-    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
-    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
+    --color-primary: light-dark(oklch(22.93% 0.0090 255.6), #C9C5BF);
+    --color-primary-hover: light-dark(oklch(from var(--color-primary) calc(l - 0.07) c h), #DDD9D4);
+    --color-primary-active: light-dark(oklch(from var(--color-primary) calc(l - 0.13) c h), #B5B0A8);
+    --color-primary-light: light-dark(oklch(from var(--color-primary) 0.96 calc(c * 0.22) h), rgba(201, 197, 191, 0.20));
+    --color-primary-dark: light-dark(oklch(from var(--color-primary) calc(l - 0.2) c h), #9A958D);
 
     /* Backgrounds (smoke gray with subtle warmth - the base coat) */
-    --color-bg-primary: oklch(97.36% 0.0017 67.8);
-    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
-    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
-    --color-bg-elevated: oklch(99.16% 0.0017 67.8);
+    --color-bg-primary: light-dark(oklch(97.36% 0.0017 67.8), #0C0B0A);
+    --color-bg-secondary: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%), #14130F);
+    --color-bg-tertiary: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%), #1E1C18);
+    --color-bg-elevated: light-dark(oklch(99.16% 0.0017 67.8), #100F0D);
     --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
-    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
-    --color-bg-active: oklch(88.35% 0.0064 75.4);
-    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
+    --color-bg-hover: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%), #262420);
+    --color-bg-active: light-dark(oklch(88.35% 0.0064 75.4), #302D28);
+    --color-bg-code: light-dark(color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%), #14130F);
+    --color-surface: light-dark(var(--white), #100F0D);
 
     /* Text (rich blacks with warm undertone) */
-    --color-text-primary: oklch(14.06% 0.0030 69.4);
-    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
-    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
-    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
-    --color-text-inverse: oklch(99.16% 0.0017 67.8);
+    --color-text-primary: light-dark(oklch(14.06% 0.0030 69.4), #F7F6F4);
+    --color-text-secondary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%), #D4D0C9);
+    --color-text-tertiary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%), #A09A91);
+    --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #6B655C);
+    --color-text-inverse: light-dark(oklch(99.16% 0.0017 67.8), #0C0B0A);
     /* Charcoal's primary is achromatic ink, so links/focus use the bronze accent for affordance */
-    --color-text-link: var(--color-accent);
-    --color-text-link-hover: var(--color-accent-hover);
+    --color-text-link: light-dark(var(--color-accent), #C9A84D);
+    --color-text-link-hover: light-dark(var(--color-accent-hover), #D9BC6D);
 
     /* Borders (warm grays - charcoal mask effect) */
-    --color-border: oklch(82.49% 0.0094 78.3);
-    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
-    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border: light-dark(oklch(82.49% 0.0094 78.3), #302D28);
+    --color-border-light: light-dark(oklch(from var(--color-border) calc(l + 0.035) c h), #1E1C18);
+    --color-border-strong: light-dark(oklch(from var(--color-border) calc(l - 0.09) c h), #454038);
     --color-border-focus: var(--color-accent);
 
     /* Semantic states (warmer, richer tones) */
-    --color-success: oklch(48.49% 0.0736 151.9);
-    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
-    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
-    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
+    --color-success: light-dark(oklch(48.49% 0.0736 151.9), #7DAA8B);
+    --color-success-bg: light-dark(oklch(from var(--color-success) 0.96 calc(c * 0.18) h), rgba(61, 107, 74, 0.18));
+    --color-success-border: light-dark(oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h), #5A8A6A);
+    --color-success-text: light-dark(oklch(from var(--color-success) calc(l - 0.14) c h), #A5C9B0);
 
-    --color-warning: oklch(65.21% 0.1322 81.6);
-    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
-    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
-    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
+    --color-warning: light-dark(oklch(65.21% 0.1322 81.6), #D4A84B);
+    --color-warning-bg: light-dark(oklch(from var(--color-warning) 0.96 calc(c * 0.18) h), rgba(184, 134, 11, 0.18));
+    --color-warning-border: light-dark(oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h), #B8860B);
+    --color-warning-text: light-dark(oklch(from var(--color-warning) calc(l - 0.14) c h), #E8C97D);
 
-    --color-error: oklch(50.69% 0.1391 23.5);
-    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
-    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
-    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
+    --color-error: light-dark(oklch(50.69% 0.1391 23.5), #D49A9A);
+    --color-error-bg: light-dark(oklch(from var(--color-error) 0.96 calc(c * 0.18) h), rgba(166, 61, 61, 0.18));
+    --color-error-border: light-dark(oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h), #A63D3D);
+    --color-error-text: light-dark(oklch(from var(--color-error) calc(l - 0.14) c h), #E8BFBF);
 
-    --color-info: oklch(50.87% 0.0719 240.5);
-    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
-    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
-    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
+    --color-info: light-dark(oklch(50.87% 0.0719 240.5), #8AAABF);
+    --color-info-bg: light-dark(oklch(from var(--color-info) 0.96 calc(c * 0.18) h), rgba(61, 107, 139, 0.18));
+    --color-info-border: light-dark(oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h), #3D6B8B);
+    --color-info-text: light-dark(oklch(from var(--color-info) calc(l - 0.14) c h), #B5CFDF);
 
     /* Accent color (bronze/copper "glitter" - the metallic sheen) */
-    --color-accent: oklch(54.09% 0.1041 84.4);
-    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
-    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent: light-dark(oklch(54.09% 0.1041 84.4), #C9A84D);
+    --color-accent-hover: light-dark(oklch(from var(--color-accent) calc(l - 0.06) c h), #D9BC6D);
+    --color-accent-active: light-dark(oklch(from var(--color-accent) calc(l - 0.12) c h), #A68A3D);
     --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
     --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (high contrast with warm accents) */
-    --color-code-type: oklch(54.09% 0.1041 84.4);
-    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
-    --color-code-keyword: oklch(22.93% 0.0090 255.6);
-    --color-code-string: oklch(48.49% 0.0736 151.9);
-    --color-code-number: oklch(55.60% 0.1059 43.8);
-    --color-code-text: oklch(31.99% 0.0090 67.5);
-
-}
-
-/* Dark-mode adjustments while Charcoal Bengal palette is active */
-:root[data-theme="dark"][data-palette="charcoal-bengal"],
-html[data-theme="dark"][data-palette="charcoal-bengal"] {
-    /* Primary (silver glitter against dark - more visible) */
-    --color-primary: #C9C5BF;
-    --color-primary-hover: #DDD9D4;
-    --color-primary-active: #B5B0A8;
-    --color-primary-light: rgba(201, 197, 191, 0.20);
-    --color-primary-dark: #9A958D;
-    --color-primary-muted: rgba(201, 197, 191, 0.25);
-
-    /* Backgrounds (deep charcoal with warm undertones - the dark coat) */
-    --color-bg-primary: #0C0B0A;
-    --color-bg-secondary: #14130F;
-    --color-bg-tertiary: #1E1C18;
-    --color-bg-elevated: #100F0D;
-    --color-bg-hover: #262420;
-    --color-bg-active: #302D28;
-    --color-bg-code: #14130F;
-
-    /* Surface color for components */
-    --color-surface: #100F0D;
-
-    /* Text (warm whites and silvers) */
-    --color-text-primary: #F7F6F4;
-    --color-text-secondary: #D4D0C9;
-    --color-text-tertiary: #A09A91;
-    --color-text-muted: #6B655C;
-    /* CRITICAL: Inverse text must be dark for contrast against light primary */
-    --color-text-inverse: #0C0B0A;
-    /* Links: Golden bronze glitter - matches accent theme */
-    --color-text-link: #C9A84D;
-    --color-text-link-hover: #D9BC6D;
-
-    /* Borders (subtle warm definition) */
-    --color-border: #302D28;
-    --color-border-light: #1E1C18;
-    --color-border-strong: #454038;
-
-    /* Semantic states for dark mode */
-    --color-success: #7DAA8B;
-    --color-success-bg: rgba(61, 107, 74, 0.18);
-    --color-success-border: #5A8A6A;
-    --color-success-text: #A5C9B0;
-
-    --color-warning: #D4A84B;
-    --color-warning-bg: rgba(184, 134, 11, 0.18);
-    --color-warning-border: #B8860B;
-    --color-warning-text: #E8C97D;
-
-    --color-error: #D49A9A;
-    --color-error-bg: rgba(166, 61, 61, 0.18);
-    --color-error-border: #A63D3D;
-    --color-error-text: #E8BFBF;
-
-    --color-info: #8AAABF;
-    --color-info-bg: rgba(61, 107, 139, 0.18);
-    --color-info-border: #3D6B8B;
-    --color-info-text: #B5CFDF;
-
-    /* Accent (golden glitter - really pops in dark mode) */
-    --color-accent: #C9A84D;
-    --color-accent-hover: #D9BC6D;
-    --color-accent-active: #A68A3D;
-
-    /* Code colors for dark mode (bronze highlights against charcoal) */
-    --color-code-type: #C9A84D;
-    --color-code-type-bg: rgba(201, 168, 77, 0.12);
-    --color-code-keyword: #D4D0C9;
-    --color-code-string: #8BC9A0;
-    --color-code-number: #D4A07D;
-    --color-code-text: #D4D0C9;
+    --color-code-type: light-dark(oklch(54.09% 0.1041 84.4), #C9A84D);
+    --color-code-type-bg: light-dark(oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h), rgba(201, 168, 77, 0.12));
+    --color-code-keyword: light-dark(oklch(22.93% 0.0090 255.6), #D4D0C9);
+    --color-code-string: light-dark(oklch(48.49% 0.0736 151.9), #8BC9A0);
+    --color-code-number: light-dark(oklch(55.60% 0.1059 43.8), #D4A07D);
+    --color-code-text: light-dark(oklch(31.99% 0.0090 67.5), #D4D0C9);
 
 }
 

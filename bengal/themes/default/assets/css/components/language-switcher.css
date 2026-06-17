@@ -118,26 +118,24 @@
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .language-switcher__toggle {
-    border-color: var(--color-border-dark, #374151);
-  }
+[data-theme="dark"] .language-switcher__toggle {
+  border-color: var(--color-border-dark, #374151);
+}
 
-  .language-switcher__toggle:hover {
-    background: var(--color-surface-hover-dark, #1f2937);
-    border-color: var(--color-border-hover-dark, #4b5563);
-  }
+[data-theme="dark"] .language-switcher__toggle:hover {
+  background: var(--color-surface-hover-dark, #1f2937);
+  border-color: var(--color-border-hover-dark, #4b5563);
+}
 
-  .language-switcher__menu {
-    background: var(--color-surface-dark, #1f2937);
-    border-color: var(--color-border-dark, #374151);
-    box-shadow: var(--shadow-md-dark, 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2));
-  }
+[data-theme="dark"] .language-switcher__menu {
+  background: var(--color-surface-dark, #1f2937);
+  border-color: var(--color-border-dark, #374151);
+  box-shadow: var(--shadow-md-dark, 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2));
+}
 
-  .language-switcher__item a:hover,
-  .language-switcher__item a:focus {
-    background: var(--color-surface-hover-dark, #374151);
-  }
+[data-theme="dark"] .language-switcher__item a:hover,
+[data-theme="dark"] .language-switcher__item a:focus {
+  background: var(--color-surface-hover-dark, #374151);
 }
 
 /* RTL Support */

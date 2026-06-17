@@ -1487,7 +1487,3 @@ a.card:hover {
 [data-theme="dark"] .card-badge {
   color: var(--color-text-inverse);
 }
-
-[data-theme="dark"] .card-description {
-  color: var(--color-text-secondary);
-}

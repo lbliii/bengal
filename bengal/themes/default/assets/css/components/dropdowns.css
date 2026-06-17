@@ -322,16 +322,10 @@ details.dropdown.info[open] {
 [data-theme="dark"] details.dropdown {
   border-color: var(--color-border-dark);
   background-color: var(--color-bg-secondary-dark);
-  box-shadow: var(--neumorphic-base);
-}
-
-[data-theme="dark"] details.dropdown:hover {
-  box-shadow: var(--neumorphic-hover);
 }
 
 [data-theme="dark"] details.dropdown[open] {
   background-color: var(--color-bg-primary-dark);
-  box-shadow: var(--neumorphic-hover);
 }
 
 [data-theme="dark"] .dropdown-content {

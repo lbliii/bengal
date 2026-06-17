@@ -622,19 +622,16 @@
    DARK MODE SUPPORT
    ============================================ */
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .timeline-item::before {
-        border-color: var(--color-bg-primary);
-        box-shadow: 0 0 0 2px var(--color-primary);
-    }
+[data-theme="dark"] .timeline-item::before {
+    border-color: var(--color-bg-primary);
+}
 
-    :root:not([data-theme="light"]) .changelog-category {
-        background: var(--color-bg-tertiary);
-    }
+[data-theme="dark"] .changelog-category {
+    background: var(--color-bg-tertiary);
+}
 
-    :root:not([data-theme="light"]) .changelog-category.changelog-breaking {
-        background: rgba(220, 38, 38, 0.1);
-    }
+[data-theme="dark"] .changelog-category.changelog-breaking {
+    background: rgba(220, 38, 38, 0.1);
 }
 
 /* Respect reduced motion */

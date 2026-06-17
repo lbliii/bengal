@@ -32,7 +32,7 @@
 [data-theme="dark"] .hero {
   background: linear-gradient(135deg,
       var(--color-bg-primary) 0%,
-      rgba(33, 150, 243, 0.05) 100%);
+      color-mix(in oklab, var(--color-primary), transparent 95%) 100%);
 }
 
 .hero__container {
@@ -56,7 +56,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-primary);
-  background-color: rgba(33, 150, 243, 0.1);
+  background-color: color-mix(in oklab, var(--color-primary), transparent 90%);
   border-radius: var(--border-radius-full);
 }
 

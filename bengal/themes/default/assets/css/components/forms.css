@@ -275,6 +275,6 @@
    ============================================ */
 
 .form-group:has([aria-describedby]) .form-input:focus {
-  /* Enhanced focus for inputs with descriptions */
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+  /* Enhanced focus for inputs with descriptions (palette-aware) */
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary), transparent 85%);
 }

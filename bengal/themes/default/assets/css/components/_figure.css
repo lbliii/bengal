@@ -260,15 +260,13 @@
    Dark Mode Adjustments
    ============================================================================= */
 
-@media (prefers-color-scheme: dark) {
-  .figure img {
-    /* Slight opacity reduction for better contrast */
-    opacity: 0.95;
-  }
+[data-theme="dark"] .figure img {
+  /* Slight opacity reduction for better contrast */
+  opacity: 0.95;
+}
 
-  .figure figcaption {
-    color: var(--color-text-muted, #aaa);
-  }
+[data-theme="dark"] .figure figcaption {
+  color: var(--color-text-muted, #aaa);
 }
 
 /* =============================================================================

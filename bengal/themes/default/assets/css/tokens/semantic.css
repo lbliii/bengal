@@ -7,86 +7,89 @@
  */
 
 :root {
+  color-scheme: light dark;
+
   /* ============================================
      SEMANTIC COLORS
      ============================================ */
 
   /* Primary Brand Color */
-  --color-primary: var(--blue-500);
-  --color-primary-hover: var(--blue-600);
-  --color-primary-active: var(--blue-700);
-  --color-primary-light: var(--blue-100);
-  --color-primary-dark: var(--blue-800);
+  --color-primary: light-dark(var(--blue-500), var(--blue-400));
+  --color-primary-hover: light-dark(var(--blue-600), var(--blue-300));
+  --color-primary-active: light-dark(var(--blue-700), var(--blue-200));
+  --color-primary-light: light-dark(var(--blue-100), rgba(59, 130, 246, 0.15));
+  --color-primary-dark: light-dark(var(--blue-800), var(--blue-200));
+  --color-primary-muted: color-mix(in oklab, var(--color-primary), transparent 75%);
 
   /* Secondary Brand Color */
-  --color-secondary: var(--green-500);
+  --color-secondary: light-dark(var(--green-500), var(--green-400));
   --color-secondary-hover: var(--green-600);
   --color-secondary-active: var(--green-700);
-  --color-secondary-light: var(--green-300);
+  --color-secondary-light: light-dark(var(--green-300), rgba(76, 175, 80, 0.15));
   --color-secondary-dark: var(--green-700);
 
   /* Accent Color */
-  --color-accent: var(--orange-500);
+  --color-accent: light-dark(var(--orange-500), var(--orange-400));
   --color-accent-hover: var(--orange-600);
   --color-accent-active: var(--orange-700);
-  --color-accent-light: var(--orange-300);
+  --color-accent-light: light-dark(var(--orange-300), rgba(251, 146, 60, 0.15));
   --color-accent-dark: var(--orange-700);
 
   /* Text Colors */
-  --color-text-primary: var(--gray-900);
-  --color-text-secondary: var(--gray-600);
-  --color-text-tertiary: var(--gray-500);
-  --color-text-muted: var(--gray-400);
-  --color-text-inverse: var(--white);
-  --color-text-link: var(--blue-600);
-  --color-text-link-hover: var(--blue-700);
-  --color-icon-on-accent: #ffffff;
+  --color-text-primary: light-dark(var(--gray-900), var(--gray-50));
+  --color-text-secondary: light-dark(var(--gray-600), var(--gray-400));
+  --color-text-tertiary: light-dark(var(--gray-500), var(--gray-500));
+  --color-text-muted: light-dark(var(--gray-400), var(--gray-600));
+  --color-text-inverse: light-dark(var(--white), var(--gray-900));
+  --color-text-link: light-dark(var(--blue-600), var(--blue-400));
+  --color-text-link-hover: light-dark(var(--blue-700), var(--blue-300));
+  --color-icon-on-accent: light-dark(#ffffff, #ffffff);
 
   /* Background Colors */
-  --color-bg-primary: var(--white);
-  --color-bg-secondary: var(--gray-50);
-  --color-bg-tertiary: var(--gray-100);
-  --color-bg-elevated: var(--gray-50);
-  --color-bg-overlay: rgba(0, 0, 0, 0.5);
-  --color-bg-hover: var(--gray-100);
-  --color-bg-active: var(--gray-200);
+  --color-bg-primary: light-dark(var(--white), #1a1a1a);
+  --color-bg-secondary: light-dark(var(--gray-50), #2d2d2d);
+  --color-bg-tertiary: light-dark(var(--gray-100), #3a3a3a);
+  --color-bg-elevated: light-dark(var(--gray-50), #252525);
+  --color-bg-overlay: light-dark(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+  --color-bg-hover: light-dark(var(--gray-100), #404040);
+  --color-bg-active: light-dark(var(--gray-200), #4a4a4a);
   --color-bg-pressed: linear-gradient(180deg, rgba(238, 238, 238, 0.96), rgba(226, 226, 226, 0.93));
-  --color-bg-code: var(--gray-50);
+  --color-bg-code: light-dark(var(--gray-50), #2d2d2d);
 
   /* Surface Colors */
-  --color-surface: var(--white);
+  --color-surface: light-dark(var(--white), #252525);
 
   /* Border Colors */
-  --color-border: var(--gray-300);
-  --color-border-light: var(--gray-200);
-  --color-border-strong: var(--gray-400);
-  --color-border-focus: var(--blue-500);
+  --color-border: light-dark(var(--gray-300), #404040);
+  --color-border-light: light-dark(var(--gray-200), #3a3a3a);
+  --color-border-strong: light-dark(var(--gray-400), #6c757d);
+  --color-border-focus: light-dark(var(--blue-500), var(--blue-400));
 
   /* Semantic State Colors */
-  --color-success: var(--green-600);
-  --color-success-bg: var(--green-50);
-  --color-success-border: var(--green-300);
-  --color-success-text: var(--green-900);
+  --color-success: light-dark(var(--green-600), var(--green-400));
+  --color-success-bg: light-dark(var(--green-50), rgba(76, 175, 80, 0.1));
+  --color-success-border: light-dark(var(--green-300), var(--green-700));
+  --color-success-text: light-dark(var(--green-900), var(--green-300));
 
-  --color-warning: var(--orange-600);
-  --color-warning-bg: var(--orange-50);
-  --color-warning-border: var(--orange-300);
-  --color-warning-text: var(--orange-900);
+  --color-warning: light-dark(var(--orange-600), var(--orange-400));
+  --color-warning-bg: light-dark(var(--orange-50), rgba(255, 152, 0, 0.1));
+  --color-warning-border: light-dark(var(--orange-300), var(--orange-700));
+  --color-warning-text: light-dark(var(--orange-900), var(--orange-200));
 
-  --color-error: var(--red-600);
-  --color-error-bg: var(--red-50);
-  --color-error-border: var(--red-300);
-  --color-error-text: var(--red-900);
+  --color-error: light-dark(var(--red-600), var(--red-400));
+  --color-error-bg: light-dark(var(--red-50), rgba(244, 67, 54, 0.1));
+  --color-error-border: light-dark(var(--red-300), var(--red-700));
+  --color-error-text: light-dark(var(--red-900), var(--red-200));
 
-  --color-info: var(--blue-600);
-  --color-info-bg: var(--blue-50);
-  --color-info-border: var(--blue-300);
-  --color-info-text: var(--blue-900);
+  --color-info: light-dark(var(--blue-600), var(--blue-400));
+  --color-info-bg: light-dark(var(--blue-50), rgba(33, 150, 243, 0.1));
+  --color-info-border: light-dark(var(--blue-300), var(--blue-700));
+  --color-info-text: light-dark(var(--blue-900), var(--blue-200));
 
-  --color-example: var(--violet-600);
-  --color-example-bg: var(--violet-50);
-  --color-example-border: var(--violet-300);
-  --color-example-text: var(--violet-900);
+  --color-example: light-dark(var(--violet-600), var(--violet-400));
+  --color-example-bg: light-dark(var(--violet-50), rgba(139, 92, 246, 0.1));
+  --color-example-border: light-dark(var(--violet-300), var(--violet-700));
+  --color-example-text: light-dark(var(--violet-900), var(--violet-300));
 
   /* Alert-specific semantic tokens (for alert component) */
   --color-alert-info: var(--color-info-text);
@@ -126,30 +129,30 @@
   --color-method-options-border: var(--gray-300);
 
   /* Danger/Error alias (for consistency) */
-  --color-danger: var(--red-600);
-  --color-danger-bg: var(--red-50);
-  --color-danger-border: var(--red-300);
-  --color-danger-light: var(--red-300);
+  --color-danger: light-dark(var(--red-600), var(--red-400));
+  --color-danger-bg: light-dark(var(--red-50), rgba(239, 68, 68, 0.1));
+  --color-danger-border: light-dark(var(--red-300), var(--red-700));
+  --color-danger-light: light-dark(var(--red-300), var(--red-700));
 
   /* Success alias (for badge consistency) */
-  --color-success-light: var(--green-300);
+  --color-success-light: light-dark(var(--green-300), var(--green-700));
 
   /* Info alias (for badge consistency) */
-  --color-info-light: var(--blue-300);
+  --color-info-light: light-dark(var(--blue-300), var(--blue-700));
 
   /* Warning alias (for badge consistency) */
-  --color-warning-light: var(--orange-300);
+  --color-warning-light: light-dark(var(--orange-300), var(--orange-700));
 
   /* Example alias (for badge consistency) */
-  --color-example-light: var(--violet-300);
+  --color-example-light: light-dark(var(--violet-300), var(--violet-700));
 
   /* API Documentation Colors */
-  --color-code-type: var(--blue-700);
-  --color-code-type-bg: var(--blue-50);
-  --color-code-keyword: var(--purple-600);
-  --color-code-string: var(--green-700);
-  --color-code-number: var(--orange-600);
-  --color-code-text: var(--gray-700);
+  --color-code-type: light-dark(var(--blue-700), var(--blue-400));
+  --color-code-type-bg: light-dark(var(--blue-50), rgba(59, 130, 246, 0.15));
+  --color-code-keyword: light-dark(var(--purple-600), var(--purple-400));
+  --color-code-string: light-dark(var(--green-700), var(--green-400));
+  --color-code-number: light-dark(var(--orange-600), var(--orange-400));
+  --color-code-text: light-dark(var(--gray-700), var(--gray-300));
 
   /* Blob Background Colors (for organic animations) - Palette-aware */
   /* Use primary, secondary, accent colors from current palette */
@@ -349,7 +352,6 @@
   --weight-body: var(--weight-normal);
   --weight-strong: var(--weight-semibold);
 
-
   /* Role-based weights */
   --type-weight-strong: var(--weight-strong);
   --type-weight-medium: var(--weight-medium);
@@ -383,7 +385,6 @@
   /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
 
   --elevation-none: var(--shadow-none);
-  --elevation-subtle: var(--shadow-xs);
   --elevation-low: var(--shadow-sm);
   --elevation-medium: var(--shadow-md);
   --elevation-high: var(--shadow-lg);
@@ -653,263 +654,77 @@
 }
 
 /* ============================================
-   DARK MODE OVERRIDES
+   DARK MODE: NON-COLOR TOKENS
+   (colors are light-dark() in :root; system preference is honored
+    via `color-scheme: light dark`)
    ============================================ */
 
 [data-theme="dark"] {
-  /* Text Colors */
-  --color-text-primary: var(--gray-50);
-  --color-text-secondary: var(--gray-400);
-  --color-text-tertiary: var(--gray-500);
-  --color-text-muted: var(--gray-600);
-  --color-text-inverse: var(--gray-900);
-  --color-text-link: var(--blue-400);
-  --color-text-link-hover: var(--blue-300);
-  --color-icon-on-accent: #ffffff;
-
-  /* Background Colors */
-  --color-bg-primary: #1a1a1a;
-  --color-bg-secondary: #2d2d2d;
-  --color-bg-tertiary: #3a3a3a;
-  --color-bg-elevated: #252525;
-  --color-bg-overlay: rgba(0, 0, 0, 0.7);
-  --color-bg-hover: #404040;
-  --color-bg-active: #4a4a4a;
+  /* Non-color dark values: light-dark() is <color>-only, so shadows,
+     neumorphic effects, the pressed gradient, and blob geometry stay here. */
   --color-bg-pressed: linear-gradient(180deg, rgba(30, 30, 30, 0.98), rgba(18, 18, 18, 0.96));
-  --color-bg-code: #2d2d2d;
-
-  /* Border Colors */
-  --color-border: #404040;
-  --color-border-light: #3a3a3a;
-  --color-border-strong: #6c757d;
-  --color-border-focus: var(--blue-400);
-
-  /* Semantic State Colors (Adjusted for dark mode) */
-  --color-success: var(--green-400);
-  --color-success-bg: rgba(76, 175, 80, 0.1);
-  --color-success-border: var(--green-700);
-  --color-success-text: var(--green-300);
-
-  --color-warning: var(--orange-400);
-  --color-warning-bg: rgba(255, 152, 0, 0.1);
-  --color-warning-border: var(--orange-700);
-  --color-warning-text: var(--orange-200);
-
-  --color-error: var(--red-400);
-  --color-error-bg: rgba(244, 67, 54, 0.1);
-  --color-error-border: var(--red-700);
-  --color-error-text: var(--red-200);
-
-  --color-info: var(--blue-400);
-  --color-info-bg: rgba(33, 150, 243, 0.1);
-  --color-info-border: var(--blue-700);
-  --color-info-text: var(--blue-200);
-
-  --color-example: var(--violet-400);
-  --color-example-bg: rgba(139, 92, 246, 0.1);
-  --color-example-border: var(--violet-700);
-  --color-example-text: var(--violet-300);
-
-  /* Danger/Error alias (for consistency) */
-  --color-danger: var(--red-400);
-  --color-danger-bg: rgba(239, 68, 68, 0.1);
-  --color-danger-border: var(--red-700);
-  --color-danger-light: var(--red-700);
-
-  /* Success alias (for badge consistency) */
-  --color-success-light: var(--green-700);
-
-  /* Info alias (for badge consistency) */
-  --color-info-light: var(--blue-700);
-
-  /* Warning alias (for badge consistency) */
-  --color-warning-light: var(--orange-700);
-
-  /* Example alias (for badge consistency) */
-  --color-example-light: var(--violet-700);
-
-  /* API Documentation Colors (dark mode) */
-  --color-code-type: var(--blue-400);
-  --color-code-type-bg: rgba(59, 130, 246, 0.15);
-  --color-code-keyword: var(--purple-400);
-  --color-code-string: var(--green-400);
-  --color-code-number: var(--orange-400);
-  --color-code-text: var(--gray-300);
-
-  /* Shadows (Deeper for dark mode) */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-
-  /* Component-Specific Elevations (Dark mode) */
   --elevation-card: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   --elevation-card-hover: 0 12px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
   --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.25);
   --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.45), inset -1px -1px 2px rgba(255, 255, 255, 0.12);
-
-  /* Neumorphic Shadows (Dark mode) */
-  --neumorphic-base:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+  --neumorphic-base: inset 0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
     1px 1px 3px rgba(0, 0, 0, 0.25),
     -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
-
-  --neumorphic-hover:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+  --neumorphic-hover: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
     2px 2px 6px rgba(0, 0, 0, 0.35),
     -1px -1px 3px rgba(255, 255, 255, 0.08);
-
-  --neumorphic-pressed:
-    inset 2px 2px 4px rgba(0, 0, 0, 0.5),
+  --neumorphic-pressed: inset 2px 2px 4px rgba(0, 0, 0, 0.5),
     inset -1px -1px 2px rgba(255, 255, 255, 0.08),
     0 1px 1px rgba(0, 0, 0, 0.2);
-
-  --neumorphic-subtle:
-    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
+  --neumorphic-subtle: inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
     1px 1px 3px rgba(0, 0, 0, 0.25),
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.05);
-
-  --neumorphic-subtle-pressed:
-    inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
+  --neumorphic-subtle-pressed: inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
     inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.08),
     0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
-
-  /* Neumorphic active - selected/current item (dark mode) */
-  --neumorphic-active:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+  --neumorphic-active: inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 1px 3px rgba(0, 0, 0, 0.4),
     0 2px 0 #000;
-
-  /* Enhanced neumorphic shadows (dark mode) */
-  --neumorphic-enhanced-base:
-    /* Neumorphic layers (dark mode tactile feel) */
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+  --neumorphic-enhanced-base: inset 0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
-    /* Border-defining shadow (refined edge) */
     0 0 0 1px rgba(255, 255, 255, 0.05),
-    /* Depth layers (multi-layer technique) */
     0 1px 2px rgba(0, 0, 0, 0.3),
     0 2px 4px rgba(0, 0, 0, 0.25),
-    /* Neumorphic highlight */
     -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
-
-  --neumorphic-enhanced-hover:
-    /* Enhanced neumorphic (dark mode) */
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+  --neumorphic-enhanced-hover: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
-    /* Refined border + depth */
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 2px 4px rgba(0, 0, 0, 0.4),
     0 4px 8px rgba(0, 0, 0, 0.35),
-    /* Neumorphic highlight */
     -1px -1px 3px rgba(255, 255, 255, 0.08);
-
-  --neumorphic-enhanced-subtle:
-    /* Neumorphic subtle (dark mode) */
-    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
+  --neumorphic-enhanced-subtle: inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
-    /* Border-defining shadow */
     0 0 0 1px rgba(255, 255, 255, 0.04),
-    /* Depth layer */
     0 1px 2px rgba(0, 0, 0, 0.25),
-    /* Neumorphic highlight */
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.05);
-
-  /* Refined border tokens (dark mode) */
   --border-refined-subtle: 1px solid rgba(255, 255, 255, 0.05);
   --border-refined-base: 1px solid rgba(255, 255, 255, 0.08);
   --border-refined-strong: 1px solid rgba(255, 255, 255, 0.1);
-
-  /* Surface Colors (Dark mode) */
-  --color-surface: #252525;
-
-  /* Slightly adjust primary colors for better contrast in dark mode */
-  --color-primary: var(--blue-400);
-  --color-primary-hover: var(--blue-300);
-  --color-primary-active: var(--blue-200);
-  --color-primary-light: rgba(59, 130, 246, 0.15);
-  --color-primary-dark: var(--blue-200);
-  --color-secondary: var(--green-400);
-  --color-secondary-light: rgba(76, 175, 80, 0.15);
-  --color-accent: var(--orange-400);
-  --color-accent-light: rgba(251, 146, 60, 0.15);
-
-  /* Blob Background Colors (Dark Mode) - More vibrant, lower opacity */
-  /* Use palette colors - they're already adjusted for dark mode */
-  --color-blob-1: var(--color-primary);
-  --color-blob-2: var(--color-secondary);
-  --color-blob-3: var(--color-accent);
-  --color-blob-4: var(--color-primary-light);
   --color-blob-opacity: 0.12;
   --color-blob-blur: 80px;
-
-  /* Blob colors for cards and components (dark mode) */
-  --blob-color-1: var(--color-primary);
-  --blob-color-2: var(--color-secondary);
-  --blob-color-3: var(--color-accent);
 }
 
-/* ============================================
-   AUTOMATIC DARK MODE (System Preference)
-   ============================================ */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    /* Apply same dark mode overrides */
-    --color-text-primary: var(--gray-50);
-    --color-text-secondary: var(--gray-400);
-    --color-text-tertiary: var(--gray-500);
-    --color-text-muted: var(--gray-600);
-    --color-text-inverse: var(--gray-900);
-    --color-text-link: var(--blue-400);
-    --color-text-link-hover: var(--blue-300);
-    --color-icon-on-accent: #ffffff;
-
-    --color-bg-primary: #1a1a1a;
-    --color-bg-secondary: #2d2d2d;
-    --color-bg-tertiary: #3a3a3a;
-    --color-bg-elevated: #252525;
-    --color-bg-overlay: rgba(0, 0, 0, 0.7);
-    --color-bg-hover: #404040;
-    --color-bg-active: #4a4a4a;
-    --color-bg-code: #2d2d2d;
-
-    --color-border: #404040;
-    --color-border-light: #3a3a3a;
-    --color-border-strong: #6c757d;
-
-    --color-primary: var(--blue-400);
-    --color-primary-hover: var(--blue-300);
-    --color-primary-light: rgba(59, 130, 246, 0.15);
-    --color-primary-dark: var(--blue-200);
-    --color-secondary: var(--green-400);
-    --color-secondary-light: rgba(76, 175, 80, 0.15);
-    --color-accent: var(--orange-400);
-    --color-accent-light: rgba(251, 146, 60, 0.15);
-
-    /* Blob Background Colors (System Dark Mode) */
-    --color-blob-1: var(--color-primary);
-    --color-blob-2: var(--color-secondary);
-    --color-blob-3: var(--color-accent);
-    --color-blob-4: var(--color-primary-light);
-    --color-blob-opacity: 0.12;
-    --color-blob-blur: 80px;
-
-    /* Blob colors for cards and components (system dark mode) */
-    --blob-color-1: var(--color-primary);
-    --blob-color-2: var(--color-secondary);
-    --blob-color-3: var(--color-accent);
-  }
-}
 
 /* ============================================
    ACCESSIBILITY: REDUCED MOTION
