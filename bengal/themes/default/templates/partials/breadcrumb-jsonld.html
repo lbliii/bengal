@@ -1,0 +1,23 @@
+{# BreadcrumbList JSON-LD — emitted once in <head> from base.html #}
+{% if page %}
+{% with get_breadcrumbs(page) as breadcrumb_items %}
+{% if breadcrumb_items | length > 0 %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {% for item in breadcrumb_items %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "name": {{ item.title | tojson }},
+      "item": {{ (item.href | absolute_url) | tojson }}
+    }{{ "," if not loop.last else "" }}
+    {% endfor %}
+  ]
+}
+</script>
+{% end %}
+{% end %}
+{% end %}

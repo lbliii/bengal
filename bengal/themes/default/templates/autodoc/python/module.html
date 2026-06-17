@@ -45,8 +45,8 @@ KIDA FEATURES USED:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Use direct macro call with explicit context #}
-    {% from 'partials/page-hero.html' import hero_element %}
+    {# Page Hero: Use direct macro from _macros (page-hero.html is the dispatcher include) #}
+    {% from 'partials/page-hero/_macros.html' import hero_element %}
     {{ hero_element(element, page, config) }}
 
     {# Article Content - Unified autodoc skeleton #}

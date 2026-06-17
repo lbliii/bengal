@@ -2,9 +2,12 @@
 
 from bengal.rendering.template_functions.seo import (
     canonical_url,
+    is_collection_page,
     meta_description,
     meta_keywords,
     og_image,
+    og_type,
+    structured_data_type,
 )
 
 
@@ -94,3 +97,63 @@ class TestOgImage:
     def test_empty_path(self):
         result = og_image("", "https://example.com")
         assert result == ""
+
+
+class TestOgType:
+    """Tests for og_type and structured_data_type helpers."""
+
+    def test_home_page(self):
+        page = type("Page", (), {"is_home": True, "_path": "/", "metadata": {}})()
+        assert og_type(page) == "website"
+        assert structured_data_type(page) == "WebSite"
+
+    def test_doc_page(self):
+        page = type(
+            "Page",
+            (),
+            {"is_home": False, "type": "doc", "_path": "/docs/guide/", "metadata": {"type": "doc"}},
+        )()
+        assert og_type(page) == "article"
+        assert structured_data_type(page) is None
+
+    def test_section_page(self):
+        page = type(
+            "Page",
+            (),
+            {
+                "kind": "section",
+                "is_home": False,
+                "_path": "/blog/",
+                "metadata": {},
+                "title": "Blog",
+            },
+        )()
+        assert og_type(page) == "website"
+        assert structured_data_type(page) == "CollectionPage"
+
+    def test_frontmatter_override(self):
+        page = type(
+            "Page",
+            (),
+            {"is_home": False, "metadata": {"og_type": "profile"}, "_path": "/about/"},
+        )()
+        assert og_type(page) == "profile"
+
+    def test_none_page(self):
+        assert og_type(None) == "website"
+        assert structured_data_type(None) is None
+
+    def test_tag_index_collection(self):
+        page = type(
+            "Page",
+            (),
+            {
+                "is_home": False,
+                "_path": "/tags/",
+                "metadata": {"type": "tag-index"},
+                "title": "Tags",
+            },
+        )()
+        assert is_collection_page(page)
+        assert og_type(page) == "website"
+        assert structured_data_type(page) == "CollectionPage"

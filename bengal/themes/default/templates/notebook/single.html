@@ -31,7 +31,7 @@ KIDA FEATURES USED:
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/navigation-components.html' import page_navigation %}
 {% from 'partials/page-hero/_macros.html' import _breadcrumb_eyebrow, _share_dropdown %}
 {% from 'partials/components/tags.html' import tag_list %}
 
@@ -152,19 +152,8 @@ MAIN TEMPLATE
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: Contextual Graph + TOC (empty aside when no toc → CSS collapses) #}
-  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {% if toc_items %}
-    {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
-    {% if show_graph %}
-    <div class="graph-contextual" data-page-url="{{ page_href }}">
-      <div class="graph-contextual-container graph-loading"></div>
-    </div>
-    {% end %}
-
-    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
-    {% end %}
-  </aside>
+  {# Right Sidebar: Contextual Graph + TOC #}
+  {% include 'partials/docs-toc-sidebar.html' %}
 </div>
 
 {# Mobile sidebar toggle button #}

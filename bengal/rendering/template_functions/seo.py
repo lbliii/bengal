@@ -15,10 +15,128 @@ Extended for social cards:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
+
+# Content types that render as articles (og:type=article; JSON-LD via article-jsonld.html)
+_ARTICLE_PAGE_TYPES = frozenset(
+    {
+        "post",
+        "doc",
+        "tutorial",
+        "changelog",
+        "notebook",
+        "blog",
+        "autodoc-python",
+        "autodoc-cli",
+        "autodoc-rest",
+    }
+)
+
+# List/index surfaces that emit CollectionPage JSON-LD (not article-jsonld)
+_COLLECTION_PAGE_TYPES = frozenset(
+    {
+        "tag-index",
+        "tags",
+        "archive",
+        "category-browser",
+    }
+)
+
+
+def _page_metadata(page: PageLike) -> dict[str, Any]:
+    meta = getattr(page, "metadata", None)
+    return meta if isinstance(meta, dict) else {}
+
+
+def _page_path(page: PageLike) -> str:
+    path = getattr(page, "_path", None)
+    if isinstance(path, str):
+        return path
+    href = getattr(page, "href", None)
+    if isinstance(href, str):
+        return href
+    return ""
+
+
+def is_home_page(page: PageLike | None) -> bool:
+    """Return True when ``page`` is the site home/landing surface."""
+    if page is None:
+        return False
+    if getattr(page, "is_home", False):
+        return True
+    kind = getattr(page, "kind", None)
+    if kind == "home":
+        return True
+    path = _page_path(page)
+    normalized = path.rstrip("/")
+    return normalized in ("", "/") or getattr(page, "slug", None) in ("index", "_index", "home")
+
+
+def is_collection_page(page: PageLike | None) -> bool:
+    """Return True for section/list index surfaces (CollectionPage JSON-LD)."""
+    if page is None or is_home_page(page):
+        return False
+    kind = getattr(page, "kind", None)
+    if kind == "section":
+        return True
+    if getattr(page, "is_section", False):
+        return True
+    meta = _page_metadata(page)
+    if meta.get("is_section_index"):
+        return True
+    # Section objects expose subsections but not source-backed page files.
+    if hasattr(page, "subsections") and not hasattr(page, "source_path"):
+        return True
+    page_type = getattr(page, "type", None) or meta.get("type")
+    return page_type in _COLLECTION_PAGE_TYPES
+
+
+def og_type(page: PageLike | None = None) -> str:
+    """
+    Open Graph ``og:type`` value for a page.
+
+    Honors frontmatter ``og_type`` when set. Home and list/index surfaces use
+    ``website``; docs/posts use ``article``.
+    """
+    if page is None:
+        return "website"
+
+    meta = _page_metadata(page)
+    custom = meta.get("og_type")
+    if custom:
+        return str(custom)
+
+    if is_home_page(page) or is_collection_page(page):
+        return "website"
+
+    page_type = getattr(page, "type", None) or meta.get("type")
+    if page_type in _ARTICLE_PAGE_TYPES:
+        return "article"
+    if page_type in ("author", "profile"):
+        return "profile"
+    if page_type == "product":
+        return "product"
+
+    return "website"
+
+
+def structured_data_type(page: PageLike | None = None) -> str | None:
+    """
+    JSON-LD @type for page-level schema emitted in base.html head.
+
+    Returns ``WebSite`` or ``CollectionPage`` for landing/list surfaces.
+    Returns ``None`` when article-jsonld.html owns the page schema.
+    """
+    if page is None:
+        return None
+    if is_home_page(page):
+        return "WebSite"
+    if is_collection_page(page):
+        return "CollectionPage"
+    return None
 
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
@@ -58,6 +176,8 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "canonical_url": canonical_url_with_site,
             "og_image": og_image_with_site,
             "get_social_card_url": get_social_card_url_with_site,
+            "og_type": og_type,
+            "structured_data_type": structured_data_type,
         }
     )
 

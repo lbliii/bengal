@@ -29,6 +29,19 @@ class TestGetBreadcrumbs:
 
         assert result == []
 
+    def test_non_iterable_ancestors_falls_back(self):
+        """Mock/non-iterable ancestors (e.g. unittest.Mock auto-attrs) are ignored."""
+        page = Mock()
+        page._path = "/docs/guide/"
+        page.title = "Guide"
+
+        result = get_breadcrumbs(page)
+
+        assert len(result) == 2
+        assert result[0]["title"] == "Home"
+        assert result[1]["title"] == "Guide"
+        assert result[1]["is_current"] is True
+
     def test_basic_breadcrumbs(self):
         """Basic breadcrumb generation with ancestors."""
         # Create mock ancestors
