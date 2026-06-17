@@ -232,7 +232,9 @@ class RuntimePage:
 
         git_dates = None
         if self._site is not None:
-            git_dates = getattr(self._site, "git_lastmod_by_source", None)
+            raw_git_dates = getattr(self._site, "git_lastmod_by_source", None)
+            if isinstance(raw_git_dates, dict):
+                git_dates = raw_git_dates
         return resolve_page_lastmod(self, git_dates=git_dates)
 
     @property

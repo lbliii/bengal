@@ -383,7 +383,9 @@ class PageJSONGenerator:
         git_dates = None
         site = getattr(self, "site", None)
         if site is not None:
-            git_dates = getattr(site, "git_lastmod_by_source", None)
+            raw_git_dates = getattr(site, "git_lastmod_by_source", None)
+            if isinstance(raw_git_dates, dict):
+                git_dates = raw_git_dates
         return resolve_page_lastmod_iso(page, git_dates=git_dates)
 
     def _build_graph_indexes(self, graph_data: dict[str, Any]) -> None:
