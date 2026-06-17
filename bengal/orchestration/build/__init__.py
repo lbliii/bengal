@@ -456,6 +456,9 @@ class BuildOrchestrator:
             # Phase 1: Font Processing
             initialization.phase_fonts(self, cli, collector=output_collector)
 
+            # Phase 1b: Capability vendor provisioning (opt-in Mermaid/D3/KaTeX/Iconify)
+            initialization.phase_capabilities(self, cli)
+
             # Phase 1.5: Template Validation (optional, controlled by config)
             initialization.phase_template_validation(self, cli, strict=strict)
 

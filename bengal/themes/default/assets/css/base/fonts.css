@@ -1,21 +1,13 @@
 /**
  * Bengal SSG - Font Loading
  *
- * Default display font: Instrument Serif
- * Uses font-display: swap to prevent FOIT (Flash of Invisible Text)
+ * Display typography uses the system serif stack by default.
+ * Self-hosted fonts are opt-in via bengal.toml [fonts] — see bengal/fonts/.
  *
  * Override via bengal.toml:
  *   [fonts]
  *   display = "Your Font:400,700"
  */
-
-/* ===========================================
-   GOOGLE FONTS IMPORT
-   Instrument Serif - elegant, modern serif
-   Subset: Latin only (~25KB)
-   =========================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
 /* ===========================================
    FONT VARIABLES
@@ -24,12 +16,10 @@
 
 :root {
   /*
-   * Default display font - Instrument Serif
-   * This can be overridden by:
-   * 1. --font-display from bengal.toml [fonts] config
-   * 2. Custom CSS override
+   * Default display font — Georgia serif stack (no runtime network fetch).
+   * Overridden when [fonts] config emits self-hosted @font-face rules.
    */
-  --font-display-default: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-display-default: Georgia, 'Times New Roman', serif;
 }
 
 /* ===========================================

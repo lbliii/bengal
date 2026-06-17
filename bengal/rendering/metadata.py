@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
@@ -100,9 +101,10 @@ def _get_i18n_info(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _get_capabilities() -> dict[str, bool]:
+def _get_capabilities(site: SiteLike | None = None) -> dict[str, bool]:
     """
-    Detect runtime capabilities based on installed optional dependencies.
+    Detect runtime capabilities based on installed optional dependencies
+    and opt-in self-hosted vendor capabilities (#550).
 
     These are checked once at build time and cached. Templates can use these
     to conditionally enable features (e.g., only emit search-index.json meta
@@ -121,6 +123,13 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
     capabilities["remote_content"] = importlib.util.find_spec("aiohttp") is not None
+
+    if site is not None:
+        from bengal.capabilities.runtime import resolve_runtime_capabilities, vendor_dir_for_site
+
+        config = getattr(site, "config", {}) or {}
+        vendor_dir = vendor_dir_for_site(getattr(site, "root_path", Path()))
+        capabilities.update(resolve_runtime_capabilities(config, vendor_dir))
 
     return capabilities
 
@@ -149,6 +158,9 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
     if not getattr(site, "dev_mode", False):
         try:
             i18n_info = _get_i18n_info(config)
+            caps_cfg = (
+                config.get("capabilities") if isinstance(config.get("capabilities"), dict) else {}
+            )
             cache_key = (
                 exposure,
                 getattr(site, "theme", None),
@@ -159,6 +171,7 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
                 i18n_info.get("strategy"),
                 i18n_info.get("defaultLanguage"),
                 tuple(i18n_info.get("languages") or []),
+                tuple(sorted((k, bool(v)) for k, v in (caps_cfg or {}).items())),
             )
             _bs = getattr(site, "build_state", None)
             cached = (
@@ -207,7 +220,7 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
     }
 
     i18n = _get_i18n_info(config)
-    capabilities = _get_capabilities()
+    capabilities = _get_capabilities(site)
 
     full = {
         "engine": engine,

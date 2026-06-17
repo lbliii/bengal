@@ -333,6 +333,16 @@ DEFAULTS: dict[str, Any] = {
         "path": "/graph/",
     },
     # -------------------------------------------------------------------------
+    # Runtime capabilities (opt-in heavy JS — self-hosted, off by default)
+    # Enable in bengal.toml; vendors download to assets/vendor/ at build time.
+    # -------------------------------------------------------------------------
+    "capabilities": {
+        "mermaid": False,
+        "d3": False,
+        "katex": False,
+        "iconify": False,
+    },
+    # -------------------------------------------------------------------------
     # i18n
     # -------------------------------------------------------------------------
     "i18n": {

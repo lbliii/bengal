@@ -60,6 +60,10 @@ h1, h2, h3, h4, h5, h6 {
   word-break: break-word;
 }
 
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
 h1 {
   font-family: var(--font-heading-display);
   font-size: var(--text-h1);
@@ -736,6 +740,7 @@ dd {
 
 .prose {
   max-width: var(--prose-width);
+  text-wrap: pretty;
 }
 
 .prose > * + * {

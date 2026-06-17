@@ -100,11 +100,12 @@
      */
     function loadMermaid() {
         if (loaded.mermaid || pending.mermaid) return;
+        if (!assets.mermaid) return;
 
         pending.mermaid = true;
         loaded.mermaid = true;
 
-        loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js', initMermaid);
+        loadScript(assets.mermaid, initMermaid);
     }
 
     /**
@@ -124,11 +125,12 @@
      */
     function loadD3() {
         if (loaded.d3 || pending.d3) return;
+        if (!assets.d3) return;
 
         pending.d3 = true;
         loaded.d3 = true;
 
-        loadScript('https://d3js.org/d3.v7.min.js', initD3Graphs);
+        loadScript(assets.d3, initD3Graphs);
     }
 
     /**
@@ -193,12 +195,12 @@
         const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 2000));
 
         scheduleIdle(() => {
-            // Only preload if elements exist on page (will be needed eventually)
-            if (document.querySelector('.mermaid') && !loaded.mermaid) {
-                preloadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js');
+            // Only preload if self-hosted asset URLs are configured (#550)
+            if (document.querySelector('.mermaid') && !loaded.mermaid && assets.mermaid) {
+                preloadScript(assets.mermaid);
             }
-            if (document.querySelector('.graph-minimap, .graph-contextual, [data-graph]') && !loaded.d3) {
-                preloadScript('https://d3js.org/d3.v7.min.js');
+            if (document.querySelector('.graph-minimap, .graph-contextual, [data-graph]') && !loaded.d3 && assets.d3) {
+                preloadScript(assets.d3);
             }
         }, { timeout: 3000 });
     }
