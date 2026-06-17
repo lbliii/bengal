@@ -26,7 +26,39 @@
     function getCSSVariable(variable, fallback = '#000000', cachedStyles = null) {
         const styles = cachedStyles || getComputedStyle(document.documentElement);
         const value = styles.getPropertyValue(variable).trim();
-        return value || fallback;
+        if (!value) return fallback;
+        // Derived palette tokens are authored as relative-color / color-mix
+        // expressions (e.g. "oklch(from var(--color-primary) calc(l - 0.07) c h)").
+        // getPropertyValue returns these unevaluated for unregistered custom
+        // properties, which Mermaid's color parser cannot consume. Resolve them to
+        // a concrete sRGB value before handing them to Mermaid.
+        if (value.includes('from ') || value.includes('color-mix')) {
+            return resolveColor('var(' + variable + ')') || fallback;
+        }
+        return value;
+    }
+
+    /**
+     * Resolve any CSS color expression (var / relative-color / color-mix) to a
+     * Mermaid-parseable sRGB value by letting the browser compute it on a probe
+     * element, then normalizing the serialization through a canvas context.
+     * @param {string} expr - a CSS <color> value, e.g. 'var(--color-primary-hover)'
+     */
+    function resolveColor(expr) {
+        const probe = document.createElement('span');
+        probe.style.color = expr;
+        probe.style.display = 'none';
+        document.documentElement.appendChild(probe);
+        const computed = getComputedStyle(probe).color; // absolute color: no var/relative
+        probe.remove();
+        if (!computed) return '';
+        try {
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = computed; // canvas normalizes to #rrggbb / rgba(...)
+            return ctx.fillStyle;
+        } catch (e) {
+            return computed;
+        }
     }
 
     /**

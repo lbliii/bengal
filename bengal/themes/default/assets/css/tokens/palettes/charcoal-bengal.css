@@ -16,72 +16,73 @@
 :root[data-palette="charcoal-bengal"],
 html[data-palette="charcoal-bengal"] {
     /* Primary (true ink black - the rosette markings) */
-    --color-primary: #1A1D21;
-    --color-primary-hover: #0D0F12;
-    --color-primary-active: #050607;
-    --color-primary-light: #E5E6E8;
-    --color-primary-dark: #000000;
+    --color-primary: oklch(22.93% 0.0090 255.6);
+    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
+    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
+    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
+    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
 
     /* Backgrounds (smoke gray with subtle warmth - the base coat) */
-    --color-bg-primary: #F7F6F5;
-    --color-bg-secondary: #EDECEA;
-    --color-bg-tertiary: #E0DEDA;
-    --color-bg-elevated: #FDFCFB;
-    --color-bg-overlay: rgba(0, 0, 0, 0.8);
-    --color-bg-hover: #E8E6E3;
-    --color-bg-active: #DBD8D4;
-    --color-bg-code: #F0EFED;
+    --color-bg-primary: oklch(97.36% 0.0017 67.8);
+    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
+    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
+    --color-bg-elevated: oklch(99.16% 0.0017 67.8);
+    --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
+    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
+    --color-bg-active: oklch(88.35% 0.0064 75.4);
+    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
 
     /* Text (rich blacks with warm undertone) */
-    --color-text-primary: #0A0908;
-    --color-text-secondary: #36322E;
-    --color-text-tertiary: #5A554F;
-    --color-text-muted: #7D776F;
-    --color-text-inverse: #FDFCFB;
-    --color-text-link: #8B6914;
-    --color-text-link-hover: #6B5010;
+    --color-text-primary: oklch(14.06% 0.0030 69.4);
+    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
+    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
+    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
+    --color-text-inverse: oklch(99.16% 0.0017 67.8);
+    /* Charcoal's primary is achromatic ink, so links/focus use the bronze accent for affordance */
+    --color-text-link: var(--color-accent);
+    --color-text-link-hover: var(--color-accent-hover);
 
     /* Borders (warm grays - charcoal mask effect) */
-    --color-border: #C9C5BF;
-    --color-border-light: #DDD9D4;
-    --color-border-strong: #9A958D;
-    --color-border-focus: #8B6914;
+    --color-border: oklch(82.49% 0.0094 78.3);
+    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
+    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border-focus: var(--color-accent);
 
     /* Semantic states (warmer, richer tones) */
-    --color-success: #3D6B4A;
-    --color-success-bg: #F0F6F2;
-    --color-success-border: #8BAA96;
-    --color-success-text: #274432;
+    --color-success: oklch(48.49% 0.0736 151.9);
+    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
+    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
+    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
 
-    --color-warning: #B8860B;
-    --color-warning-bg: #FDF8EE;
-    --color-warning-border: #D4A84B;
-    --color-warning-text: #7A5A08;
+    --color-warning: oklch(65.21% 0.1322 81.6);
+    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
+    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
+    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
 
-    --color-error: #A63D3D;
-    --color-error-bg: #FDF2F2;
-    --color-error-border: #D49A9A;
-    --color-error-text: #6B2626;
+    --color-error: oklch(50.69% 0.1391 23.5);
+    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
+    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
+    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
 
-    --color-info: #3D6B8B;
-    --color-info-bg: #F0F5F8;
-    --color-info-border: #8AAABF;
-    --color-info-text: #274456;
+    --color-info: oklch(50.87% 0.0719 240.5);
+    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
+    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
+    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
 
     /* Accent color (bronze/copper "glitter" - the metallic sheen) */
-    --color-accent: #8B6914;
-    --color-accent-hover: #A67D1A;
-    --color-accent-active: #6B5010;
-    --color-accent-light: #C9A84D;
-    --color-accent-dark: #4A3808;
+    --color-accent: oklch(54.09% 0.1041 84.4);
+    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
+    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
+    --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (high contrast with warm accents) */
-    --color-code-type: #8B6914;
-    --color-code-type-bg: #F5F3EF;
-    --color-code-keyword: #1A1D21;
-    --color-code-string: #3D6B4A;
-    --color-code-number: #A65D3D;
-    --color-code-text: #36322E;
+    --color-code-type: oklch(54.09% 0.1041 84.4);
+    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
+    --color-code-keyword: oklch(22.93% 0.0090 255.6);
+    --color-code-string: oklch(48.49% 0.0736 151.9);
+    --color-code-number: oklch(55.60% 0.1059 43.8);
+    --color-code-text: oklch(31.99% 0.0090 67.5);
 
 }
 

@@ -69,11 +69,9 @@
     transform: translate3d(0, -1px, 0);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .contact-item:hover {
-        color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .contact-item:hover {
+      color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .contact-icon {
     font-size: var(--text-base);
@@ -111,11 +109,9 @@
         -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .resume-summary:hover {
-        border-inline-start-color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .resume-summary:hover {
+      border-inline-start-color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .summary-text {
     font-size: var(--text-lg);
@@ -208,11 +204,9 @@
     transform: translate3d(0, 0, 0) scale(1.2);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .timeline-item:hover::before {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .timeline-item:hover::before {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .timeline-header {
     display: flex;
@@ -246,11 +240,9 @@
     text-decoration: underline;
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .timeline-title a:hover {
-        color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .timeline-title a:hover {
+      color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .timeline-company {
     font-size: var(--text-base);
@@ -368,11 +360,9 @@
         -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .skill-card:hover {
-        background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
-    }
-}
+  .skill-card:hover {
+      background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
+  }
 
 .skill-category {
     font-size: var(--text-base);
@@ -413,11 +403,9 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .skill-tag:hover {
-        border-color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .skill-tag:hover {
+      border-color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 /* ============================================
    PROJECTS SECTION
@@ -454,11 +442,9 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .project-link:hover {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .project-link:hover {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .project-link:active {
     transform: translate3d(0, 0, 0);
@@ -536,11 +522,9 @@
     transform: translate3d(2px, 0, 0);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .certification-link:hover {
-        color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .certification-link:hover {
+      color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 /* ============================================
    AWARDS SECTION
@@ -577,11 +561,9 @@
         -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .award-item:hover {
-        border-inline-start-color: color-mix(in srgb, var(--color-warning) 90%, black);
-    }
-}
+  .award-item:hover {
+      border-inline-start-color: color-mix(in srgb, var(--color-warning) 90%, black);
+  }
 
 .award-name {
     font-size: var(--text-base);

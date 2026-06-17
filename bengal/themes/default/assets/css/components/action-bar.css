@@ -134,22 +134,6 @@
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .action-bar::before {
-    background: radial-gradient(circle,
-        rgba(59, 130, 246, 0.1) 0%,
-        rgba(76, 175, 80, 0.06) 40%,
-        transparent 70%);
-  }
-
-  .action-bar::after {
-    background: radial-gradient(circle,
-        rgba(76, 175, 80, 0.09) 0%,
-        rgba(255, 152, 0, 0.05) 35%,
-        transparent 65%);
-  }
-}
-
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .action-bar::before,

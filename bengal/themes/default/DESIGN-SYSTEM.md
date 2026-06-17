@@ -36,6 +36,18 @@ Entry point: `assets/css/style.css`. Tree-shaking manifest: `css_manifest.py`.
 2. **Semantic** (`tokens/semantic.css`) — purpose-based tokens consumed by components.
 3. **Palettes** (`tokens/palettes/*.css`) — named, switchable via `data-palette`.
 
+### Color model (OKLCH, #534)
+
+Color primitives and all palettes are authored in **OKLCH**. A palette's light
+block is a small set of **anchors** (`--color-primary`, `--color-accent`,
+`--color-bg-primary`, `--color-bg-active`, `--color-bg-elevated`, `--color-border`,
+`--color-text-primary`, the four state colors, and the code-syntax colors);
+every hover/active/dark/light, surface tint, border, text shade, and state
+variant is **derived** from those anchors via relative-color
+(`oklch(from var(--anchor) calc(l - 0.07) c h)`) or `color-mix(in oklab, …)`.
+Retuning a palette means editing the anchors, not a hand-painted matrix. The
+dark-mode mechanism is owned separately (#535).
+
 ### JavaScript model
 
 Progressive enhancement via `data-bengal` attributes and the `Bengal.enhance` registry (`bengal-enhance.js`). Heavy libraries (Mermaid, D3, KaTeX) are **opt-in, self-hosted capabilities** — never loaded from CDN in default output. Enable in `bengal.toml`:

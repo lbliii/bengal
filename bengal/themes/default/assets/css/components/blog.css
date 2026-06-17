@@ -295,20 +295,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-
-    .blog-featured-grid .article-card::before,
-    .blog-post-list .article-card::before,
-    .blog-post-list .blog-post-card::before,
-    .blog-home-posts-grid .article-card::before,
-    .archive-list--tag .article-card::before {
-        background: radial-gradient(circle at 40% 40%,
-                rgba(59, 130, 246, 0.06) 0%,
-                rgba(139, 92, 246, 0.04) 25%,
-                transparent 50%);
-    }
-}
-
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
 
@@ -1284,15 +1270,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-    .recent-posts .post-card::before {
-        background: radial-gradient(circle at 40% 40%,
-                rgba(59, 130, 246, 0.06) 0%,
-                rgba(139, 92, 246, 0.04) 25%,
-                transparent 50%);
-    }
-}
-
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .recent-posts .post-card::before {

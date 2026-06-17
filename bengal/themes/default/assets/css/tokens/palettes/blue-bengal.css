@@ -9,72 +9,72 @@
 :root[data-palette="blue-bengal"],
 html[data-palette="blue-bengal"] {
     /* Primary (soft powder blue - PASTEL) */
-    --color-primary: #7FA3C3;
-    --color-primary-hover: #6991B5;
-    --color-primary-active: #5680A7;
-    --color-primary-light: #F2F6FA;
-    --color-primary-dark: #4A6E91;
+    --color-primary: oklch(70.04% 0.0616 245.7);
+    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
+    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
+    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
+    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
 
     /* Backgrounds (airy powder blue tints - VERY SOFT) */
-    --color-bg-primary: #FAFCFD;
-    --color-bg-secondary: #F4F8FC;
-    --color-bg-tertiary: #EDF4FB;
-    --color-bg-elevated: #FFFFFF;
-    --color-bg-overlay: rgba(79, 128, 167, 0.4);
-    --color-bg-hover: #E8F1F9;
-    --color-bg-active: #DEE9F5;
-    --color-bg-code: #F7FAFD;
+    --color-bg-primary: oklch(98.98% 0.0025 228.8);
+    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
+    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
+    --color-bg-elevated: oklch(100.00% 0 0);
+    --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
+    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
+    --color-bg-active: oklch(92.93% 0.0201 250.4);
+    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
 
     /* Text (soft slate blues) */
-    --color-text-primary: #2A3F54;
-    --color-text-secondary: #526578;
-    --color-text-tertiary: #7B8FA5;
-    --color-text-muted: #A4B5C8;
-    --color-text-inverse: #FFFFFF;
-    --color-text-link: #7FA3C3;
-    --color-text-link-hover: #6991B5;
+    --color-text-primary: oklch(35.97% 0.0453 249.2);
+    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
+    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
+    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
+    --color-text-inverse: oklch(100.00% 0 0);
+    --color-text-link: var(--color-primary);
+    --color-text-link-hover: var(--color-primary-hover);
 
     /* Borders (gentle blue-grays) */
-    --color-border: #D8E4F0;
-    --color-border-light: #E7EEF7;
-    --color-border-strong: #B8CADE;
-    --color-border-focus: #7FA3C3;
+    --color-border: oklch(91.34% 0.0209 248.1);
+    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
+    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border-focus: var(--color-primary);
 
     /* Semantic states (harmonized with blue theme) */
-    --color-success: #2E7D5F;
-    --color-success-bg: #EEF7F5;
-    --color-success-border: #80C5B8;
-    --color-success-text: #1B5E4A;
+    --color-success: oklch(53.25% 0.0910 164.8);
+    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
+    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
+    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
 
-    --color-warning: #D4850F;
-    --color-warning-bg: #FFF8EE;
-    --color-warning-border: #F9C96D;
-    --color-warning-text: #804F0A;
+    --color-warning: oklch(68.38% 0.1471 67.8);
+    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
+    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
+    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
 
-    --color-error: #C62828;
-    --color-error-bg: #FFF6F6;
-    --color-error-border: #FCA5A5;
-    --color-error-text: #7F1D1D;
+    --color-error: oklch(53.86% 0.1937 26.7);
+    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
+    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
+    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
 
-    --color-info: #5680A7;
-    --color-info-bg: #EEF4F9;
-    --color-info-border: #9DBDD9;
-    --color-info-text: #3D6080;
+    --color-info: oklch(58.51% 0.0762 247.4);
+    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
+    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
+    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
 
     /* Accent color (harmonized with blue palette) */
-    --color-accent: #6991B5;
-    --color-accent-hover: #5680A7;
-    --color-accent-active: #4A6E91;
-    --color-accent-light: #9DBDD9;
-    --color-accent-dark: #3D6080;
+    --color-accent: oklch(64.11% 0.0700 246.3);
+    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
+    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
+    --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (harmonized with powder blue palette) */
-    --color-code-type: #5680A7;
-    --color-code-type-bg: #EDF4FB;
-    --color-code-keyword: #6B7FA3;
-    --color-code-string: #4A7C5E;
-    --color-code-number: #B8845A;
-    --color-code-text: #526578;
+    --color-code-type: oklch(58.51% 0.0762 247.4);
+    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
+    --color-code-keyword: oklch(59.43% 0.0602 262.0);
+    --color-code-string: oklch(54.19% 0.0722 156.6);
+    --color-code-number: oklch(65.54% 0.0860 59.4);
+    --color-code-text: oklch(49.84% 0.0382 248.6);
 }
 
 /* Dark-mode adjustments while Blue Bengal palette is active */
