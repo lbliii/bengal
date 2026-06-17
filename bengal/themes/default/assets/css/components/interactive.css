@@ -91,31 +91,7 @@
 
 /* Dark mode adjustments for back-to-top */
 [data-theme="dark"] .back-to-top {
-  background: linear-gradient(180deg,
-      var(--color-surface, var(--color-bg-elevated)),
-      var(--color-bg-secondary));
-  color: var(--color-primary);
   border-color: var(--color-border);
-  /* Neumorphic shadow for dark mode - inherits via CSS variables */
-  box-shadow: var(--neumorphic-subtle);
-}
-
-[data-theme="dark"] .back-to-top:hover {
-  background: linear-gradient(180deg,
-      var(--color-surface, var(--color-bg-elevated)),
-      var(--color-bg-hover));
-  color: var(--color-primary-hover);
-  /* Neumorphic hover for dark mode */
-  box-shadow: var(--neumorphic-hover);
-}
-
-[data-theme="dark"] .back-to-top:active {
-  background: linear-gradient(180deg,
-      var(--color-bg-active),
-      var(--color-bg-secondary));
-  color: var(--color-primary-active);
-  /* Neumorphic pressed for dark mode */
-  box-shadow: var(--neumorphic-subtle-pressed);
 }
 
 .back-to-top:focus-visible {

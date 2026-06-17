@@ -396,14 +396,8 @@
 
 [data-theme="dark"] .admonition.note,
 [data-theme="dark"] .admonition.info {
-  background-color: var(--color-info-bg);
   border-inline-start-color: color-mix(in srgb, var(--color-info) 50%, transparent);
   animation-name: admonition-edge-glow-dark;
-}
-
-[data-theme="dark"] .admonition.note .admonition-title,
-[data-theme="dark"] .admonition.info .admonition-title {
-  color: var(--color-info-text);
 }
 
 /* Tip / Success */
@@ -421,14 +415,8 @@
 
 [data-theme="dark"] .admonition.tip,
 [data-theme="dark"] .admonition.success {
-  background-color: var(--color-success-bg);
   border-inline-start-color: color-mix(in srgb, var(--color-success) 50%, transparent);
   animation-name: admonition-edge-glow-dark;
-}
-
-[data-theme="dark"] .admonition.tip .admonition-title,
-[data-theme="dark"] .admonition.success .admonition-title {
-  color: var(--color-success-text);
 }
 
 /* Warning / Caution */
@@ -446,14 +434,8 @@
 
 [data-theme="dark"] .admonition.warning,
 [data-theme="dark"] .admonition.caution {
-  background-color: var(--color-warning-bg);
   border-inline-start-color: color-mix(in srgb, var(--color-warning) 50%, transparent);
   animation-name: admonition-edge-glow-dark;
-}
-
-[data-theme="dark"] .admonition.warning .admonition-title,
-[data-theme="dark"] .admonition.caution .admonition-title {
-  color: var(--color-warning-text);
 }
 
 /* Danger / Error */
@@ -471,14 +453,8 @@
 
 [data-theme="dark"] .admonition.danger,
 [data-theme="dark"] .admonition.error {
-  background-color: var(--color-error-bg);
   border-inline-start-color: color-mix(in srgb, var(--color-error) 50%, transparent);
   animation-name: admonition-edge-glow-dark;
-}
-
-[data-theme="dark"] .admonition.danger .admonition-title,
-[data-theme="dark"] .admonition.error .admonition-title {
-  color: var(--color-error-text);
 }
 
 /* See Also - Arrow list markers for navigation-style links */
@@ -512,13 +488,8 @@
 }
 
 [data-theme="dark"] .admonition.seealso {
-  background-color: var(--color-info-bg);
   border-inline-start-color: color-mix(in srgb, var(--color-info) 50%, transparent);
   animation-name: admonition-edge-glow-dark;
-}
-
-[data-theme="dark"] .admonition.seealso .admonition-title {
-  color: var(--color-info-text);
 }
 
 /* Example */
@@ -539,14 +510,8 @@
 }
 
 [data-theme="dark"] .admonition.example {
-  --admonition-color: var(--color-example);
   border-inline-start-color: color-mix(in srgb, var(--color-example) 50%, transparent);
-  background-color: var(--color-example-bg);
   animation-name: admonition-edge-glow-dark;
-}
-
-[data-theme="dark"] .admonition.example .admonition-title {
-  color: var(--color-example-text);
 }
 
 /* ============================================

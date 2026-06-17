@@ -218,7 +218,6 @@
 
 [data-theme="dark"] .tabs--native .tab-nav {
   border-bottom-color: var(--color-border-dark);
-  background-color: var(--color-bg-secondary);
 }
 
 /* ==============================================

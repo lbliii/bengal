@@ -124,16 +124,14 @@
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .gallery__item {
-    background: var(--color-surface-alt-dark, #374151);
-  }
+[data-theme="dark"] .gallery__item {
+  background: var(--color-surface-alt-dark, #374151);
+}
 
-  @media (max-width: 480px) {
-    .gallery__caption {
-      background: var(--color-surface-dark, #1f2937);
-      color: var(--color-text-dark, #f3f4f6);
-    }
+@media (max-width: 480px) {
+  [data-theme="dark"] .gallery__caption {
+    background: var(--color-surface-dark, #1f2937);
+    color: var(--color-text-dark, #f3f4f6);
   }
 }
 

@@ -385,7 +385,6 @@
   /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
 
   --elevation-none: var(--shadow-none);
-  --elevation-subtle: var(--shadow-xs);
   --elevation-low: var(--shadow-sm);
   --elevation-medium: var(--shadow-md);
   --elevation-high: var(--shadow-lg);

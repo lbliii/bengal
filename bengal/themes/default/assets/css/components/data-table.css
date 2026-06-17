@@ -224,27 +224,15 @@
    ========================================================================== */
 
 [data-theme="dark"] .bengal-data-table-wrapper {
-  background: var(--color-bg-primary);
   border-color: var(--color-border);
 }
 
 [data-theme="dark"] .bengal-data-table-toolbar {
-  background: var(--color-bg-secondary);
   border-color: var(--color-border);
 }
 
 [data-theme="dark"] .bengal-data-table-search {
-  background: var(--color-bg-primary);
   border-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-[data-theme="dark"] .bengal-data-table-search::placeholder {
-  color: var(--color-text-tertiary);
-}
-
-[data-theme="dark"] .bengal-data-table-search:focus {
-  border-color: var(--color-border-focus);
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator {
@@ -254,9 +242,7 @@
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator-header {
-  background: var(--color-bg-secondary);
   border-color: var(--color-border);
-  color: var(--color-text-primary);
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator-col {
@@ -269,11 +255,6 @@
 
 [data-theme="dark"] .bengal-data-table .tabulator-arrow {
   border-bottom-color: var(--color-text-secondary);
-}
-
-[data-theme="dark"] .bengal-data-table .tabulator-table {
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator-row {
@@ -299,30 +280,15 @@
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator-footer {
-  background: var(--color-bg-secondary);
   border-color: var(--color-border);
-  color: var(--color-text-secondary);
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator-page {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
   border-color: var(--color-border);
-}
-
-[data-theme="dark"] .bengal-data-table .tabulator-page:hover:not(.disabled) {
-  background: var(--color-bg-hover);
-}
-
-[data-theme="dark"] .bengal-data-table .tabulator-page.active {
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
 }
 
 [data-theme="dark"] .bengal-data-table .tabulator-page-size {
-  background: var(--color-bg-primary);
   border-color: var(--color-border);
-  color: var(--color-text-primary);
 }
 
 /* Responsive collapse in dark mode */

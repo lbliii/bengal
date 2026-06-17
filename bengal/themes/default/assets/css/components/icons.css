@@ -220,7 +220,6 @@
 }
 
 [data-theme="dark"] .icon-gallery-item {
-  background: var(--color-bg-elevated);
   border-color: var(--color-border-light);
 }
 
@@ -232,10 +231,6 @@
 
 .icon-gallery-item .bengal-icon {
   margin-block-end: var(--space-3);
-  color: var(--color-text-primary);
-}
-
-[data-theme="dark"] .icon-gallery-item .bengal-icon {
   color: var(--color-text-primary);
 }
 

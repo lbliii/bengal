@@ -146,10 +146,10 @@
 
 /* Current page node (highlighted) */
 .graph-contextual-container .graph-node-current {
-    stroke: var(--color-primary, #2196f3) !important;
+    stroke: var(--color-primary) !important;
     stroke-width: 1.5px !important;
     opacity: 1 !important;
-    filter: drop-shadow(0 0 3px var(--color-primary, #2196f3));
+    filter: drop-shadow(0 0 3px var(--color-primary));
 }
 
 .graph-contextual-container .graph-node-current:hover {
