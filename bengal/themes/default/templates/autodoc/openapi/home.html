@@ -24,7 +24,8 @@ application surface, not a prose reference page.
 {% block site_footer %}{% end %}
 
 {% block content %}
-<div class="api-catalog-app" data-autodoc="openapi" data-element="home" data-bengal="api-catalog">
+<bengal-api-catalog>
+<div class="api-catalog-app" data-autodoc="openapi" data-element="home">
   {% let endpoint_count = eps | length %}
   {% let schema_count = schs | length %}
   {% let tag_count = tags | length %}
@@ -227,4 +228,5 @@ application surface, not a prose reference page.
     </aside>
   </div>
 </div>
+</bengal-api-catalog>
 {% end %}

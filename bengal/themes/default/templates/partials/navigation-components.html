@@ -292,7 +292,8 @@ KIDA FEATURES SHOWCASED:
 {% def toc(toc_items=none, toc=none, page=none) %}
 {# Cache TOC rendering per-page for performance #}
 {% cache 'toc-' ~ (page?._path ?? 'unknown') %}
-<div class="toc-sidebar" data-bengal="toc">
+<bengal-toc>
+<div class="toc-sidebar">
   {# Scroll Progress Indicator #}
   <div class="toc-progress" aria-hidden="true">
     <div class="toc-progress-bar"></div>
@@ -367,5 +368,6 @@ KIDA FEATURES SHOWCASED:
   </div>
   {% end %}
 </div>
+</bengal-toc>
 {% end %}{# End cache block #}
 {% enddef %}

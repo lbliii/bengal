@@ -16,7 +16,6 @@
  * - Smooth animations with requestAnimationFrame
  *
  * @requires utils.js (optional, for logging)
- * @requires bengal-enhance.js (for enhancement registration)
  */
 
 (function() {
@@ -373,11 +372,6 @@
   // ============================================================
   // Registration
   // ============================================================
-
-  // Register with enhancement system (primary method)
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('holo', init);
-  }
 
   // Export public API (backward compatibility)
   window.BengalHolo = {

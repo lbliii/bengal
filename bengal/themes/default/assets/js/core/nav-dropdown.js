@@ -23,7 +23,7 @@
       return;
     }
 
-    navItems.forEach(function(navItem) {
+    navItems.forEach(function(navItem, index) {
       const submenu = navItem.querySelector('.submenu');
       // Support both <a> links and <span class="nav-dropdown-trigger"> for dropdown-only items
       const navLink = navItem.querySelector(':scope > a') || navItem.querySelector(':scope > .nav-dropdown-trigger');
@@ -48,7 +48,7 @@
       // Add ARIA attributes for accessibility
       navLink.setAttribute('aria-haspopup', 'true');
       navLink.setAttribute('aria-expanded', 'false');
-      navLink.setAttribute('aria-controls', submenu.id || `submenu-${Math.random().toString(36).substr(2, 9)}`);
+      navLink.setAttribute('aria-controls', submenu.id || `submenu-${index}`);
 
       if (!submenu.id) {
         submenu.id = navLink.getAttribute('aria-controls');

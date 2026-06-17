@@ -185,11 +185,4 @@
       }
     }
   };
-
-  // Register with progressive enhancement system if available
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('mobile-nav', function(el, options) {
-      el._bengalNav = window.BengalNav;
-    }, { override: true });
-  }
 })();

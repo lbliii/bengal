@@ -236,8 +236,22 @@
     cache.set(key, value);
   }
 
-  function generateId() {
-    return 'link-preview-' + Math.random().toString(36).slice(2, 9);
+  // Monotonic per-page counter so two links to the same href get distinct ids
+  let previewIdSeq = 0;
+
+  /**
+   * Build a deterministic, collision-resistant id for a preview element.
+   * Derived from the link's href via a stable djb2 hash (no Math.random),
+   * with a per-element sequence discriminator so repeated hrefs stay unique.
+   * Ids are runtime-only and never serialized to static HTML.
+   */
+  function generateId(href) {
+    const key = href || '';
+    let hash = 5381;
+    for (let i = 0; i < key.length; i++) {
+      hash = ((hash << 5) + hash + key.charCodeAt(i)) >>> 0; // hash * 33 + c
+    }
+    return 'link-preview-' + hash.toString(36) + '-' + (previewIdSeq++).toString(36);
   }
 
   function escapeHtml(text) {
@@ -421,7 +435,7 @@
 
     const preview = document.createElement('div');
     preview.className = 'link-preview';
-    preview.id = generateId();
+    preview.id = generateId(link.href);
     preview.setAttribute('role', 'tooltip');
     link.setAttribute('aria-describedby', preview.id);
 
@@ -481,7 +495,7 @@
   function createDeadLinkCard(data, link) {
     const preview = document.createElement('div');
     preview.className = 'link-preview link-preview--dead';
-    preview.id = generateId();
+    preview.id = generateId(link.href);
     preview.setAttribute('role', 'tooltip');
     link.setAttribute('aria-describedby', preview.id);
 

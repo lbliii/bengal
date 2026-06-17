@@ -244,26 +244,6 @@
     setPalette: setPalette
   };
 
-  // Register with progressive enhancement system if available
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('theme-toggle', function(el, options) {
-      el.addEventListener('click', function(e) {
-        e.preventDefault();
-        toggleTheme();
-      });
-      el.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggleTheme();
-        }
-      });
-      if (el.tagName !== 'BUTTON') {
-        el.setAttribute('role', 'button');
-        el.setAttribute('tabindex', '0');
-      }
-    }, { override: true });
-  }
-
   // Auto-initialize after DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {

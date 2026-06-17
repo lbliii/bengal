@@ -8,8 +8,8 @@
  * - Marks visited sections with visual indicators
  * - Accessibility: aria-current="step" for screen readers
  *
- * Data Attributes:
- * - data-bengal="track-nav": Track navigation container
+ * Custom element / Data Attributes:
+ * - <bengal-track-nav>: custom element wrapping the nav (auto-inits this module)
  * - data-track-id="slug": Track identifier for localStorage
  * - data-track-section="N": Section link (number)
  * - data-track-target="#id": Target section element
@@ -36,7 +36,7 @@
   const STORAGE_KEY_PREFIX = 'bengal_track_progress_';
 
   const SELECTORS = {
-    trackNav: '[data-bengal="track-nav"]',
+    trackNav: 'bengal-track-nav',
     trackSection: '[data-track-section]',
     sectionTarget: '.track-section',
     tocSidebar: '.track-layout .toc-sidebar',
@@ -345,15 +345,18 @@
   /**
    * Initialize track enhancements
    */
-  function initTracks() {
-    // Find track navigation
-    trackNav = document.querySelector(SELECTORS.trackNav);
+  function initTracks(root) {
+    // The <bengal-track-nav> element is the nav container; fall back to a
+    // document lookup for the public window.BengalTracks.init() entry point.
+    trackNav = root || document.querySelector(SELECTORS.trackNav);
     if (!trackNav) return;
 
-    // Get track ID for localStorage
+    // Get track ID for localStorage (read off the custom element)
     trackId = trackNav.getAttribute('data-track-id') || window.location.pathname;
 
-    // Cache DOM elements
+    // Cache DOM elements. The section targets and the right-hand TOC sidebar
+    // live in OTHER columns of the track layout, so they stay document-scoped;
+    // only the sidebar's own links are scoped to the nav element.
     trackSections = Array.from(document.querySelectorAll(SELECTORS.sectionTarget));
     sidebarLinks = Array.from(trackNav.querySelectorAll(SELECTORS.trackSection));
     tocSidebar = document.querySelector(SELECTORS.tocSidebar);
@@ -420,19 +423,15 @@
   }
 
   // ============================================================================
-  // Auto-initialize
+  // Custom element
   // ============================================================================
 
-  ready(initTracks);
-
-  window.addEventListener('contentLoaded', initTracks);
-
-  // Register with Bengal enhancement system to prevent 404 from lazy-loader
-  // trying to load 'track-nav.js' when it sees data-bengal="track-nav"
-  if (window.Bengal && window.Bengal.enhance) {
-    window.Bengal.enhance.register('track-nav', function(el) {
-      // Enhancement handled by initTracks() - just mark as enhanced
-      // The element is already processed since tracks.js runs on DOMContentLoaded
+  // <bengal-track-nav> auto-inits via connectedCallback (incl. dynamically
+  // inserted content) and removes its scroll listener on disconnect.
+  if (window.Bengal && window.Bengal.define) {
+    window.Bengal.define('bengal-track-nav', class extends window.Bengal.Base {
+      init() { initTracks(this); }
+      teardown() { cleanup(); }
     });
   }
 

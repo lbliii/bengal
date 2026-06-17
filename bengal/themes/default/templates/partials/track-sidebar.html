@@ -8,7 +8,7 @@ Left sidebar for track pages showing:
 - Other available tracks
 
 Data Attributes (for JS):
-- data-bengal="track-nav": Main navigation container
+- <bengal-track-nav>: custom element wrapping the nav (auto-inits tracks.js)
 - data-track-id="slug": Track identifier for progress persistence
 - data-track-section="N": Section link (N = section number)
 - data-track-target="#id": Target section ID
@@ -35,7 +35,8 @@ Usage:
 {% with site?.data?.tracks as all_tracks %}
 {% let current_track = all_tracks[track_id] if (track_id and all_tracks and track_id in all_tracks) else none %}
 
-<nav class="track-sidebar" aria-label="Track navigation" data-bengal="track-nav" data-track-id="{{ track_id }}">
+<bengal-track-nav data-track-id="{{ track_id }}">
+<nav class="track-sidebar" aria-label="Track navigation">
   {# =========================================================================
      CURRENT TRACK SECTIONS (Primary navigation)
      Uses track_item_pages from parent context if available (pre-computed)
@@ -109,4 +110,5 @@ Usage:
   </section>
   {% end %}
 </nav>
+</bengal-track-nav>
 {% end %}

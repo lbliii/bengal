@@ -1,108 +1,89 @@
 # Bengal Enhancement Modules
 
-This directory contains progressive enhancement modules for the Bengal theme. Each module registers with the central enhancement system (`bengal-enhance.js`) to provide JavaScript functionality that layers on top of working HTML.
+This directory contains progressive enhancement modules for the Bengal theme.
+Declarative, element-scoped enhancements are **autonomous custom elements**
+(`<bengal-*>`) built on `core/define.js`; they layer JavaScript on top of
+already-working HTML.
 
 ## Philosophy
 
 "Layered enhancement — HTML that works, CSS that delights, JS that elevates"
 
-All enhancements follow progressive enhancement principles:
-- HTML is functional without JavaScript
-- Enhancements add interactivity when JS is available
-- Graceful degradation on errors
+All enhancements follow progressive-enhancement principles:
+- HTML is functional without JavaScript.
+- Enhancements add interactivity when JS is available.
+- Graceful degradation on errors (a failed `init()` never throws; the element
+  just stays un-enhanced).
 
-## Usage
+## The model: one custom element per enhancement
 
-Declare enhancements using the `data-bengal` attribute:
-
-```html
-<!-- Theme toggle button -->
-<button data-bengal="theme-toggle">Toggle Theme</button>
-
-<!-- Tabs container -->
-<div data-bengal="tabs">
-  <ul class="tab-nav">
-    <li><a data-tab-target="tab-1">Tab 1</a></li>
-  </ul>
-  <div id="tab-1" class="tab-pane">Content</div>
-</div>
-
-<!-- Table of contents with scroll spy -->
-<nav data-bengal="toc" data-spy="true">
-  <a data-toc-item="#section-1">Section 1</a>
-</nav>
-
-<!-- Mobile navigation -->
-<nav data-bengal="mobile-nav">...</nav>
-```
-
-## Configuration
-
-Options are passed via additional `data-*` attributes:
+There is no central registry and no `data-bengal` attribute. An enhancement is a
+custom element whose `connectedCallback` initializes it the moment it enters the
+DOM — including content inserted after load — and whose `disconnectedCallback`
+tears down any window/document listeners it added. The template wraps the
+server-rendered markup in the element:
 
 ```html
-<nav data-bengal="toc" data-spy="true" data-offset="80">
+<bengal-toc>
+  <div class="toc-sidebar"> ... server-rendered TOC ... </div>
+</bengal-toc>
 ```
-
-Boolean values: `data-spy="true"` or just `data-spy`
-Numbers: `data-offset="80"`
-JSON: `data-config='{"key": "value"}'`
-
-## Available Enhancements
-
-| Name | Description | Options |
-|------|-------------|---------|
-| `theme-toggle` | Dark/light theme switching | `default` |
-| `mobile-nav` | Mobile slide-out navigation | `closeOnClick`, `closeOnEscape` |
-| `tabs` | Tabbed content panels | `defaultTab` |
-| `toc` | Table of contents with scroll spy | `spy`, `offset`, `smooth` |
-
-## Creating Custom Enhancements
 
 ```javascript
 // enhancements/my-feature.js
-(function() {
+(function () {
   'use strict';
 
-  // Ensure enhancement system is available
-  if (!window.Bengal || !window.Bengal.enhance) {
-    console.warn('[Bengal] Enhancement system not loaded');
-    return;
+  function initFeature(root) {
+    // root is the <bengal-my-feature> element; scope queries to it.
+    root.querySelectorAll('[data-thing]').forEach(/* ... */);
   }
 
-  Bengal.enhance.register('my-feature', function(el, options) {
-    // el: The element with data-bengal="my-feature"
-    // options: Parsed data attributes { optionName: value }
+  function teardownFeature(root) {
+    // Remove any window/document listeners added in initFeature.
+  }
 
-    // Add your enhancement logic here
-    el.addEventListener('click', () => {
-      console.log('Enhanced!', options);
+  if (window.Bengal && window.Bengal.define) {
+    window.Bengal.define('bengal-my-feature', class extends window.Bengal.Base {
+      init() { initFeature(this); }
+      teardown() { teardownFeature(this); }
     });
-  });
+  }
 })();
 ```
 
-## Lazy Loading
+`window.Bengal.Base` (from `core/define.js`) guards `connectedCallback` against
+re-entrancy, swallows init errors (degrade gracefully), and exposes `opt(name,
+fallback)` and `scopedId(suffix)` helpers. `window.Bengal.define(tag, ctor)` is
+an idempotent `customElements.define` wrapper that no-ops on engines without
+custom elements.
 
-Enhancements not preloaded are automatically lazy-loaded when their `data-bengal` elements are detected. Scripts are loaded from `/assets/js/enhancements/{name}.js`.
+Add the module's `<script defer>` to `base.html`'s site-scripts block (after
+`core/define.js`) and the bundle order in `bengal/assets/js_bundler.py`.
 
-## API
+## Custom elements in this theme
 
-```javascript
-// List registered enhancements
-Bengal.enhance.list();
+| Element | Module | Wraps |
+|---------|--------|-------|
+| `<bengal-toc>` | `toc.js` | the `.toc-sidebar` (scroll-spy + collapsible groups) |
+| `<bengal-docs-nav>` | `interactive.js` | the docs `<nav>` (scroll-spy + active trail) |
+| `<bengal-track-nav>` | `tracks.js` | the learning-track sidebar `<nav>` |
+| `<bengal-api-catalog>` | `api-catalog.js` | the REST catalog/explorer shell |
 
-// Check if an element is enhanced
-Bengal.enhance.isEnhanced(element);
+Document-global behavior (smooth scroll, code-copy, external-link decoration,
+keyboard detection) is **not** an element — it lives in eager bootstrap modules
+(`main.js`, `core/theme.js`, `copy-link.js`, …). Content-decorator modules that
+scan parser-emitted nodes (`tabs.js`, `lightbox.js`, `holo.js`) also self-init
+eagerly. Heavy third-party assets (Mermaid / KaTeX / Tabulator) load lazily via
+the separate `BENGAL_LAZY_ASSETS` / `lazy-loaders.js` IntersectionObserver path.
 
-// Manually trigger enhancement discovery
-Bengal.enhance.enhanceAll();
+## Determinism
 
-// Enhance a specific element
-Bengal.enhance.enhanceElement(element);
-```
+Any element id generated at runtime must be deterministic (derive it from a
+sibling ordinal or a content hash via `Base.scopedId()`) — never `Math.random`
+or a clock, so build output stays byte-stable.
 
 ## See Also
 
-- [RFC: Progressive Enhancements Architecture](../../../../../../plan/active/rfc-progressive-enhancements.md)
-- [bengal-enhance.js](../bengal-enhance.js) - The enhancement loader
+- [core/define.js](../core/define.js) — the custom-element foundation
+- [../README.md](../README.md) — the theme JavaScript overview
