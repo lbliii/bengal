@@ -554,6 +554,7 @@ class TestConfigNormalizationEdgeCases:
                 "excerpt_length": 200,
                 "json_indent": None,
                 "include_full_content": False,
+                "include_heading_index": False,
             },
         )
         assert fingerprint is not None
@@ -607,6 +608,7 @@ class TestConfigNormalizationEdgeCases:
                 "excerpt_length": 200,
                 "json_indent": None,
                 "include_full_content": False,
+                "include_heading_index": False,
             },
         )
         assert index_fingerprint is not None
