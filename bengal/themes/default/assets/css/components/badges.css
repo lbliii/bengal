@@ -26,10 +26,8 @@
   background-color: var(--color-primary-hover);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-primary:hover {
-    background-color: color-mix(in srgb, var(--color-primary) 90%, black);
-  }
+.badge-primary:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 90%, black);
 }
 
 .badge-secondary {
@@ -41,10 +39,8 @@
   background-color: var(--gray-600);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-secondary:hover {
-    background-color: color-mix(in srgb, var(--gray-500) 90%, black);
-  }
+.badge-secondary:hover {
+  background-color: color-mix(in srgb, var(--gray-500) 90%, black);
 }
 
 .badge-success {
@@ -56,10 +52,8 @@
   background-color: var(--green-700);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-success:hover {
-    background-color: color-mix(in srgb, var(--color-success) 90%, black);
-  }
+.badge-success:hover {
+  background-color: color-mix(in srgb, var(--color-success) 90%, black);
 }
 
 .badge-danger {
@@ -71,10 +65,8 @@
   background-color: var(--red-700);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-danger:hover {
-    background-color: color-mix(in srgb, var(--color-danger) 90%, black);
-  }
+.badge-danger:hover {
+  background-color: color-mix(in srgb, var(--color-danger) 90%, black);
 }
 
 .badge-warning {
@@ -86,10 +78,8 @@
   background-color: var(--orange-700);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-warning:hover {
-    background-color: color-mix(in srgb, var(--color-warning) 90%, black);
-  }
+.badge-warning:hover {
+  background-color: color-mix(in srgb, var(--color-warning) 90%, black);
 }
 
 .badge-info {
@@ -101,10 +91,8 @@
   background-color: var(--blue-700);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-info:hover {
-    background-color: color-mix(in srgb, var(--color-info) 90%, black);
-  }
+.badge-info:hover {
+  background-color: color-mix(in srgb, var(--color-info) 90%, black);
 }
 
 .badge-light {
@@ -117,10 +105,8 @@
   background-color: var(--color-bg-active);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-light:hover {
-    background-color: color-mix(in srgb, var(--color-bg-tertiary) 90%, black);
-  }
+.badge-light:hover {
+  background-color: color-mix(in srgb, var(--color-bg-tertiary) 90%, black);
 }
 
 .badge-dark {
@@ -132,10 +118,8 @@
   background-color: var(--gray-900);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .badge-dark:hover {
-    background-color: color-mix(in srgb, var(--gray-800) 90%, white);
-  }
+.badge-dark:hover {
+  background-color: color-mix(in srgb, var(--gray-800) 90%, white);
 }
 
 /* Badge modifiers (BEM) */
@@ -203,10 +187,8 @@
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .featured-card:hover {
-    border-color: color-mix(in srgb, var(--color-primary) 90%, black);
-  }
+.featured-card:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 90%, black);
 }
 
 /* Page Kind Body Classes */

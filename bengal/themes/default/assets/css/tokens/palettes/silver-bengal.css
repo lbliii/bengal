@@ -9,72 +9,73 @@
 :root[data-palette="silver-bengal"],
 html[data-palette="silver-bengal"] {
     /* Primary (cool pure silver - MONOCHROMATIC) */
-    --color-primary: #6B7280;
-    --color-primary-hover: #4B5563;
-    --color-primary-active: #374151;
-    --color-primary-light: #F3F4F6;
-    --color-primary-dark: #1F2937;
+    --color-primary: oklch(55.10% 0.0234 264.4);
+    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
+    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
+    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
+    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
 
     /* Backgrounds (pure monochrome - NO color tint) */
-    --color-bg-primary: #FFFFFF;
-    --color-bg-secondary: #F9FAFB;
-    --color-bg-tertiary: #F3F4F6;
-    --color-bg-elevated: #FFFFFF;
-    --color-bg-overlay: rgba(0, 0, 0, 0.6);
-    --color-bg-hover: #F3F4F6;
-    --color-bg-active: #E5E7EB;
-    --color-bg-code: #F9FAFB;
+    --color-bg-primary: oklch(100.00% 0 0);
+    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
+    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
+    --color-bg-elevated: oklch(100.00% 0 0);
+    --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
+    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
+    --color-bg-active: oklch(92.76% 0.0058 264.5);
+    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
 
     /* Text (pure blacks and grays - maximum contrast) */
-    --color-text-primary: #000000;
-    --color-text-secondary: #374151;
-    --color-text-tertiary: #6B7280;
-    --color-text-muted: #9CA3AF;
-    --color-text-inverse: #FFFFFF;
-    --color-text-link: #4B5563;
-    --color-text-link-hover: #1F2937;
+    --color-text-primary: oklch(0.00% 0 0);
+    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
+    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
+    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
+    --color-text-inverse: oklch(100.00% 0 0);
+    /* Silver's primary is a near-neutral gray, so links use the deeper accent for affordance */
+    --color-text-link: var(--color-accent);
+    --color-text-link-hover: var(--color-accent-hover);
 
     /* Borders (neutral grays) */
-    --color-border: #D1D5DB;
-    --color-border-light: #E5E7EB;
-    --color-border-strong: #9CA3AF;
-    --color-border-focus: #6B7280;
+    --color-border: oklch(87.17% 0.0093 258.3);
+    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
+    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border-focus: var(--color-primary);
 
     /* Semantic states (cool tones) */
-    --color-success: #3F6D47;
-    --color-success-bg: #F3F6F4;
-    --color-success-border: #9BB29F;
-    --color-success-text: #2A4A30;
+    --color-success: oklch(49.07% 0.0790 148.5);
+    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
+    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
+    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
 
-    --color-warning: #CA8A04;
-    --color-warning-bg: #FEFCE8;
-    --color-warning-border: #FDE047;
-    --color-warning-text: #713F12;
+    --color-warning: oklch(68.06% 0.1423 75.8);
+    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
+    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
+    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
 
-    --color-error: #C62828;
-    --color-error-bg: #FFF5F5;
-    --color-error-border: #FCA5A5;
-    --color-error-text: #7F1D1D;
+    --color-error: oklch(53.86% 0.1937 26.7);
+    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
+    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
+    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
 
-    --color-info: #4B5563;
-    --color-info-bg: #F3F4F6;
-    --color-info-border: #9CA3AF;
-    --color-info-text: #1F2937;
+    --color-info: oklch(44.61% 0.0263 256.8);
+    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
+    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
+    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
 
     /* Accent color (pure silver - monochromatic) */
-    --color-accent: #4B5563;
-    --color-accent-hover: #374151;
-    --color-accent-active: #1F2937;
-    --color-accent-light: #9CA3AF;
-    --color-accent-dark: #111827;
+    --color-accent: oklch(44.61% 0.0263 256.8);
+    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
+    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
+    --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (pure monochrome - high contrast) */
-    --color-code-type: #374151;
-    --color-code-type-bg: #F9FAFB;
-    --color-code-keyword: #1F2937;
-    --color-code-string: #4B5563;
-    --color-code-number: #6B7280;
-    --color-code-text: #374151;
+    --color-code-type: oklch(37.29% 0.0306 259.7);
+    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
+    --color-code-keyword: oklch(27.81% 0.0296 256.8);
+    --color-code-string: oklch(44.61% 0.0263 256.8);
+    --color-code-number: oklch(55.10% 0.0234 264.4);
+    --color-code-text: oklch(37.29% 0.0306 259.7);
 }
 
 /* Dark-mode adjustments while Silver Bengal palette is active */

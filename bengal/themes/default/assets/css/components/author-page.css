@@ -133,11 +133,9 @@
     box-shadow: var(--elevation-card-hover);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .author-header:hover {
-        background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
-    }
-}
+  .author-header:hover {
+      background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
+  }
 
 .author-header:hover .author-avatar-large,
 .author-header:hover .author-avatar-placeholder {
@@ -225,11 +223,9 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .social-link:hover {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .social-link:hover {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .social-link:active {
     transform: translate3d(0, 0, 0);
@@ -327,11 +323,9 @@
     transform: translate3d(0, -1px, 0);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .filter-button:hover {
-        background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
-    }
-}
+  .filter-button:hover {
+      background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
+  }
 
 .filter-button:active {
     transform: translate3d(0, 0, 0);
@@ -343,11 +337,9 @@
     border-color: var(--color-primary);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .filter-button.active {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .filter-button.active {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 /* Post List */
 .post-list {
@@ -375,12 +367,10 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .author-post-card:hover,
-    .author-posts .post-list .article-card:hover {
-        background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
-    }
-}
+  .author-post-card:hover,
+  .author-posts .post-list .article-card:hover {
+      background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
+  }
 
 [data-theme="dark"] .author-post-card:hover,
 [data-theme="dark"] .author-posts .post-list .article-card:hover {
@@ -441,11 +431,9 @@
     transform: translate3d(4px, 0, 0);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .post-list-compact a:hover {
-        color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .post-list-compact a:hover {
+      color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .post-list-compact time {
     font-size: var(--text-sm);

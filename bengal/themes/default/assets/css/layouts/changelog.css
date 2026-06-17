@@ -88,11 +88,9 @@
     transform: translate3d(0, 0, 0) scale(1.2);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .timeline-item:hover::before {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .timeline-item:hover::before {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 /* ============================================
    RELEASE HEADER
@@ -132,11 +130,9 @@
     text-decoration: underline;
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .timeline-title a:hover {
-        color: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .timeline-title a:hover {
+      color: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .timeline-subtitle {
     font-size: var(--text-base);
@@ -236,13 +232,11 @@
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
 
-    .changelog-category.changelog-breaking:hover,
-    .changelog-category--breaking:hover {
-        border-inline-start-color: color-mix(in srgb, var(--color-danger) 90%, black);
-    }
-}
+  .changelog-category.changelog-breaking:hover,
+  .changelog-category--breaking:hover {
+      border-inline-start-color: color-mix(in srgb, var(--color-danger) 90%, black);
+  }
 
 .category-title {
     font-size: var(--text-lg);
@@ -320,11 +314,9 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .changelog-read-more:hover {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .changelog-read-more:hover {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .changelog-read-more:active {
     transform: translate3d(0, 0, 0);
@@ -454,11 +446,9 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .release-link:hover {
-        background: color-mix(in srgb, var(--color-primary) 90%, black);
-    }
-}
+  .release-link:hover {
+      background: color-mix(in srgb, var(--color-primary) 90%, black);
+  }
 
 .release-link:active {
     transform: translate3d(0, 0, 0);
@@ -476,11 +466,9 @@
     border-color: var(--color-primary-dark);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-    .release-download:hover {
-        background: color-mix(in srgb, var(--color-primary-dark) 90%, black);
-    }
-}
+  .release-download:hover {
+      background: color-mix(in srgb, var(--color-primary-dark) 90%, black);
+  }
 
 /* ============================================
    FILTER BUTTONS

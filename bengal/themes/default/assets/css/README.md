@@ -90,7 +90,7 @@ Provides:
 
 **Example:**
 ```css
---blue-500: #2196f3;
+--blue-500: oklch(65.82% 0.1690 248.8);  /* color primitives are authored in OKLCH */
 --size-4: 1rem;
 --font-size-16: 1rem;
 ```

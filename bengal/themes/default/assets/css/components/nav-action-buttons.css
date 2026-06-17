@@ -62,15 +62,6 @@
     0 0 0 4px color-mix(in srgb, var(--color-border-focus) 20%, transparent),
     var(--neumorphic-hover);
 }
-
-@supports not (color: color-mix(in srgb, black, white)) {
-  .nav-action-btn:focus-visible {
-    box-shadow:
-      0 0 0 4px rgba(33, 150, 243, 0.1),
-      var(--neumorphic-hover);
-  }
-}
-
 .nav-action-btn svg {
   flex-shrink: 0;
   width: var(--icon-size-sm, 14px);

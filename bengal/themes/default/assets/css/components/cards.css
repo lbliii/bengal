@@ -73,15 +73,6 @@ a.card:hover {
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .card::before {
-    background: radial-gradient(circle at 40% 40%,
-        rgba(59, 130, 246, 0.06) 0%,
-        rgba(139, 92, 246, 0.04) 25%,
-        transparent 50%);
-  }
-}
-
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .card::before {
@@ -353,15 +344,6 @@ a.card:hover {
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .article-card::before {
-    background: radial-gradient(circle at 40% 40%,
-        rgba(59, 130, 246, 0.06) 0%,
-        rgba(139, 92, 246, 0.04) 25%,
-        transparent 50%);
-  }
-}
-
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .article-card::before {
@@ -496,10 +478,8 @@ a.card:hover {
 }
 
 /* Modern color mixing for hover background */
-@supports (color: color-mix(in srgb, white, black)) {
-  .feature-card:hover {
-    background: color-mix(in srgb, var(--color-bg-elevated) 95%, var(--color-primary));
-  }
+.feature-card:hover {
+  background: color-mix(in srgb, var(--color-bg-elevated) 95%, var(--color-primary));
 }
 
 .feature-card__icon {
@@ -694,30 +674,6 @@ a.card:hover {
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .callout-card {
-    border-inline-start: 2px solid var(--color-primary);
-    animation: none;
-    box-shadow: var(--elevation-card);
-  }
-
-  .callout-card--info {
-    border-inline-start-color: var(--color-info-border);
-  }
-
-  .callout-card--success {
-    border-inline-start-color: var(--color-success-border);
-  }
-
-  .callout-card--warning {
-    border-inline-start-color: var(--color-warning-border);
-  }
-
-  .callout-card--error {
-    border-inline-start-color: var(--color-error-border);
-  }
-}
-
 /* Reduced motion - static subtle glow */
 @media (prefers-reduced-motion: reduce) {
   .callout-card {
@@ -1176,38 +1132,6 @@ a.card:hover {
 }
 
 /* Fallback for browsers without color-mix support */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .card-color-blue,
-  .card-color-green,
-  .card-color-red,
-  .card-color-yellow,
-  .card-color-orange,
-  .card-color-purple,
-  .card-color-pink,
-  .card-color-indigo,
-  .card-color-gray,
-  .card-color-teal,
-  .card-color-cyan,
-  .card-color-violet {
-    /* Fallback to solid 2px border with no animation */
-    animation: none;
-    box-shadow: var(--elevation-card);
-  }
-
-  .card-color-blue { border-inline-start-color: var(--color-primary); }
-  .card-color-green { border-inline-start-color: var(--color-success-border); }
-  .card-color-red { border-inline-start-color: var(--color-error-border); }
-  .card-color-yellow,
-  .card-color-orange { border-inline-start-color: var(--color-warning-border); }
-  .card-color-purple { border-inline-start-color: var(--purple-500); }
-  .card-color-pink { border-inline-start-color: var(--purple-400); }
-  .card-color-indigo { border-inline-start-color: var(--color-primary-dark); }
-  .card-color-gray { border-inline-start-color: var(--color-border-strong); }
-  .card-color-teal { border-inline-start-color: #4FA8A0; }
-  .card-color-cyan { border-inline-start-color: #06b6d4; }
-  .card-color-violet { border-inline-start-color: var(--violet-500); }
-}
-
 /* Reduced motion - static subtle glow */
 @media (prefers-reduced-motion: reduce) {
   .card-color-blue,

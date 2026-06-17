@@ -380,7 +380,7 @@ summary {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb, 33, 150, 243), 0.1);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-primary), transparent 90%);
 }
 
 :focus:not(:focus-visible) {
@@ -395,5 +395,5 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 33, 150, 243), 0.15);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary), transparent 85%);
 }

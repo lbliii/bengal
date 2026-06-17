@@ -164,10 +164,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .archive-post-card:hover {
-    background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
-  }
+.archive-post-card:hover {
+  background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
 }
 
 [data-theme="dark"] .archive-post-card:hover {
@@ -237,10 +235,8 @@
   color: var(--color-primary);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .post-title a:hover {
-    color: color-mix(in srgb, var(--color-primary) 90%, black);
-  }
+.post-title a:hover {
+  color: color-mix(in srgb, var(--color-primary) 90%, black);
 }
 
 .post-excerpt {
@@ -314,10 +310,8 @@
   color: var(--color-text-inverse);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .year-list li a:hover {
-    background: color-mix(in srgb, var(--color-primary) 90%, black);
-  }
+.year-list li a:hover {
+  background: color-mix(in srgb, var(--color-primary) 90%, black);
 }
 
 .year-list li.current-year a {
@@ -383,10 +377,8 @@
   color: var(--color-text-inverse);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .year-link:hover {
-    background: color-mix(in srgb, var(--color-primary) 90%, black);
-  }
+.year-link:hover {
+  background: color-mix(in srgb, var(--color-primary) 90%, black);
 }
 
 .year-label {
@@ -422,10 +414,8 @@
   background: var(--color-bg-hover);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .year-summary:hover {
-    background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
-  }
+.year-summary:hover {
+  background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
 }
 
 .year-details[open] .year-summary {
@@ -462,10 +452,8 @@
   color: var(--color-text-primary);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .archive-month-item a:hover {
-    background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
-  }
+.archive-month-item a:hover {
+  background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
 }
 
 .month-label {

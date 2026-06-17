@@ -333,16 +333,6 @@
   position: relative;
   z-index: 1;
 }
-
-@supports not (color: color-mix(in srgb, black, white)) {
-  .tag-card::after {
-    background: radial-gradient(circle at 40% 40%,
-        rgba(59, 130, 246, 0.06) 0%,
-        rgba(139, 92, 246, 0.04) 25%,
-        transparent 50%);
-  }
-}
-
 .tag-card:hover {
   box-shadow: var(--elevation-high),
     0 0 20px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);

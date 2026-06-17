@@ -43,10 +43,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color: color-mix(in srgb, white, black)) {
-  .nav-links a:hover {
-    background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
-  }
+.nav-links a:hover {
+  background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
 }
 
 .nav-previous,

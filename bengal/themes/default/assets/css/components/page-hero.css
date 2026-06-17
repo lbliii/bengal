@@ -99,21 +99,6 @@
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .page-hero--magazine::before {
-    background: radial-gradient(circle,
-        rgba(59, 130, 246, 0.12) 0%,
-        rgba(76, 175, 80, 0.08) 40%,
-        transparent 70%);
-  }
-  .page-hero--magazine::after {
-    background: radial-gradient(circle,
-        rgba(76, 175, 80, 0.1) 0%,
-        rgba(255, 152, 0, 0.06) 35%,
-        transparent 65%);
-  }
-}
-
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .page-hero--magazine::before,

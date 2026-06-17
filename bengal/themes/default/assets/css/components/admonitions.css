@@ -93,47 +93,6 @@
 
 /* Fallback for browsers without color-mix */
 /* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-  .admonition::before {
-    background: radial-gradient(circle at 35% 35%,
-        rgba(59, 130, 246, 0.07) 0%,
-        rgba(76, 175, 80, 0.05) 30%,
-        rgba(255, 152, 0, 0.03) 55%,
-        transparent 70%);
-  }
-
-  /* Fallback to solid border for browsers without color-mix */
-  .admonition {
-    border-inline-start: 2px solid var(--color-border-strong);
-    animation: none;
-    box-shadow: var(--elevation-card);
-  }
-
-  .admonition.note,
-  .admonition.info {
-    border-inline-start-color: var(--color-info-border);
-  }
-
-  .admonition.tip,
-  .admonition.success {
-    border-inline-start-color: var(--color-success-border);
-  }
-
-  .admonition.warning,
-  .admonition.caution {
-    border-inline-start-color: var(--color-warning-border);
-  }
-
-  .admonition.danger,
-  .admonition.error {
-    border-inline-start-color: var(--color-error-border);
-  }
-
-  .admonition.example {
-    border-inline-start-color: var(--color-example-border);
-  }
-}
-
 /* Respect reduced motion - static subtle glow */
 @media (prefers-reduced-motion: reduce) {
   .admonition::before {
@@ -652,19 +611,6 @@
 }
 
 /* Fallback gradient for browsers without color-mix */
-@supports not (color: color-mix(in oklch, red, blue)) {
-  .admonition.holo {
-    --holo-gradient: repeating-linear-gradient(0deg,
-        hsl(0, 90%, 75%) calc(5% * 1),
-        hsl(45, 95%, 70%) calc(5% * 2),
-        hsl(120, 80%, 70%) calc(5% * 3),
-        hsl(190, 90%, 70%) calc(5% * 4),
-        hsl(220, 90%, 75%) calc(5% * 5),
-        hsl(280, 80%, 75%) calc(5% * 6),
-        hsl(360, 90%, 75%) calc(5% * 7));
-  }
-}
-
 /* Rainbow shine layer - replaces blob animation */
 .admonition.holo::before {
   content: '';
@@ -767,19 +713,6 @@
 }
 
 /* Dark mode fallback */
-@supports not (color: color-mix(in oklch, red, blue)) {
-  [data-theme="dark"] .admonition.holo {
-    --holo-gradient: repeating-linear-gradient(0deg,
-        hsla(0, 85%, 60%, 0.9) calc(5% * 1),
-        hsla(45, 90%, 55%, 0.9) calc(5% * 2),
-        hsla(120, 75%, 55%, 0.9) calc(5% * 3),
-        hsla(190, 85%, 55%, 0.9) calc(5% * 4),
-        hsla(220, 85%, 60%, 0.9) calc(5% * 5),
-        hsla(280, 75%, 60%, 0.9) calc(5% * 6),
-        hsla(360, 85%, 60%, 0.9) calc(5% * 7));
-  }
-}
-
 [data-theme="dark"] .admonition.holo::after {
   background: radial-gradient(farthest-corner circle at calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%),
       color-mix(in srgb, var(--color-bg-secondary) 80%, white) 0%,

@@ -16,72 +16,72 @@
 :root[data-palette="snow-lynx"],
 html[data-palette="snow-lynx"] {
     /* Primary (ice blue eyes - piercing and cool) */
-    --color-primary: #4FA8A0;
-    --color-primary-hover: #3D9287;
-    --color-primary-active: #2D7B72;
-    --color-primary-light: #E3F5F3;
-    --color-primary-dark: #236962;
+    --color-primary: oklch(67.49% 0.0863 187.5);
+    --color-primary-hover: oklch(from var(--color-primary) calc(l - 0.07) c h);
+    --color-primary-active: oklch(from var(--color-primary) calc(l - 0.13) c h);
+    --color-primary-light: oklch(from var(--color-primary) 0.96 calc(c * 0.22) h);
+    --color-primary-dark: oklch(from var(--color-primary) calc(l - 0.2) c h);
 
     /* Backgrounds (layered white → cream for depth through temperature) */
-    --color-bg-primary: #FEFEFE;
-    --color-bg-secondary: #FAF8F5;
-    --color-bg-tertiary: #F4F0EA;
-    --color-bg-elevated: #FFFFFF;
-    --color-bg-overlay: rgba(0, 0, 0, 0.5);
-    --color-bg-hover: #F6F3EE;
-    --color-bg-active: #EFEBE4;
-    --color-bg-code: #F9F7F3;
+    --color-bg-primary: oklch(99.70% 0 0);
+    --color-bg-secondary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 28%);
+    --color-bg-tertiary: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 60%);
+    --color-bg-elevated: oklch(100.00% 0 0);
+    --color-bg-overlay: color-mix(in oklab, var(--color-text-primary), transparent 40%);
+    --color-bg-hover: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 48%);
+    --color-bg-active: oklch(94.12% 0.0103 81.8);
+    --color-bg-code: color-mix(in oklab, var(--color-bg-primary), var(--color-bg-active) 18%);
 
     /* Text (soft charcoal with cooler undertone) */
-    --color-text-primary: #252525;
-    --color-text-secondary: #5F5B56;
-    --color-text-tertiary: #847F78;
-    --color-text-muted: #AFA9A1;
-    --color-text-inverse: #FFFFFF;
-    --color-text-link: #4FA8A0;
-    --color-text-link-hover: #3D9287;
+    --color-text-primary: oklch(26.45% 0 0);
+    --color-text-secondary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 22%);
+    --color-text-tertiary: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%);
+    --color-text-muted: color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%);
+    --color-text-inverse: oklch(100.00% 0 0);
+    --color-text-link: var(--color-primary);
+    --color-text-link-hover: var(--color-primary-hover);
 
     /* Borders (subtle warmth against clean white) */
-    --color-border: #E8E4DD;
-    --color-border-light: #F2EFE9;
-    --color-border-strong: #D5CFC5;
-    --color-border-focus: #4FA8A0;
+    --color-border: oklch(92.00% 0.0104 81.8);
+    --color-border-light: oklch(from var(--color-border) calc(l + 0.035) c h);
+    --color-border-strong: oklch(from var(--color-border) calc(l - 0.09) c h);
+    --color-border-focus: var(--color-primary);
 
     /* Semantic states (harmonized with icy cream) */
-    --color-success: #2E7D5A;
-    --color-success-bg: #F0F8F4;
-    --color-success-border: #8AC9B5;
-    --color-success-text: #1B5E42;
+    --color-success: oklch(53.12% 0.0955 161.2);
+    --color-success-bg: oklch(from var(--color-success) 0.96 calc(c * 0.18) h);
+    --color-success-border: oklch(from var(--color-success) calc(l + 0.18) calc(c * 0.6) h);
+    --color-success-text: oklch(from var(--color-success) calc(l - 0.14) c h);
 
-    --color-warning: #D97706;
-    --color-warning-bg: #FFFBF2;
-    --color-warning-border: #F5D7A1;
-    --color-warning-text: #7C3E03;
+    --color-warning: oklch(66.58% 0.1574 58.3);
+    --color-warning-bg: oklch(from var(--color-warning) 0.96 calc(c * 0.18) h);
+    --color-warning-border: oklch(from var(--color-warning) calc(l + 0.18) calc(c * 0.6) h);
+    --color-warning-text: oklch(from var(--color-warning) calc(l - 0.14) c h);
 
-    --color-error: #C62828;
-    --color-error-bg: #FFF2F2;
-    --color-error-border: #F5B7B1;
-    --color-error-text: #7F1D1D;
+    --color-error: oklch(53.86% 0.1937 26.7);
+    --color-error-bg: oklch(from var(--color-error) 0.96 calc(c * 0.18) h);
+    --color-error-border: oklch(from var(--color-error) calc(l + 0.18) calc(c * 0.6) h);
+    --color-error-text: oklch(from var(--color-error) calc(l - 0.14) c h);
 
-    --color-info: #3D9DAF;
-    --color-info-bg: #F0F8F9;
-    --color-info-border: #8AC9D9;
-    --color-info-text: #1E5C6B;
+    --color-info: oklch(64.71% 0.0920 212.2);
+    --color-info-bg: oklch(from var(--color-info) 0.96 calc(c * 0.18) h);
+    --color-info-border: oklch(from var(--color-info) calc(l + 0.18) calc(c * 0.6) h);
+    --color-info-text: oklch(from var(--color-info) calc(l - 0.14) c h);
 
     /* Accent color (ice blue-teal accent) */
-    --color-accent: #5BB8AF;
-    --color-accent-hover: #4FA8A0;
-    --color-accent-active: #3D9287;
-    --color-accent-light: #7FC9C2;
-    --color-accent-dark: #2D7B72;
+    --color-accent: oklch(72.33% 0.0898 187.1);
+    --color-accent-hover: oklch(from var(--color-accent) calc(l - 0.06) c h);
+    --color-accent-active: oklch(from var(--color-accent) calc(l - 0.12) c h);
+    --color-accent-light: oklch(from var(--color-accent) calc(l + 0.10) calc(c * 0.8) h);
+    --color-accent-dark: oklch(from var(--color-accent) calc(l - 0.18) c h);
 
     /* Code colors (icy blue-teal with cream undertones) */
-    --color-code-type: #4FA8A0;
-    --color-code-type-bg: #F9F7F3;
-    --color-code-keyword: #3D9DAF;
-    --color-code-string: #4A8570;
-    --color-code-number: #B8845A;
-    --color-code-text: #5F5B56;
+    --color-code-type: oklch(67.49% 0.0863 187.5);
+    --color-code-type-bg: oklch(from var(--color-code-type) 0.96 calc(c * 0.2) h);
+    --color-code-keyword: oklch(64.71% 0.0920 212.2);
+    --color-code-string: oklch(57.00% 0.0706 168.8);
+    --color-code-number: oklch(65.54% 0.0860 59.4);
+    --color-code-text: oklch(47.33% 0.0095 73.7);
 }
 
 /* Dark-mode adjustments while Snow Lynx palette is active */
