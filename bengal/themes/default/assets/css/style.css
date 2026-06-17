@@ -301,10 +301,6 @@
 }
 
 @layer components {
-  @import url('components/graph-minimap.css');
-}
-
-@layer components {
   @import url('components/graph-contextual.css');
 }
 

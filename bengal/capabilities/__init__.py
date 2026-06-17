@@ -1,4 +1,4 @@
-"""Opt-in runtime capabilities (Mermaid, D3, KaTeX, Iconify)."""
+"""Opt-in runtime capabilities (Mermaid, KaTeX, Iconify)."""
 
 from bengal.capabilities.runtime import (
     CAPABILITY_NAMES,

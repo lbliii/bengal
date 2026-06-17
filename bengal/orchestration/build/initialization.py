@@ -230,14 +230,14 @@ def phase_capabilities(
     cli: CLIOutput,
 ) -> None:
     """
-    Phase 1b: Provision opt-in capability vendor assets (Mermaid, D3, KaTeX, Iconify).
+    Phase 1b: Provision opt-in capability vendor assets (Mermaid, KaTeX, Iconify).
 
     Downloads pinned vendor files into assets/vendor/ when enabled in [capabilities].
     Network I/O is build-time only; runtime uses same-origin asset URLs.
     """
     caps_cfg = orchestrator.site.config.get("capabilities")
     if not isinstance(caps_cfg, dict) or not any(
-        caps_cfg.get(k) for k in ("mermaid", "d3", "katex", "iconify")
+        caps_cfg.get(k) for k in ("mermaid", "katex", "iconify")
     ):
         return
 

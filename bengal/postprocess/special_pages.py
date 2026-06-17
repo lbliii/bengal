@@ -8,7 +8,7 @@ and integrate with the site's design system.
 Special Pages:
 - 404.html: Custom error page with site styling and navigation
 - search.html: Client-side search interface with Lunr.js integration
-- graph.html: Interactive knowledge graph visualization (D3.js)
+- graph.html: Interactive knowledge graph visualization (dependency-free canvas)
 
 How It Works:
 Each special page:
@@ -91,7 +91,7 @@ class SpecialPagesGenerator:
     Currently Generates:
         - 404.html: Custom error page with site styling and navigation
         - search.html: Client-side search with Lunr.js integration
-        - graph.html: Interactive D3.js knowledge graph visualization
+        - graph.html: Interactive knowledge graph visualization (dependency-free canvas)
 
     Graceful Degradation:
         - Missing templates are silently skipped (not errors)

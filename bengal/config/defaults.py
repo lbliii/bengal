@@ -342,7 +342,6 @@ DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
     "capabilities": {
         "mermaid": False,
-        "d3": False,
         "katex": False,
         "iconify": False,
     },

@@ -571,12 +571,7 @@ HELPER: Render a menu item (desktop/mobile)
             mermaid: '{{ asset_url("vendor/mermaid.min.js") }}',
             {% end %}
             mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}',
-            mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}',
-            {% if bengal?.capabilities?.d3 ?? false %}
-            d3: '{{ asset_url("vendor/d3.min.js") }}',
-            {% end %}
-            graphMinimap: '{{ asset_url("js/graph-minimap.js") }}',
-            graphContextual: '{{ asset_url("js/graph-contextual.js") }}'
+            mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}'
         };
         {% if bengal?.capabilities?.iconify ?? false %}
         window.BENGAL_MERMAID_ICON_PACKS = [
@@ -588,6 +583,8 @@ HELPER: Render a menu item (desktop/mobile)
         window.BENGAL_ICONS = { close: '{{ asset_url("icons/close.svg") }}', enlarge: '{{ asset_url("icons/enlarge.svg") }}', copy: '{{ asset_url("icons/copy.svg") }}', 'download-svg': '{{ asset_url("icons/download.svg") }}', 'download-png': '{{ asset_url("icons/image.svg") }}', 'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}', 'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}', reset: '{{ asset_url("icons/reset.svg") }}' };
     </script>
     <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
+    {# Contextual graph minimap — dependency-free, renders baked layout from per-page JSON. #}
+    <script defer src="{{ asset_url('js/graph-contextual.js') }}"></script>
     {% end %}
     {% end %}{# /cache base-scripts #}
     {% end %}

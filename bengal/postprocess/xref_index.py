@@ -174,9 +174,13 @@ class XRefIndexGenerator:
             autodoc_entries=sum(1 for e in index_data["entries"].values() if e["type"] != "page"),
         )
 
-        # Write to output directory
+        # Write to output directory. sort_keys for stable, byte-reproducible
+        # output regardless of dict insertion order (PYTHONHASHSEED).
+        # NOTE: the ``generated`` field above still uses wall-clock time, so
+        # xref.json is not yet fully byte-reproducible across builds — that is a
+        # separate reproducible-build-timestamp decision.
         output_path = self.site.output_dir / "xref.json"
-        json_str = json.dumps(index_data, indent=2, ensure_ascii=False)
+        json_str = json.dumps(index_data, indent=2, ensure_ascii=False, sort_keys=True)
 
         with AtomicFile(output_path, "w", encoding="utf-8") as f:
             f.write(json_str)

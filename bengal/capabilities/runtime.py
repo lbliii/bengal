@@ -1,8 +1,12 @@
 """
-Runtime capability resolution for opt-in heavy JS (Mermaid, D3, KaTeX, Iconify).
+Runtime capability resolution for opt-in heavy JS (Mermaid, KaTeX, Iconify).
 
 Capabilities are config-gated and require self-hosted vendor files under
 ``assets/vendor/`` (provisioned at build time when enabled).
+
+Note: the knowledge graph (minimap + /graph/ explorer) used to depend on D3 and
+was gated here. It is now a dependency-free, first-party renderer with build-time
+baked layout, so it is no longer a capability and ships by default.
 """
 
 from __future__ import annotations
@@ -10,12 +14,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-CAPABILITY_NAMES = frozenset({"mermaid", "d3", "katex", "iconify"})
+CAPABILITY_NAMES = frozenset({"mermaid", "katex", "iconify"})
 
 # Vendor files written by CapabilityVendorHelper (relative to assets/vendor/).
 VENDOR_FILES: dict[str, tuple[str, ...]] = {
     "mermaid": ("mermaid.min.js",),
-    "d3": ("d3.min.js",),
     "katex": ("katex.min.js", "katex.min.css"),
     "iconify": (
         "iconify/fa.json",
@@ -71,7 +74,6 @@ def resolve_runtime_capabilities(
     mermaid = _active("mermaid")
     return {
         "mermaid": mermaid,
-        "d3": _active("d3"),
         "katex": _active("katex"),
         # Iconify packs are only meaningful alongside Mermaid diagram icons.
         "iconify": mermaid and _active("iconify"),

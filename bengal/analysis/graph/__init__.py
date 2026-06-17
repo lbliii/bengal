@@ -11,7 +11,7 @@ GraphBuilder: Constructs knowledge graphs from site pages
 GraphAnalyzer: Structural analysis (hubs, leaves, orphans, layers)
 GraphMetrics: Connectivity metrics and PageConnectivity dataclass
 GraphReporter: Human-readable insights and recommendations
-GraphVisualizer: Interactive D3.js graph visualization
+GraphVisualizer: Interactive graph visualization (dependency-free, baked layout)
 CommunityDetection: Louvain algorithm for topical clustering
 PageRank: Page importance scoring based on link structure
 

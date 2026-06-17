@@ -1,9 +1,10 @@
 """
 Graph Visualization Generator for Bengal SSG.
 
-Creates interactive D3.js visualizations of the site's knowledge graph,
-inspired by Obsidian's graph view. The visualizations are standalone HTML
-files that can be served alongside the site or used for offline analysis.
+Builds the data (nodes, edges, stats) and standalone HTML page for the site's
+knowledge graph, inspired by Obsidian's graph view. Node positions are baked at
+build time (see ``layout.py``) and the page is rendered by a dependency-free
+canvas explorer (``bengal-graph-explorer.js``) — no D3, no runtime simulation.
 
 Features:
 - Force-directed graph layout with physics simulation
@@ -110,10 +111,10 @@ class GraphEdge:
 
 class GraphVisualizer:
     """
-    Generate interactive D3.js visualizations of knowledge graphs.
+    Generate interactive visualizations of knowledge graphs.
 
     Creates standalone HTML files with:
-    - Force-directed graph layout
+    - Build-time baked force-directed layout (rendered to canvas, no D3)
     - Interactive node exploration
     - Search and filtering
     - Responsive design
@@ -193,10 +194,11 @@ class GraphVisualizer:
 
     def generate_graph_data(self) -> dict[str, Any]:
         """
-        Generate D3.js-compatible graph data.
+        Generate graph data with build-time baked node positions.
 
         Returns:
-            Dictionary with 'nodes' and 'edges' arrays
+            Dictionary with 'nodes' (each carrying normalized x/y), 'edges',
+            and 'stats'.
         """
         # Use content pages (excludes autodoc and generated pages like taxonomy pages)
         # This is consistent with other analysis modules (PageRank, path analysis, link suggestions)
@@ -368,6 +370,22 @@ class GraphVisualizer:
 
             edges.append(asdict(GraphEdge(source=source_id, target=target_id, weight=weight)))
 
+        # Bake deterministic layout coordinates onto each node so the client
+        # renders *static* positions with no runtime force simulation (this is
+        # what lets the explorer drop D3 and stop choking at scale). The layout
+        # is seeded + reproducible: coordinates ship in graph.json and the build
+        # guards warm==cold byte parity.
+        from bengal.analysis.graph.layout import compute_force_layout
+
+        coords = compute_force_layout(
+            [n["id"] for n in nodes],
+            [(e["source"], e["target"]) for e in edges],
+        )
+        for n in nodes:
+            x, y = coords.get(n["id"], (0.5, 0.5))
+            n["x"] = x
+            n["y"] = y
+
         logger.info("graph_viz_generate_complete", nodes=len(nodes), edges=len(edges))
 
         return {
@@ -445,28 +463,37 @@ class GraphVisualizer:
         # Get baseurl for asset paths (handles GitHub Pages /bengal subpath)
         baseurl = (self.site.baseurl or "").rstrip("/")
 
-        # Resolve CSS path from manifest
-        css_path = self._resolve_css_path(baseurl)
+        # Resolve fingerprinted asset paths from the manifest.
+        css_path = self._resolve_asset_path(baseurl, "css/style.css", "/assets/css/style.css")
+        explorer_js_path = self._resolve_asset_path(
+            baseurl,
+            "js/bengal-graph-explorer.js",
+            "/assets/js/bengal-graph-explorer.js",
+        )
 
         return {
             "title": title,
             "css_path": css_path,
+            "explorer_js_path": explorer_js_path,
             "default_appearance": default_appearance,
             "default_palette": default_palette,
             "stats": graph_data["stats"],
             "graph_json_url": "graph.json",
         }
 
-    def _resolve_css_path(self, baseurl: str) -> str:
-        """Resolve fingerprinted CSS path from asset manifest.
+    def _resolve_asset_path(self, baseurl: str, manifest_key: str, default_path: str) -> str:
+        """Resolve a fingerprinted asset path from the asset manifest.
 
         Args:
             baseurl: Base URL prefix for asset paths
+            manifest_key: Manifest source key (e.g. ``"css/style.css"``)
+            default_path: Non-fingerprinted fallback path if the manifest
+                lookup is unavailable
 
         Returns:
-            CSS path with baseurl prefix
+            Resolved path with baseurl prefix
         """
-        css_path = "/assets/css/style.css"
+        resolved = default_path
 
         try:
             from bengal.assets.manifest import AssetManifest
@@ -485,23 +512,24 @@ class GraphVisualizer:
             if manifest_path and manifest_path.exists():
                 manifest = AssetManifest.load(manifest_path)
                 if manifest:
-                    css_entry = manifest.get("css/style.css")
-                    if css_entry:
-                        css_path = f"/{css_entry.output_path}"
+                    entry = manifest.get(manifest_key)
+                    if entry:
+                        resolved = f"/{entry.output_path}"
         except Exception as e:
             # If manifest lookup fails, use non-fingerprinted paths
             logger.debug(
                 "graph_visualizer_manifest_lookup_failed",
                 error=str(e),
                 error_type=type(e).__name__,
+                manifest_key=manifest_key,
                 action="using_non_fingerprinted_paths",
             )
 
         # Apply baseurl prefix
         if baseurl:
-            css_path = f"{baseurl}{css_path}"
+            resolved = f"{baseurl}{resolved}"
 
-        return css_path
+        return resolved
 
     def _render_template(self, context: dict[str, Any]) -> str:
         """Render the HTML template with the given context.
