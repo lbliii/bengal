@@ -1,0 +1,15 @@
+{# WebSite JSON-LD for the home/landing surface #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": {{ site.title | tojson }}{% if site.baseurl %},
+  "url": {{ site.baseurl | tojson }}{% end %}{% if site.description %},
+  "description": {{ site.description | tojson }}{% end %}{% if config?.search %},
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {{ ((site.baseurl ?? '') ~ '/search/?q={search_term_string}') | tojson }},
+    "query-input": "required name=search_term_string"
+  }{% end %}
+}
+</script>

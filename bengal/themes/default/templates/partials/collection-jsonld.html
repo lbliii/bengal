@@ -1,0 +1,17 @@
+{# CollectionPage JSON-LD for section/list index surfaces #}
+{% let _collection_title = page?.title ?? section?.title ?? site.title %}
+{% let _collection_desc = meta_desc | trim if meta_desc else (page?.description ?? section?.description ?? '') %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ _collection_title | tojson }}{% if _collection_desc %},
+  "description": {{ _collection_desc | tojson }}{% end %}{% if site.baseurl and _page_url %},
+  "url": {{ canonical_url(_page_url) | tojson }}{% end %}{% if site.title %},
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": {{ site.title | tojson }}{% if site.baseurl %},
+    "url": {{ site.baseurl | tojson }}{% end %}
+  }{% end %}
+}
+</script>

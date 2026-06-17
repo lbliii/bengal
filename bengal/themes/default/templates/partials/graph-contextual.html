@@ -1,0 +1,13 @@
+{#
+Contextual graph minimap (feature-gated).
+
+Usage:
+  {% with page_url=page_href %}{% include 'partials/graph-contextual.html' %}{% end %}
+#}
+{% let _page_url = page_url ?? page?.href ?? '' %}
+{% let show_graph = theme?.features is not defined or 'graph.contextual' in (theme?.features ?? []) %}
+{% if show_graph %}
+<div class="graph-contextual" data-page-url="{{ _page_url }}">
+  <div class="graph-contextual-container graph-loading"></div>
+</div>
+{% end %}

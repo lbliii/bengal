@@ -34,7 +34,7 @@ Or set `type: doc` to auto-select this template
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/navigation-components.html' import page_navigation %}
 {% from 'partials/components/tags.html' import tag_list %}
 
 {% block content %}
@@ -88,20 +88,7 @@ Or set `type: doc` to auto-select this template
   </aside>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}
-  {% if toc_items %}
-  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {# Contextual Graph Minimap - starts hidden, JS expands when data available #}
-    {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
-    {% if show_graph %}
-    <div class="graph-contextual" data-page-url="{{ page_href }}">
-      <div class="graph-contextual-container graph-loading"></div>
-    </div>
-    {% end %}
-
-    {# Table of Contents #}
-    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
-  </aside>
-  {% end %}
+  {% include 'partials/docs-toc-sidebar.html' %}
 </div>
 
 {# Mobile sidebar toggle button #}

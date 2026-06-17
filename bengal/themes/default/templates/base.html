@@ -153,7 +153,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {# Open Graph / Facebook #}
-    <meta property="og:type" content="article">
+    <meta property="og:type" content="{{ og_type(page) }}">
     <meta property="og:title" content="{{ page_title | trim }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc | trim }}">
@@ -300,6 +300,13 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}{# /cache base-meta-generator #}
     {% include 'partials/article-jsonld.html' %}
     {% include 'partials/product-jsonld.html' %}
+    {% let _sd_type = structured_data_type(page) %}
+    {% if _sd_type == 'WebSite' %}
+    {% include 'partials/website-jsonld.html' %}
+    {% elif _sd_type == 'CollectionPage' %}
+    {% include 'partials/collection-jsonld.html' %}
+    {% end %}
+    {% include 'partials/breadcrumb-jsonld.html' %}
 
 </head>
 

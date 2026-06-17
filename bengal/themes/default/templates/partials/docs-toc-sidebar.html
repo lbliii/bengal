@@ -1,13 +1,8 @@
 {#
 Docs TOC Sidebar Component
 
-Right sidebarual graph minimap and table of contents.
-Used by docs-family templates: doc, autodoc-python, autodoc-cli.
-
-Features:
-- Contextual graph minimap (shows connections to current page)
-- Table of contents (via toc macro)
-- Conditionally rendered based on toc_items availability
+Right sidebar: contextual graph minimap and table of contents.
+Used by docs-family templates: doc, autodoc-python, autodoc-cli, notebook.
 
 Usage:
 {% include 'partials/docs-toc-sidebar.html' %}
@@ -16,26 +11,13 @@ Context required:
 - page: Current page object
 - toc_items: List of TOC items (from markdown headings)
 - toc: TOC HTML string (optional, for raw HTML fallback)
-
-Configuration:
-- Graph minimap can be disabled via theme config
 #}
 
 {% from 'partials/navigation-components.html' import toc %}
 
 {% if toc_items %}
 <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-  {# Contextual Graph Minimap - shows connections to current page #}
-  {# Feature: graph.contextual (enabled by default for docs) #}
-  {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
-  {% if show_graph %}
-  <div class="graph-contextual" data-page-url="{{ page.href }}">
-    {# Starts hidden - JS expands when data available #}
-    <div class="graph-contextual-container graph-loading"></div>
-  </div>
-  {% end %}
-
-  {# Table of Contents #}
+  {% include 'partials/graph-contextual.html' %}
   {{ toc(toc_items=toc_items, toc=toc, page=page) }}
 </aside>
 {% end %}

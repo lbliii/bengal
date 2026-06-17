@@ -41,7 +41,7 @@ providing a consistent API via CommandView:
   {# Main Content #}
   <div class="docs-main">
     {# Page Hero: Use direct macro call with explicit context #}
-    {% from 'partials/page-hero.html' import hero_element %}
+    {% from 'partials/page-hero/_macros.html' import hero_element %}
     {{ hero_element(element, page, config) }}
 
     {# Article Content - Unified autodoc skeleton #}
