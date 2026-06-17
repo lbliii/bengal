@@ -45,18 +45,33 @@ class TestTemplateExists:
         for var in required_vars:
             assert var in content, f"Template missing variable: {var}"
 
-    def test_template_has_d3_script(self):
-        """Template should include D3.js library."""
+    def test_template_has_no_d3_and_mounts_explorer(self):
+        """Template must not load D3 from any CDN (zero external requests) and
+        should mount the dependency-free canvas explorer instead."""
         content = _TEMPLATE_PATH.read_text(encoding="utf-8")
-        assert "d3.v7" in content or "d3js.org" in content
+        assert "d3.v7" not in content
+        assert "d3js.org" not in content
+        assert "explorer_js_path" in content  # mounts the canvas explorer at render
+        assert "BENGAL_GRAPH_JSON_URL" in content
 
-    def test_template_has_tag_filter_support(self):
-        """Template should support ?tag= URL param for filtering by tag."""
+    def test_template_has_tag_filter_markup(self):
+        """Template should carry the ?tag= filter UI (logic lives in the JS)."""
         content = _TEMPLATE_PATH.read_text(encoding="utf-8")
         assert "tag-filter-badge" in content
-        assert "urlParams.get('tag')" in content
-        assert "tagFilterMode" in content
+        assert "tag-filter-value" in content
+
+    def test_explorer_js_has_tag_filter_logic(self):
+        """The canvas explorer should implement the ?tag= filtering behavior."""
+        explorer = (
+            Path(__file__).resolve().parents[3]
+            / "bengal/themes/default/assets/js/bengal-graph-explorer.js"
+        )
+        content = explorer.read_text(encoding="utf-8")
+        assert "tagParam" in content
         assert "nodeMatchesTag" in content
+        # No D3 API usage (comments may mention D3, but nothing should call it).
+        assert "d3.forceSimulation" not in content
+        assert "d3.select" not in content
 
 
 class TestBuildTemplateContext:
@@ -253,7 +268,8 @@ class TestGenerateHtml:
             }
             html = visualizer.generate_html()
             assert "graph.json" in html
-            assert "loadAndRenderGraph" in html
+            assert "BENGAL_GRAPH_JSON_URL" in html
+            assert "bengal-graph-explorer" in html
 
     def test_generate_html_uses_custom_title(self, visualizer):
         """generate_html should use custom title when provided."""

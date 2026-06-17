@@ -10,7 +10,7 @@ Sub-Packages:
         - KnowledgeGraph: Central graph representation
         - GraphAnalyzer: Structural analysis (hubs, leaves, orphans)
         - GraphReporter: Human-readable insights
-        - GraphVisualizer: D3.js visualization
+        - GraphVisualizer: dependency-free graph visualization (baked layout)
         - PageRank: Page importance scoring
         - CommunityDetection: Topical clustering
     links/: Link analysis and suggestions

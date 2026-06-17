@@ -7,8 +7,11 @@
  *
  * Libraries handled:
  * - Mermaid.js (~930KB) - Diagram rendering (loads when diagrams near viewport)
- * - D3.js (~92KB) - Graph visualizations (loads when graphs near viewport)
  * - Tabulator (~100KB) - Interactive data tables (loads immediately if present)
+ *
+ * Note: the knowledge-graph minimap/explorer are dependency-free (no D3) and
+ * self-load via graph-contextual.js / the /graph/ page, so they are not handled
+ * here.
  *
  * Performance optimizations:
  * - IntersectionObserver for viewport-based loading
@@ -25,14 +28,12 @@
     // Track loaded libraries to prevent duplicate loads
     const loaded = {
         mermaid: false,
-        d3: false,
         tabulator: false
     };
 
     // Track pending loads to prevent race conditions
     const pending = {
-        mermaid: false,
-        d3: false
+        mermaid: false
     };
 
     /**
@@ -109,31 +110,6 @@
     }
 
     /**
-     * Initialize D3-dependent graphs once loaded
-     */
-    function initD3Graphs() {
-        // Dispatch event for graph scripts
-        window.dispatchEvent(new Event('d3:ready'));
-
-        // Load graph visualization scripts
-        if (assets.graphMinimap) loadScript(assets.graphMinimap);
-        if (assets.graphContextual) loadScript(assets.graphContextual);
-    }
-
-    /**
-     * Load D3.js (~92KB) - Deferred until graphs near viewport
-     */
-    function loadD3() {
-        if (loaded.d3 || pending.d3) return;
-        if (!assets.d3) return;
-
-        pending.d3 = true;
-        loaded.d3 = true;
-
-        loadScript(assets.d3, initD3Graphs);
-    }
-
-    /**
      * IntersectionObserver-based lazy loading
      * Only loads libraries when their content is about to enter viewport
      */
@@ -142,7 +118,6 @@
         if (!('IntersectionObserver' in window)) {
             // Fallback: load immediately for older browsers
             if (document.querySelector('.mermaid')) loadMermaid();
-            if (document.querySelector('.graph-minimap, .graph-contextual, [data-graph]')) loadD3();
             return;
         }
 
@@ -157,10 +132,6 @@
                 // Determine which library to load based on element class
                 if (el.classList.contains('mermaid')) {
                     loadMermaid();
-                } else if (el.classList.contains('graph-minimap') ||
-                           el.classList.contains('graph-contextual') ||
-                           el.hasAttribute('data-graph')) {
-                    loadD3();
                 }
 
                 // Stop observing this element
@@ -173,11 +144,6 @@
 
         // Observe all mermaid diagrams
         document.querySelectorAll('.mermaid').forEach((el) => {
-            observer.observe(el);
-        });
-
-        // Observe all graph elements
-        document.querySelectorAll('.graph-minimap, .graph-contextual, [data-graph]').forEach((el) => {
             observer.observe(el);
         });
 
@@ -199,21 +165,17 @@
             if (document.querySelector('.mermaid') && !loaded.mermaid && assets.mermaid) {
                 preloadScript(assets.mermaid);
             }
-            if (document.querySelector('.graph-minimap, .graph-contextual, [data-graph]') && !loaded.d3 && assets.d3) {
-                preloadScript(assets.d3);
-            }
         }, { timeout: 3000 });
     }
 
     // Initialize all loaders
     loadTabulator(); // Tables load immediately (typically above-fold)
-    setupIntersectionObserver(); // Mermaid & D3 load on scroll
+    setupIntersectionObserver(); // Mermaid loads on scroll
     schedulePreloads(); // Hint browser to preload during idle
 
     // Export for debugging
     window.BENGAL_LAZY_LOADERS = {
         loadMermaid: loadMermaid,
-        loadD3: loadD3,
         loadTabulator: loadTabulator,
         loaded: loaded
     };

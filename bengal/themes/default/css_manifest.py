@@ -197,7 +197,6 @@ CSS_FEATURE_MAP: dict[str, list[str]] = {
     # Graph visualization
     "graph": [
         "components/graph.css",
-        "components/graph-minimap.css",
         "components/graph-contextual.css",
     ],
     # Search functionality

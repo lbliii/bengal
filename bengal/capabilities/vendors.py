@@ -34,9 +34,6 @@ VENDOR_SOURCES: dict[str, dict[str, str]] = {
     "mermaid": {
         "mermaid.min.js": "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js",
     },
-    "d3": {
-        "d3.min.js": "https://d3js.org/d3.v7.min.js",
-    },
     "katex": {
         "katex.min.js": "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js",
         "katex.min.css": "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css",

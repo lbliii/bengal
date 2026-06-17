@@ -259,10 +259,14 @@ class PageJSONGenerator:
         # Excerpt
         data["excerpt"] = generate_excerpt(content_text, excerpt_length)
 
-        # Metadata (serialize dates and other non-JSON types)
+        # Metadata (serialize dates and other non-JSON types).
+        # Iterate in sorted key order: page.metadata is assembled from frontmatter
+        # + cascade merges whose key order can vary across builds (PYTHONHASHSEED),
+        # which would make the emitted JSON differ run-to-run and break the
+        # warm==cold byte-parity contract. Sorting yields stable output.
         data["metadata"] = {}
         skipped_keys = []
-        for k, v in page.metadata.items():
+        for k, v in sorted(page.metadata.items()):
             if k in _SKIPPED_METADATA_KEYS:
                 continue
             # Only include JSON-serializable values
@@ -520,5 +524,30 @@ class PageJSONGenerator:
         for node in limited_nodes:
             if node["id"] == current_node["id"]:
                 node["isCurrent"] = True
+
+        # Bake deterministic minimap positions: the current page is pinned dead
+        # center, neighbors ring around it ordered by connectivity. The client
+        # renders these static coordinates (no runtime force sim, no D3). Seed
+        # from the current node id so each page's layout is stable + unique, and
+        # reproducible across builds (byte-parity safe).
+        from bengal.analysis.graph.layout import compute_radial_layout
+        from bengal.utils.primitives.hashing import hash_str
+
+        center_id = current_node["id"]
+        seed = int(hash_str(center_id, truncate=8), 16)
+        connectivity = {
+            node["id"]: int(node.get("incoming_refs", 0)) + int(node.get("outgoing_refs", 0))
+            for node in limited_nodes
+        }
+        coords = compute_radial_layout(
+            center_id,
+            [node["id"] for node in limited_nodes],
+            connectivity=connectivity,
+            seed=seed,
+        )
+        for node in limited_nodes:
+            x, y = coords.get(node["id"], (0.5, 0.5))
+            node["x"] = x
+            node["y"] = y
 
         return {"nodes": limited_nodes, "edges": filtered_edges}

@@ -120,7 +120,7 @@ def get_theme_js_bundle_order() -> list[str]:
     14. main.js - Main initialization
     15. enhancements/copy-link.js - Copy link functionality
     16. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
-    17. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
+    17. enhancements/lazy-loaders.js - Lazy loading (Mermaid, etc.)
 
     Returns:
         List of JS filenames in load order (with paths relative to js/ directory)
@@ -164,10 +164,10 @@ def get_theme_js_excluded() -> set[str]:
         # Third-party libraries (in vendor/)
         "vendor/lunr.min.js",
         "vendor/tabulator.min.js",
-        # Lazy-loaded scripts (loaded on demand by lazy-loaders.js)
+        # Loaded standalone (not part of the main bundle)
         "enhancements/data-table.js",
         "graph-contextual.js",
-        "graph-minimap.js",
+        "bengal-graph-explorer.js",
         "mermaid-theme.js",
         "mermaid-toolbar.js",
         # Feature-specific (loaded conditionally)

@@ -1,0 +1,1 @@
+The knowledge graph minimap and the full ``/graph/`` explorer are now rendered by a dependency-free, first-party engine. Node positions are computed at build time and the explorer draws to a canvas, so it stays responsive on large sites instead of bogging down. The per-page minimap reads its layout from each page's JSON, the same way link previews do.

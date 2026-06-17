@@ -13,12 +13,12 @@ class TestResolveRuntimeCapabilities:
         from bengal.capabilities.runtime import resolve_runtime_capabilities
 
         caps = resolve_runtime_capabilities({}, tmp_path / "assets" / "vendor")
-        assert caps == {"mermaid": False, "d3": False, "katex": False, "iconify": False}
+        assert caps == {"mermaid": False, "katex": False, "iconify": False}
 
     def test_config_without_vendors_is_inactive(self, tmp_path: Path) -> None:
         from bengal.capabilities.runtime import resolve_runtime_capabilities
 
-        config = {"capabilities": {"mermaid": True, "d3": True, "katex": True, "iconify": True}}
+        config = {"capabilities": {"mermaid": True, "katex": True, "iconify": True}}
         vendor_dir = tmp_path / "assets" / "vendor"
         vendor_dir.mkdir(parents=True)
         caps = resolve_runtime_capabilities(config, vendor_dir)
@@ -30,7 +30,6 @@ class TestResolveRuntimeCapabilities:
         vendor_dir = tmp_path / "assets" / "vendor"
         vendor_dir.mkdir(parents=True)
         (vendor_dir / "mermaid.min.js").write_bytes(b"mermaid")
-        (vendor_dir / "d3.min.js").write_bytes(b"d3")
         (vendor_dir / "katex.min.js").write_bytes(b"katex")
         (vendor_dir / "katex.min.css").write_bytes(b"css")
         iconify = vendor_dir / "iconify"
@@ -39,9 +38,9 @@ class TestResolveRuntimeCapabilities:
         (iconify / "mdi.json").write_text("{}")
         (iconify / "logos.json").write_text("{}")
 
-        config = {"capabilities": {"mermaid": True, "d3": True, "katex": True, "iconify": True}}
+        config = {"capabilities": {"mermaid": True, "katex": True, "iconify": True}}
         caps = resolve_runtime_capabilities(config, vendor_dir)
-        assert caps == {"mermaid": True, "d3": True, "katex": True, "iconify": True}
+        assert caps == {"mermaid": True, "katex": True, "iconify": True}
 
     def test_iconify_requires_mermaid(self, tmp_path: Path) -> None:
         from bengal.capabilities.runtime import resolve_runtime_capabilities
