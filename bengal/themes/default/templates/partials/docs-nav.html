@@ -38,7 +38,7 @@ Macros are compiled once and called as functions, eliminating the
 per-call overhead of {% include %} (context copy, template lookup).
 ============================================================================= #}
 
-{% def nav_node(item, depth=0) %}
+{% def nav_node(item, depth=0, version_trigger=false) %}
 {# Extract values once with null-safe access #}
 {% let item_title = item?.title ?? 'Untitled' %}
 {% let item_icon = item?.icon ?? '' %}
@@ -52,7 +52,63 @@ per-call overhead of {% include %} (context copy, template lookup).
 {% match has_children, depth %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
 {% case true, 0 %}
+{# Show the merged version switcher only on versioned, non-autodoc docs pages
+   with more than one version — same guard the old version-selector used. When
+   it does not hold, the root header renders exactly as before (byte-identical). #}
+{% let vs_show =
+     version_trigger
+     and versioning_enabled
+     and versions | length > 1
+     and page?.version is not none
+     and not (is_autodoc_page(page) if is_autodoc_page else false) %}
 <div class="docs-nav-group docs-nav-group--root{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
+  {% if vs_show %}
+  {# ===== MERGED VERSION SWITCHER: the "Documentation" title IS the dropdown =====
+     Native <details>/<summary> = the disclosure, so versions stay switchable
+     with zero JS (each option is a real <a>); CSS rotates the caret via [open];
+     version-selector.js only adds close-on-outside-click + Esc + arrow keys. #}
+  {% let vcur = current_version ?? site.latest_version %}
+  {% let vlabel = vcur?.label ?? 'Latest' %}
+  {% let vstatus = vcur?.status ?? 'current' %}
+  <details class="docs-nav-vswitch" data-version-switcher>
+    <summary class="docs-nav-group-header docs-nav-vswitch__summary" title="Switch documentation version">
+      {% if show_nav_icons %}
+      {% spaceless %}
+      <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+        {{ icon(item_icon ?? 'book', size=16) }}
+      </span>
+      {% end %}
+      {% end %}
+      <span class="docs-nav-group-title docs-nav-vswitch__title">
+        <bdi class="docs-nav-vswitch__doc">{{ item_title }}</bdi>
+        {% if vlabel %}
+        <span class="docs-nav-vswitch__sep" aria-hidden="true">·</span>
+        <span class="docs-nav-vswitch__pill" data-status="{{ vstatus }}">{{ vlabel }}</span>
+        {% end %}
+      </span>
+      <span class="docs-nav-vswitch__caret" aria-hidden="true">{{ icon('caret-down', size=14) }}</span>
+    </summary>
+
+    <ul class="docs-nav-vswitch__menu" aria-label="Documentation versions">
+      {% for v in versions %}
+      {% let v_is_current = current_version and current_version.id == v.id %}
+      {% let v_status = v.status or (v.deprecated and 'deprecated' or 'legacy') %}
+      <li class="docs-nav-vswitch__item{{ ' is-current' if v_is_current else '' }}{{ ' is-deprecated' if v.deprecated else '' }}">
+        <a class="docs-nav-vswitch__link"
+           href="{{ site.get_version_target_url(page, v) }}"
+           {{ 'aria-current="true"' | safe if v_is_current else '' }}>
+          <span class="docs-nav-vswitch__check" aria-hidden="true">{{ icon('check', size=14) if v_is_current else '' }}</span>
+          <span class="docs-nav-vswitch__item-label"><bdi>{{ v.label }}</bdi></span>
+          <span class="docs-nav-vswitch__item-hint" data-status="{{ v_status }}">
+            {% if v.latest %}Latest{% elif v.status == 'preview' %}Preview{% elif v.deprecated %}deprecated{% else %}older{% end %}
+          </span>
+        </a>
+      </li>
+      {% end %}
+    </ul>
+  </details>
+  {% else %}
+  {# ===== Unchanged plain root header (non-versioned / autodoc / single version) ===== #}
   <div class="docs-nav-group-header">
     {% if show_nav_icons %}
     {% spaceless %}
@@ -71,6 +127,7 @@ per-call overhead of {% include %} (context copy, template lookup).
     <span class="docs-nav-group-title"><bdi>{{ item_title }}</bdi></span>
     {% end %}
   </div>
+  {% end %}
 
   <div class="docs-nav-group-items is-expanded expanded">
     {% for child in item_children %}
@@ -170,20 +227,21 @@ per-call overhead of {% include %} (context copy, template lookup).
 
     <bengal-docs-nav>
     <nav class="docs-nav" aria-label="Documentation pages">
-      {# Version Selector - only show if page is versioned (not autodoc) #}
-      {% unless is_autodoc %}
-      {% include 'partials/version-selector.html' %}
-      {% end %}
-
       {# Navigation Tree - uses cached NavTree infrastructure #}
       <div class="docs-nav-tree">
         {% if root_section %}
-        {# Scoped navigation: include root section as header #}
+        {# Scoped navigation: the root section header doubles as the version
+           switcher (version_trigger=true), so the standalone selector is gone. #}
         {% let nav_context = get_nav_context(page, root_section=root_section) %}
         {% with nav_context?.root as root_item %}
-        {{ nav_node(root_item, 0) }}
+        {{ nav_node(root_item, 0, version_trigger=true) }}
         {% end %}
         {% else %}
+        {# Fallback (no section root): keep the standalone version selector,
+           since there is no single root header to merge it into here. #}
+        {% unless is_autodoc %}
+        {% include 'partials/version-selector.html' %}
+        {% end %}
         {# Regular navigation: render all top-level items #}
         {% let nav_items = get_nav_tree(page) ?? [] %}
         {% for item in nav_items %}

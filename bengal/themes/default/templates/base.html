@@ -203,12 +203,12 @@ HELPER: Render a menu item (desktop/mobile)
     {% let rss_href = '/' ~ _current_lang ~ '/rss.xml' %}
     {% end %}
     {% end %}
-    <link rel="alternate" type="application/rss+xml" title="{{ _site_title }} RSS Feed" href="{{ rss_href }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ _site_title }} RSS Feed" href="{{ rss_href | absolute_url }}">
     {% end %}
 
     {# hreflang alternates #}
     {% for alt in alternate_links(page) %}
-    <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
+    <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href | absolute_url }}">
     {% end %}
 
     {# Favicon, preconnect, fonts, stylesheets — site-stable, same for every page in a build #}

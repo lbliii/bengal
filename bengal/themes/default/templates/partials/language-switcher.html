@@ -48,7 +48,7 @@ Example usage in base.html:
       role="option"
       {%- if alt.hreflang == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% end %}
     >
-      <a href="{{ alt.href }}" hreflang="{{ alt.hreflang }}" lang="{{ alt.hreflang }}">
+      <a href="{{ alt.href | absolute_url }}" hreflang="{{ alt.hreflang }}" lang="{{ alt.hreflang }}">
         {{ lang_info?.name ?? lang_fallback }}
       </a>
     </li>
@@ -61,7 +61,7 @@ Example usage in base.html:
       role="option"
       {%- if lang.code == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% end %}
     >
-      <a href="/{{ lang.code }}/" hreflang="{{ lang.code }}" lang="{{ lang.code }}">
+      <a href="{{ ('/' ~ lang.code ~ '/') | absolute_url }}" hreflang="{{ lang.code }}" lang="{{ lang.code }}">
         {{ lang.name }}
       </a>
     </li>

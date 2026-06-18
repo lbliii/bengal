@@ -40,7 +40,7 @@
       {% if site.latest_version %}
       <span class="version-banner__link-text">
         {{ t('version.see_latest', default='For the latest documentation, see') }}
-        <a href="{{ site.latest_version.url_prefix or '/' }}" class="version-banner__link">
+        <a href="{{ (site.latest_version.url_prefix or '/') | absolute_url }}" class="version-banner__link">
           {{ t('version.version_label', {'label': site.latest_version.label}, default='version {label}') }}
         </a>.
       </span>
