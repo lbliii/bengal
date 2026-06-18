@@ -369,6 +369,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% cache 'base-search-modal-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}
     {% with (config?.search?.ui ?? none) as ui %}
     {% if ui and (ui?.modal ?? false) %}
+    <bengal-search>
     <dialog id="search-modal" class="search-modal"
         aria-label="{{ t('search.aria_label', default='Search documentation') }}">
         <div class="search-modal__backdrop" data-close-modal></div>
@@ -420,12 +421,15 @@ HELPER: Render a menu item (desktop/mobile)
                             }}</span></span>
                     <span class="search-modal__hint"><kbd>ESC</kbd> <span>{{ t('search.hint_close', default='Close')
                             }}</span></span>
+                    <span class="search-modal__hint"><kbd>?</kbd> <span>{{ t('search.hint_shortcuts', default='Shortcuts')
+                            }}</span></span>
                 </div>
                 <div class="search-modal__powered-by"><span>{{ t('search.powered_by', default='Powered by') }}</span> <a
                         href="https://lunrjs.com/" target="_blank" rel="noopener">Lunr</a></div>
             </footer>
         </div>
     </dialog>
+    </bengal-search>
     {% end %}
     {% end %}
     {% end %}{# /cache base-search-modal #}
@@ -522,6 +526,10 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/utils.js') }}"></script>
     <script defer src="{{ asset_url('js/core/define.js') }}"></script>
     <script defer src="{{ asset_url('js/core/theme.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/search/config.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/search/index.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/search/query.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/search/palette.js') }}"></script>
     <script defer src="{{ asset_url('js/core/search.js') }}"></script>
     <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
     <script defer src="{{ asset_url('js/core/version-selector.js') }}"></script>
