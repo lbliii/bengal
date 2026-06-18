@@ -1,0 +1,1 @@
+Theme links that emitted site-relative paths now include the site's base path, so they resolve correctly on sites served from a subpath (for example a GitHub Pages project site) instead of returning 404. This covers the old-version banner's "latest documentation" link, RSS feed autodiscovery, and the `hreflang` and language-switcher alternate-language links.

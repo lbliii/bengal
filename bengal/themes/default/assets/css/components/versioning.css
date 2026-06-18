@@ -127,6 +127,170 @@
 }
 
 /* =============================================================================
+   Version Switcher (Merged sidebar header — "Documentation · Latest ▾")
+   The docs-nav root header IS the version dropdown. Built on a native
+   <details>/<summary> so versions stay switchable with zero JS; each option is
+   a real <a> with a build-time, baseurl-correct target.
+   ============================================================================= */
+
+.docs-nav-vswitch {
+  position: relative; /* anchor for the absolutely-positioned menu */
+}
+
+/* The <summary> reuses .docs-nav-group-header layout; strip the native marker */
+.docs-nav-vswitch__summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+.docs-nav-vswitch__summary::-webkit-details-marker { display: none; }
+.docs-nav-vswitch__summary::marker { content: ""; }
+.docs-nav-vswitch__summary:hover { color: var(--color-primary); }
+.docs-nav-vswitch__summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Title block: bold doc name + middot + version pill, takes the free space */
+.docs-nav-vswitch__title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.docs-nav-vswitch__doc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.docs-nav-vswitch__sep {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+}
+
+/* Version pill — muted by default, status-tinted via the badge tokens */
+.docs-nav-vswitch__pill {
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  padding: 0.0625rem 0.4375rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-secondary);
+}
+.docs-nav-vswitch__pill[data-status="legacy"] {
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-bg);
+}
+.docs-nav-vswitch__pill[data-status="deprecated"],
+.docs-nav-vswitch__pill[data-status="eol"] {
+  color: var(--color-error-text);
+  background-color: var(--color-error-bg);
+}
+.docs-nav-vswitch__pill[data-status="preview"] {
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+/* Caret rotates open via the native [open] attribute — no JS needed */
+.docs-nav-vswitch__caret {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+.docs-nav-vswitch[open] .docs-nav-vswitch__caret { transform: rotate(180deg); }
+.docs-nav-vswitch__summary:hover .docs-nav-vswitch__caret { color: var(--color-primary); }
+
+/* Popover menu — explicit display control so it never depends on UA quirks */
+.docs-nav-vswitch__menu {
+  display: none;
+  position: absolute;
+  inset-block-start: calc(100% - 0.25rem);
+  inset-inline: 0;
+  z-index: 30;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  max-width: min(20rem, 92vw);
+  max-height: 18rem;
+  overflow-y: auto;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-card);
+}
+.docs-nav-vswitch[open] .docs-nav-vswitch__menu { display: block; }
+
+.docs-nav-vswitch__item { border-radius: var(--radius-md); }
+.docs-nav-vswitch__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.375rem 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+.docs-nav-vswitch__link:hover,
+.docs-nav-vswitch__link:focus-visible {
+  background-color: var(--color-bg-hover);
+}
+.docs-nav-vswitch__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.docs-nav-vswitch__check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 14px;
+  color: var(--color-primary);
+}
+.docs-nav-vswitch__item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.docs-nav-vswitch__item.is-current .docs-nav-vswitch__item-label {
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+}
+.docs-nav-vswitch__item.is-deprecated .docs-nav-vswitch__item-label {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+.docs-nav-vswitch__item-hint {
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+.docs-nav-vswitch__item-hint[data-status="deprecated"],
+.docs-nav-vswitch__item-hint[data-status="eol"] { color: var(--color-warning-text); }
+
+/* Dark mode — match the dual token + explicit-override pattern used elsewhere */
+[data-theme="dark"] .docs-nav-vswitch__menu {
+  background-color: var(--color-bg-elevated);
+  border-color: var(--color-border);
+}
+[data-theme="dark"] .docs-nav-vswitch__pill { background-color: var(--color-bg-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-nav-vswitch__caret,
+  .docs-nav-vswitch__summary { transition: none; }
+}
+
+@media print { .docs-nav-vswitch { display: none; } }
+
+/* =============================================================================
    Version Banner (Full-Width Alert for Older Versions)
    ============================================================================= */
 
