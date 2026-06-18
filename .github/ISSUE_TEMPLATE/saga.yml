@@ -1,0 +1,51 @@
+name: Saga
+description: One thematic PR-sized workstream (maps to one branch)
+title: "Saga: "
+labels:
+  - saga
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A saga is one PR with scoped commits. Tasks inside the PR are commits, not issues.
+        See `plan/AGENTS.md` for proof workflow.
+  - type: input
+    id: epic
+    attributes:
+      label: Parent epic
+      description: Epic issue number, if any
+      placeholder: "343"
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: One paragraph — what this PR will and will not touch.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable, testable outcomes. Name proof commands if non-default.
+      placeholder: |
+        - [ ] ...
+        - [ ] `uv run poe proof-pr` (or narrower gate)
+    validations:
+      required: true
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort
+      options:
+        - s
+        - m
+        - l
+        - xl
+    validations:
+      required: true
+  - type: input
+    id: plan_ref
+    attributes:
+      label: Plan reference
+      placeholder: plan/rfc-snapshot-build-plan-handoff.md

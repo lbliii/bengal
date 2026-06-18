@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from bengal.core.theme import Theme
     from bengal.core.version import VersionConfig
     from bengal.parsing.base import BaseMarkdownParser
+    from bengal.services.config import ConfigService
 
 
 # =============================================================================
@@ -457,8 +458,8 @@ class SiteConfig(Protocol):
         ...
 
     @property
-    def paths(self) -> Any:
-        """Paths to .bengal state directory (BengalPaths)."""
+    def config_service(self) -> ConfigService:
+        """Immutable configuration service (paths, theme, baseurl, etc.)."""
         ...
 
 
