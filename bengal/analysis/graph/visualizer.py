@@ -149,13 +149,10 @@ class GraphVisualizer:
         """
         Get a stable, build-reproducible ID for a page.
 
-        Hashes the *site-relative* source path with a fixed algorithm. Python's
-        built-in ``hash()`` is per-process randomized (PYTHONHASHSEED), and an
-        absolute path varies by checkout location — both make ``graph.json`` /
-        ``index.json`` node ids differ between otherwise-identical builds, which
-        breaks byte-reproducible output and the warm==cold parity contract. A
-        deterministic hash of the site-relative path is stable across builds and
-        machines while staying unique per page.
+        Thin wrapper over :func:`bengal.analysis.utils.pages.stable_page_id` —
+        the single source of truth for the page id, shared with the canonical
+        page-ordering key in ``GraphBuilder.get_analysis_pages`` so nodes are
+        emitted in id order and every analysis iterates a build-stable order.
 
         Args:
             page: Page object
@@ -163,34 +160,9 @@ class GraphVisualizer:
         Returns:
             Stable string ID for the page
         """
-        from bengal.utils.primitives.hashing import hash_str
+        from bengal.analysis.utils.pages import stable_page_id
 
-        source_path = getattr(page, "source_path", None)
-        if source_path is None:
-            # Generated/virtual pages without a source file: derive a stable id
-            # from a location-independent identifier.
-            try:
-                seed = str(page.href)
-            except Exception:
-                seed = str(getattr(page, "title", "") or id(page))
-            return hash_str(seed, truncate=16)
-
-        rel: Any = source_path
-        root = getattr(self.site, "root_path", None)
-        if root is not None:
-            # Canonicalize both sides before taking the relative path: the page
-            # source and the site root can carry different symlink forms (e.g.
-            # macOS ``/var`` vs ``/private/var``), which would make a naive
-            # ``relative_to`` fall back to the absolute (location-dependent) path
-            # and reintroduce nondeterminism across build locations.
-            try:
-                rel = Path(source_path).resolve().relative_to(Path(root).resolve())
-            except ValueError, OSError:
-                try:
-                    rel = Path(source_path).relative_to(root)
-                except ValueError:
-                    rel = source_path
-        return hash_str(Path(rel).as_posix(), truncate=16)
+        return stable_page_id(self.site, page)
 
     def generate_graph_data(self) -> dict[str, Any]:
         """
@@ -210,6 +182,39 @@ class GraphVisualizer:
             total_pages=len(content_pages),
             filtered=len(analysis_pages) - len(content_pages),
         )
+
+        # --- Surface the analysis we already compute: topic communities
+        # (Louvain) + importance (PageRank). Both are cached on the graph and
+        # computed once. Communities color the graph as a topic map; PageRank
+        # drives node size. Determinism is guarded upstream (sorted page order +
+        # Louvain local seeded PRNG); we round the PageRank float before baking.
+        community_by_page: dict[Any, int] = {}
+        communities_summary: list[dict[str, Any]] = []
+        pr_scores: dict[Any, float] = {}
+        pr_max = 0.0
+        try:
+            pr_results = self.graph.compute_pagerank()
+            pr_scores = pr_results.scores or {}
+            pr_max = max(pr_scores.values()) if pr_scores else 0.0
+        except Exception as e:
+            logger.debug("graph_viz_pagerank_failed", error=str(e), error_type=type(e).__name__)
+
+        try:
+            community_results = self.graph.detect_communities()
+            for community in community_results.communities:
+                for p in community.pages:
+                    community_by_page[p] = community.id
+            # Rank-ordered (0 = largest) summary for the cluster legend.
+            communities_summary = [
+                {
+                    "id": community.id,
+                    "label": self._community_label(community, pr_scores),
+                    "size": community.size,
+                }
+                for community in community_results.communities[:12]
+            ]
+        except Exception as e:
+            logger.debug("graph_viz_community_failed", error=str(e), error_type=type(e).__name__)
 
         nodes = []
         edges = []
@@ -231,14 +236,19 @@ class GraphVisualizer:
             except ValueError, TypeError:
                 reading_time = 1
 
-            # Calculate visual size based on BOTH connectivity AND content depth
-            # - Connectivity: how central/important (links)
-            # - Reading time: how substantial (content depth)
-            # Formula: base + connectivity bonus + content depth bonus
+            # Calculate visual size from PageRank importance (dominant) blended
+            # with content depth — so genuinely authoritative pages read as large
+            # and luminous, not merely well-connected ones. Falls back to
+            # connectivity when PageRank is unavailable.
+            pr_score = float(pr_scores.get(page, 0.0))
+            pr_norm = (pr_score / pr_max) if pr_max > 0 else 0.0
             base_size = 8
-            connectivity_bonus = min(connectivity.connectivity_score * 1.5, 20)  # max +20
-            content_bonus = min(reading_time * 0.8, 15)  # max +15 (long articles get bigger)
-            size = int(min(50, base_size + connectivity_bonus + content_bonus))
+            if pr_max > 0:
+                importance_bonus = pr_norm * 28  # PageRank drives prominence
+            else:
+                importance_bonus = min(connectivity.connectivity_score * 1.5, 20)
+            content_bonus = min(reading_time * 0.6, 12)
+            size = int(min(50, base_size + importance_bonus + content_bonus))
 
             # Get tags safely
             tags = []
@@ -334,7 +344,14 @@ class GraphVisualizer:
                 color=color,
             )
 
-            nodes.append(asdict(node))
+            # Bake the surfaced analysis onto the node dict (the dataclass stays
+            # a stable shim; new fields ride alongside x/y). ``community`` is a
+            # stable rank-ordered id (-1 = unclustered) the client maps to a
+            # color token; ``pagerank`` is rounded for byte-parity.
+            node_dict = asdict(node)
+            node_dict["community"] = int(community_by_page.get(page, -1))
+            node_dict["pagerank"] = round(pr_score, 6)
+            nodes.append(node_dict)
 
         # Generate edges with bidirectional weight detection
         # If A→B and B→A both exist, that's a stronger relationship (weight=2)
@@ -377,16 +394,27 @@ class GraphVisualizer:
         # guards warm==cold byte parity.
         from bengal.analysis.graph.layout import compute_force_layout
 
+        # Community-aware layout: cluster nodes into separated topical lobes
+        # (not one center-piled hairball) and pull strongly-linked pairs closer.
+        node_community = {n["id"]: n["community"] for n in nodes}
+        edge_weights = {(e["source"], e["target"]): e["weight"] for e in edges}
         coords = compute_force_layout(
             [n["id"] for n in nodes],
             [(e["source"], e["target"]) for e in edges],
+            communities=node_community,
+            weights=edge_weights,
         )
         for n in nodes:
             x, y = coords.get(n["id"], (0.5, 0.5))
             n["x"] = x
             n["y"] = y
 
-        logger.info("graph_viz_generate_complete", nodes=len(nodes), edges=len(edges))
+        logger.info(
+            "graph_viz_generate_complete",
+            nodes=len(nodes),
+            edges=len(edges),
+            communities=len(communities_summary),
+        )
 
         return {
             "nodes": nodes,
@@ -396,6 +424,7 @@ class GraphVisualizer:
                 "total_links": len(edges),
                 "hubs": self.graph.metrics.hub_count if self.graph.metrics else 0,
                 "orphans": self.graph.metrics.orphan_count if self.graph.metrics else 0,
+                "communities": communities_summary,
             },
         }
 
@@ -421,6 +450,48 @@ class GraphVisualizer:
         if page.metadata.get("_generated"):
             return "var(--graph-node-generated)"
         return "var(--graph-node-regular)"
+
+    def _community_label(self, community: Any, pr_scores: dict[Any, float]) -> str:
+        """
+        Derive a human label for a topic community, deterministically.
+
+        Prefers the most frequent tag shared across the community's pages (ties
+        broken alphabetically); falls back to the title of the highest-PageRank
+        member (ties broken by stable page id) so the choice is reproducible.
+
+        Args:
+            community: A detected Community (has ``.id`` and ``.pages``).
+            pr_scores: PageRank scores by page, for the fallback ranking.
+
+        Returns:
+            A short display label for the community.
+        """
+        from collections import Counter
+
+        from bengal.analysis.utils.pages import stable_page_id
+
+        tag_counts: Counter[str] = Counter()
+        for p in community.pages:
+            tags = getattr(p, "tags", None) or []
+            if isinstance(tags, (list, tuple, set)):
+                for t in tags:
+                    if t:
+                        tag_counts[str(t)] += 1
+        if tag_counts:
+            best = sorted(tag_counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+            if best:
+                return best.replace("-", " ").replace("_", " ").title()
+
+        # Fallback: highest-PageRank member title (tie-break by stable page id).
+        members = sorted(
+            community.pages,
+            key=lambda p: (-float(pr_scores.get(p, 0.0)), stable_page_id(self.site, p)),
+        )
+        for p in members:
+            title = getattr(p, "title", None)
+            if title:
+                return str(title)
+        return f"Cluster {community.id}"
 
     def generate_html(self, title: str | None = None) -> str:
         """

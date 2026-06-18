@@ -212,10 +212,20 @@ class PageRankCalculator:
         # RFC: rfc-analysis-algorithm-optimization
         incoming_edges: dict[PageLike, list[PageLike]] = self.graph.incoming_edges
 
-        # Pre-compute outgoing link counts for efficiency
-        outgoing_counts: dict[PageLike, int] = {
-            page: len(self.graph.outgoing_refs.get(page, set())) for page in pages
-        }
+        # Pre-compute out-degree CONSISTENT with the incoming-edges index above.
+        # PageRank conserves probability mass only when each source distributes
+        # its score across exactly the edges that deliver it. ``outgoing_refs``
+        # counts only explicit links, but ``incoming_edges`` also encodes
+        # related-posts, section-hierarchy and next/prev navigation edges — so
+        # ``len(outgoing_refs)`` under-counts the true out-degree, which inflates
+        # each recipient's share, amplifies total mass every iteration, and
+        # DIVERGES on dense graphs (scores ran past 1e10 on the docs site).
+        # Deriving the denominator from the same index keeps the random walk a
+        # proper (sub-)stochastic process that converges to a sane distribution.
+        outgoing_counts: dict[PageLike, int] = {}
+        for sources in incoming_edges.values():
+            for source_page in sources:
+                outgoing_counts[source_page] = outgoing_counts.get(source_page, 0) + 1
 
         for iteration in range(self.max_iterations):
             new_scores = {}

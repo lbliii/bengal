@@ -45,7 +45,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from bengal.analysis.utils.pages import get_content_pages
+from bengal.analysis.utils.pages import get_content_pages, stable_page_id
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -55,6 +55,14 @@ if TYPE_CHECKING:
     from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
+
+# Fixed default seed for the node-shuffle PRNG when no explicit seed is passed.
+# Louvain's per-iteration shuffle MUST use a local seeded PRNG (never the global
+# ``random`` module): community ids are baked into ``graph.json`` and the
+# warm==cold byte-parity contract is CI-guarded, so the result has to be
+# reproducible across builds. No build caller passes a seed, so this constant is
+# what the build path actually uses.
+_LOUVAIN_SEED = 42
 
 
 @dataclass
@@ -163,8 +171,9 @@ class LouvainCommunityDetector:
         self.resolution = resolution
         self.random_seed = random_seed
 
-        if random_seed is not None:
-            random.seed(random_seed)
+        # Local, deterministic PRNG — never the global ``random`` module, whose
+        # state would leak across analyses and break reproducible output.
+        self._rng = random.Random(random_seed if random_seed is not None else _LOUVAIN_SEED)
 
     def detect(self) -> CommunityDetectionResults:
         """
@@ -198,6 +207,24 @@ class LouvainCommunityDetector:
         # Compute node degrees
         node_degrees = self._compute_node_degrees(pages, edge_weights)
 
+        # Adjacency index (page -> [(neighbor, weight), ...]) and per-community
+        # total degree, both maintained so each modularity-gain evaluation is
+        # O(degree) instead of O(N). Without this the inner loop is
+        # O(N^2 * degree * iterations): fine on tiny test graphs but tens of
+        # minutes on a real docs site (1000+ pages) — and community detection is
+        # now wired into every build, so this is load-bearing for build time.
+        adjacency: dict[PageLike, list[tuple[PageLike, float]]] = {p: [] for p in pages}
+        for edge, weight in edge_weights.items():
+            members = list(edge)
+            if len(members) == 2:
+                a, b = members
+                adjacency[a].append((b, weight))
+                adjacency[b].append((a, weight))
+
+        comm_degree: dict[int, float] = defaultdict(float)
+        for p in pages:
+            comm_degree[page_to_community[p]] += node_degrees.get(p, 0.0)
+
         # Louvain algorithm main loop
         iteration = 0
         improvement = True
@@ -207,42 +234,45 @@ class LouvainCommunityDetector:
             improvement = False
             iteration += 1
 
-            # Randomize order to avoid bias
+            # Randomize order to avoid bias (deterministic: local seeded PRNG).
             shuffled_pages = list(pages)
-            random.shuffle(shuffled_pages)
+            self._rng.shuffle(shuffled_pages)
 
             # Phase 1: Move nodes to optimize modularity
             for page in shuffled_pages:
                 current_community = page_to_community[page]
+                k_i = node_degrees.get(page, 0.0)
+
+                # Weight from this page into each neighboring community (O(degree)).
+                weight_to_comm: dict[int, float] = defaultdict(float)
+                for neighbor, w in adjacency.get(page, ()):
+                    weight_to_comm[page_to_community[neighbor]] += w
+
+                # Best move among neighboring communities (sorted candidate order
+                # for a deterministic tie-break). The current community is the
+                # baseline (gain 0); a candidate must beat it by > 1e-10. Since
+                # `page` sits in current_community, comm_degree[cand] for cand !=
+                # current is the correct sigma_tot (degree sum excluding page) —
+                # identical to the previous O(N) recomputation, just incremental.
                 best_community = current_community
                 best_gain = 0.0
-
-                # Find neighboring communities
-                neighboring_communities = self._get_neighboring_communities(
-                    page, page_to_community, edge_weights
-                )
-
-                # Try moving to each neighboring community
-                for neighbor_community in neighboring_communities:
-                    if neighbor_community == current_community:
+                for cand in sorted(weight_to_comm):
+                    if cand == current_community:
                         continue
-
-                    # Calculate modularity gain
-                    gain = self._modularity_gain(
-                        page,
-                        neighbor_community,
-                        page_to_community,
-                        edge_weights,
-                        node_degrees,
-                        total_weight,
-                    )
-
+                    sigma_tot = comm_degree[cand]
+                    gain = (
+                        weight_to_comm[cand]
+                        - self.resolution * sigma_tot * k_i / (2 * total_weight)
+                    ) / total_weight
                     if gain > best_gain:
                         best_gain = gain
-                        best_community = neighbor_community
+                        best_community = cand
 
-                # Move to best community if improvement found
+                # Move to best community if improvement found; keep comm_degree in
+                # sync so later moves this pass see the updated community totals.
                 if best_community != current_community and best_gain > 1e-10:
+                    comm_degree[current_community] -= k_i
+                    comm_degree[best_community] += k_i
                     page_to_community[page] = best_community
                     improvement = True
 
@@ -265,11 +295,22 @@ class LouvainCommunityDetector:
         for page, community_id in page_to_community.items():
             community_map[community_id].add(page)
 
-        # Renumber communities sequentially
-        communities = [
-            Community(id=i, pages=pages_set)
-            for i, (_, pages_set) in enumerate(sorted(community_map.items()))
-        ]
+        # Renumber communities by a build-stable rank: largest first, ties broken
+        # by the smallest member node-id. The internal community labels are
+        # enumerate/shuffle-derived and therefore NOT stable to bake; this rank
+        # is. It also gives downstream a deterministic ordering (community 0 =
+        # biggest topic), which the visualizer uses to assign a stable color
+        # index per community.
+        site = getattr(self.graph, "site", None)
+
+        def _min_member_id(pages_set: set[PageLike]) -> str:
+            return min(stable_page_id(site, p) for p in pages_set)
+
+        ordered = sorted(
+            community_map.values(),
+            key=lambda pages_set: (-len(pages_set), _min_member_id(pages_set)),
+        )
+        communities = [Community(id=i, pages=pages_set) for i, pages_set in enumerate(ordered)]
 
         logger.info(
             "community_detection_complete",
@@ -316,60 +357,6 @@ class LouvainCommunityDetector:
                 node_degrees[edge_list[0]] += 2 * weight
 
         return node_degrees
-
-    def _get_neighboring_communities(
-        self,
-        page: PageLike,
-        page_to_community: dict[PageLike, int],
-        edge_weights: dict[frozenset[PageLike], float],
-    ) -> set[int]:
-        """Get communities that are neighbors of this page."""
-        neighboring_communities = set()
-
-        # Add current community
-        neighboring_communities.add(page_to_community[page])
-
-        # Find all pages connected to this page
-        for edge in edge_weights:
-            if page in edge:
-                for neighbor in edge:
-                    if neighbor != page:
-                        neighboring_communities.add(page_to_community[neighbor])
-
-        return neighboring_communities
-
-    def _modularity_gain(
-        self,
-        page: PageLike,
-        to_community: int,
-        page_to_community: dict[PageLike, int],
-        edge_weights: dict[frozenset[PageLike], float],
-        node_degrees: dict[PageLike, float],
-        total_weight: float,
-    ) -> float:
-        """
-        Calculate modularity gain from moving page to new community.
-
-        This uses the fast incremental formula for modularity change.
-        """
-        # Weight of links from page to nodes in to_community
-        k_i_in = 0.0
-        for edge, weight in edge_weights.items():
-            if page in edge:
-                for neighbor in edge:
-                    if neighbor != page and page_to_community[neighbor] == to_community:
-                        k_i_in += weight
-
-        # Sum of degrees in to_community
-        sigma_tot = sum(node_degrees[p] for p, c in page_to_community.items() if c == to_community)
-
-        # Degree of page
-        k_i = node_degrees.get(page, 0.0)
-
-        # Modularity gain formula
-        gain = k_i_in - self.resolution * sigma_tot * k_i / (2 * total_weight)
-
-        return gain / total_weight
 
     def _compute_modularity(
         self,

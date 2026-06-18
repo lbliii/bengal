@@ -119,19 +119,41 @@ class GraphBuilder:
         # Thread-safe lock for merge phase
         self._lock = threading.Lock()
 
+        # Memoized, build-stable analysis-page ordering (see get_analysis_pages).
+        self._sorted_analysis_pages: list[PageLike] | None = None
+
     def get_analysis_pages(self) -> list[PageLike]:
         """
-        Get list of pages to analyze, excluding autodoc pages if configured.
+        Get pages to analyze, in a **build-stable order**, excluding autodoc
+        pages if configured.
+
+        Order is load-bearing for determinism: this single list seeds the node
+        emission order in ``graph.json`` and the iteration order of every
+        downstream analysis (PageRank power-iteration, Louvain initial
+        community assignment + shuffle, path-analysis pivot sampling). Bare
+        ``list(self.site.pages)`` inherits filesystem-discovery order, which is
+        not guaranteed stable across builds/machines — baking anything derived
+        from it would break the warm==cold byte-parity contract. We sort by the
+        stable per-page id (the same key as the graph node id) so the order is
+        reproducible and nodes come out in id order. Computed once and memoized.
 
         Returns:
-            List of pages to include in graph analysis
+            Build-stably-ordered list of pages to include in graph analysis.
         """
+        if self._sorted_analysis_pages is not None:
+            return list(self._sorted_analysis_pages)
+
+        from bengal.analysis.utils.pages import stable_page_id
         from bengal.utils.autodoc import is_autodoc_page
 
-        if not self.exclude_autodoc:
-            return list(self.site.pages)
+        if self.exclude_autodoc:
+            pages = [p for p in self.site.pages if not is_autodoc_page(p)]
+        else:
+            pages = list(self.site.pages)
 
-        return [p for p in self.site.pages if not is_autodoc_page(p)]
+        pages.sort(key=lambda p: stable_page_id(self.site, p))
+        self._sorted_analysis_pages = pages
+        return list(pages)
 
     def build(self) -> None:
         """

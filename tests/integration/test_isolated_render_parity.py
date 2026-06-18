@@ -42,10 +42,13 @@ VOLATILE_PATTERNS: tuple[str, ...] = (
     # Top-level site index + its hash.
     "index.json",
     "index.json.hash",
-    # Per-page JSON output: embeds a build-time `last_modified` timestamp and
-    # knowledge-graph node ids derived from object identity, both of which differ
-    # across any two build processes (not fork-specific) — same accepted
-    # volatility as graph.json. fnmatch `*` spans `/`, so this covers all depths.
+    # Per-page JSON output embeds a build-time `last_modified` timestamp, which
+    # differs across any two build processes (not fork-specific). fnmatch `*`
+    # spans `/`, so this covers all depths. NOTE: the `.graph` neighborhood block
+    # *inside* index.json is reproducible (node ids are site-relative-path
+    # hashes, not object identity); only the timestamp makes the whole file
+    # volatile. graph.json itself carries no timestamp and IS guarded for byte
+    # parity here + in tests/integration/test_graph_determinism.py.
     "*/index.json",
     "*/index.json.hash",
     "sitemap.xml",
@@ -55,8 +58,6 @@ VOLATILE_PATTERNS: tuple[str, ...] = (
     ".well-known/content-signals.json",
     "**/.bengal-cache/**",
     "**/.bengal/**",
-    "graph.json",
-    "graph/*.json",
 )
 
 _ROOT = Path(__file__).parents[1] / "roots" / "test-product"
