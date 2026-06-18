@@ -52,7 +52,7 @@ engine (Jinja2, Mako, or BYORenderer). No global function dependency.
   <select id="version-select" class="version-selector__select" aria-label="Select documentation version">
     {% for v in versions %}
     <option value="{{ v.url_prefix or '/' }}" data-target="{{ site.get_version_target_url(page, v) }}" data-status="{{ v.status or (v.deprecated and 'deprecated' or 'legacy') }}" {% if
-      current_version and current_version.id==v.id %}selected{% end %} {% if v.deprecated %}class="version-deprecated"
+      page?.version is not none and page.version == v.id %}selected{% end %} {% if v.deprecated %}class="version-deprecated"
       {% end %}>
       {{ v.label }}{% if v.latest %} (Latest){% end %}{% if v.status == 'preview' %} (Preview){% end %}{% if v.deprecated %} ⚠️{% end %}
     </option>
