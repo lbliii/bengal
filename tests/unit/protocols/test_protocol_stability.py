@@ -222,6 +222,7 @@ class TestSiteLikeStability:
         "title",
         "baseurl",
         "config",
+        "config_service",
         "pages",
         "sections",
         "root_section",

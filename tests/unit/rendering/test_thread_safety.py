@@ -300,6 +300,7 @@ class TestRendererCacheThreadSafety:
         # Create mock template engine and site
         mock_engine = MagicMock()
         mock_site = MagicMock()
+        mock_site.config = {}
         mock_site.taxonomies = {
             "tags": {
                 "python": {"name": "Python", "slug": "python", "pages": []},
@@ -340,6 +341,7 @@ class TestRendererCacheThreadSafety:
 
         mock_engine = MagicMock()
         mock_site = MagicMock()
+        mock_site.config = {}
         mock_site.sections = []
         mock_site.regular_pages = []
         mock_engine.site = mock_site

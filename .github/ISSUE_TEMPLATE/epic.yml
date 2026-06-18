@@ -1,0 +1,52 @@
+name: Epic
+description: Umbrella tracking issue spanning multiple sagas
+title: "Epic: "
+labels:
+  - epic
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Epics track multi-saga work. Each shippable slice should be a separate saga issue linked below.
+        See `plan/ROADMAP.md` for the full taxonomy.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Why this matters now. Link a plan/RFC if design memory exists.
+      placeholder: "## Problem\n\n..."
+    validations:
+      required: true
+  - type: textarea
+    id: child_sagas
+    attributes:
+      label: Child sagas
+      description: Checklist of saga issues (`- [ ] #NNN title`). Create sagas first or add links after.
+      placeholder: |
+        - [ ] #NNN Saga title (effort: m)
+        - [ ] #NNN ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What "epic closed" means — not per-saga proof (that lives in each saga).
+    validations:
+      required: true
+  - type: input
+    id: plan_ref
+    attributes:
+      label: Plan reference
+      description: Path under plan/ if applicable
+      placeholder: plan/epic-performance.md
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Overall effort
+      options:
+        - l
+        - xl
+    validations:
+      required: true

@@ -1,0 +1,26 @@
+name: Bug
+description: Defect or regression — fix + regression test
+title: ""
+labels:
+  - bug
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro
+      description: Steps, failing test, or minimal fixture
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected / actual
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: "- [ ] Regression test added or existing test passes"
+    validations:
+      required: true

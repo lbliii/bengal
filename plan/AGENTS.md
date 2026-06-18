@@ -45,26 +45,30 @@ When plans change, check:
 - **Archival hygiene.** Move complete/superseded plans instead of leaving stale
   root documents.
 - **Actionable follow-ups.** Convert accepted not-now work into narrow backlog items.
-- **Saga continuity.** Keep the roadmap able to answer "what should we work on
-  next?" without a second tracking system.
+- **Saga continuity.** Issues carry status; `plan/ROADMAP.md` codifies planning
+  taxonomy — not a duplicate queue.
 
 ## Saga Operating Model
 
-A saga is one thematic branch/PR-sized workstream selected from an active root
-plan, usually a sprint, phase, or proof slice. It may span several commits, but
-each commit should remain independently reviewable and match one task or proof
-step.
+The **living roadmap is GitHub Issues**; see `plan/ROADMAP.md` for epic/saga/task
+taxonomy, labels, issue templates, and query commands. This section covers
+**execution** once an issue is selected.
+
+A saga is one thematic branch/PR-sized workstream — one open GitHub issue. It may
+span several commits (tasks), but each commit should remain independently
+reviewable.
 
 When a session asks what to work on next:
 
 1. Read root `AGENTS.md`, this file, `plan/README.md`, and `plan/ROADMAP.md`.
-2. Treat `plan/ROADMAP.md` as the authoritative ordering and proof gate.
-3. Select the highest-priority item whose stop-and-ask triggers are cleared.
-4. Consult the scoped stewards for the paths the saga will touch.
-5. Record the saga brief in the thread or PR description: selected plan,
+2. Check **open GitHub issues** for in-flight work; each saga maps to one issue.
+3. Use `plan/ROADMAP.md` for sequencing order and proof gates.
+4. Select the highest-priority open issue whose stop-and-ask triggers are cleared.
+5. Consult the scoped stewards for the paths the saga will touch.
+6. Record the saga brief in the thread or PR description: selected plan,
    affected stewards, accepted findings, not-now items, commit slices, proof
    commands, collateral, and changelog decision.
-6. If the user explicitly asks to start the saga as a goal, create an active
+7. If the user explicitly asks to start the saga as a goal, create an active
    goal whose objective names the plan slice, commit cadence, proof commands,
    collateral updates, and archive/roadmap closure criteria.
 
@@ -75,10 +79,9 @@ the right status directory, and leave follow-up work as narrow active/stale
 items instead of hidden thread memory.
 
 Goals are runtime state, not durable planning records. Use them to keep long
-Codex sessions focused and resumable, but always close the loop in files:
-commits show task boundaries, `plan/ROADMAP.md` shows the next queue, active
-plans show status/proof, and archive directories preserve completed or replaced
-design memory.
+Codex sessions focused and resumable, but always close the loop in GitHub issues
+and `plan/complete/`: commits show task boundaries, open issues show what's next,
+RFCs hold design memory, and archive directories preserve completed designs.
 
 ## Saga Branch & Dirty-Worktree Hygiene
 
@@ -86,8 +89,9 @@ Large AI-assisted sagas often run while the main worktree carries unrelated
 in-flight changes (OpenAPI, CLI, theme, docs, tests). That is allowed, but it
 makes proof and review fragile unless the saga is kept narrow. The rules:
 
-- **Each saga maps to a GitHub issue.** Pick the issue from `plan/ROADMAP.md`
-  (or open one). The issue, not chat memory, is the durable scope.
+- **Each saga maps to a GitHub issue.** Pick from open issues (`gh issue list
+  --label saga`); use `plan/ROADMAP.md` for taxonomy and queries, not a
+  duplicate queue.
 - **Each branch and PR names its saga issue.** Put the issue link in the PR
   description and reference it in the branch name when practical
   (`fix/130-css-hot-reload`, `perf/307-render-throughput`).
@@ -154,15 +158,14 @@ closing PR runs this checklist:
       a finished epic in root as "almost done."
 - [ ] Update the **Active Root Set** count and table in `plan/README.md` and
       the **Active Root Plans** table in `plan/ROADMAP.md` whenever plans move.
-- [ ] Update the `plan/ROADMAP.md` sequencing/saga-queue rows: mark shipped
-      work done (with the PR/commit), and **delete or rewrite rows that a
-      shipped change has resolved** (e.g. a bug fixed by a merged PR stops
-      being a P1 row — it becomes a one-line "resolved by #NNN" note or is
-      removed).
+- [ ] Update any **stale GH issue** if the saga resolved work still listed open
+      (e.g. child sagas shipped but epic checklist not ticked).
+- [ ] Do **not** add priority tables to `plan/ROADMAP.md` — the handbook stays
+      taxonomy-only; closed issues are the history.
 - [ ] Represent remaining follow-up work as **narrow GitHub issues and roadmap
       rows**, not as stale prose buried in a plan body.
-- [ ] Refresh the `plan/ROADMAP.md` Verification Snapshot facts the saga
-      changed (counts, file existence, floors).
+- [ ] Refresh the **closing PR description** with proof commands and recorded
+      floors (ty count, etc.) — not a standing table in `ROADMAP.md`.
 
 Keep this lightweight: the goal is durable orientation, not a second
 project-management system. No new tooling unless the manual workflow proves

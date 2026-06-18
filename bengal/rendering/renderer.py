@@ -254,11 +254,18 @@ class Renderer:
         """
         # Read the two config keys directly (mirrors get_i18n_config's strategy /
         # share_taxonomies semantics) rather than importing it: rendering (layer 6) must
-        # not depend on orchestration (layer 7). Defensive .get chains also keep this from
-        # raising on the minimal/mock site.config used by some renderer unit tests.
-        i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy") or "none"
-        share_taxonomies = bool(i18n.get("share_taxonomies", False))
+        # not depend on orchestration (layer 7). Use .get chains (Config + dict) and
+        # isinstance guards so mock site.config objects do not hit bool(MagicMock) on 3.14t.
+        config = getattr(self.site, "config", None)
+        if config is None or not hasattr(config, "get"):
+            return False
+        i18n_raw = config.get("i18n", {}) or {}
+        if not hasattr(i18n_raw, "get"):
+            return False
+        strategy_raw = i18n_raw.get("strategy")
+        strategy = strategy_raw if isinstance(strategy_raw, str) else "none"
+        share_raw = i18n_raw.get("share_taxonomies", False)
+        share_taxonomies = share_raw if isinstance(share_raw, bool) else False
         return strategy != "none" and not share_taxonomies
 
     def _get_resolved_tag_pages(self, tag_slug: str) -> list[PageLike]:

@@ -2,7 +2,7 @@
 
 # Completed Plan Archive
 
-Updated: 2026-05-30
+Updated: 2026-06-17
 
 Individual completed RFC bodies were removed after this distillation pass. Their
 implementation state is now better verified from source, tests, `CHANGELOG.md`,
@@ -25,8 +25,17 @@ and release notes than from stale implementation sketches.
   directive base CSS, theme ecosystem phase 1, default/chirpui theme work, and
   Kida-related rendering fixes.
 - Parsing/content/autodoc: Patitas extraction/performance/CommonMark work,
-  container stack parsing, external references, OpenAPI filter unification, and
-  REST autodoc layouts.
+  container stack parsing, external references, OpenAPI filter unification, REST
+  autodoc layouts (#289), and advanced schema rendering (#285).
+- CSS minifier: tokenizer-based `bengal/css/` engine (#510); legacy heuristic
+  minifier removed.
+- First-party knowledge graph: D3 dropped; build-time layout + canvas explorer
+  (v0.5.1).
+- Pridelands theme (partial): zero-CDN capabilities (#533), OKLCH palettes
+  (#534), `light-dark()` dark mode (#535), SEO structured data (#536), custom
+  elements (#537) — epic #532 still open for remaining child sagas.
+- Ty floor: 531 → 424 via `SiteLike.config_service` + graph nullable guards
+  (#292 — close issue on PR).
 - Immutable Page pipeline: SourcePage, ParsedPage, and RenderedPage exist as
   frozen records; PageProxy and the mutable `Page` compatibility class are
   deleted; public `bengal.Page` and `bengal.core.Page` re-exports are retired.

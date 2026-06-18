@@ -149,6 +149,16 @@ class KnowledgeGraph:
         self._analyzer: GraphAnalyzer | None = None
         self._reporter: GraphReporter | None = None
 
+    def _analyzer_or_raise(self) -> GraphAnalyzer:
+        """Return the post-build analyzer, narrowing away the pre-build None."""
+        assert self._analyzer is not None, "analyzer should be set after build()"
+        return self._analyzer
+
+    def _reporter_or_raise(self) -> GraphReporter:
+        """Return the post-build reporter, narrowing away the pre-build None."""
+        assert self._reporter is not None, "reporter should be set after build()"
+        return self._reporter
+
     def build(self) -> None:
         """
         Build the knowledge graph by analyzing all page connections.
@@ -251,7 +261,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._analyzer.get_connectivity(page)  # type: ignore[union-attr]
+        return self._analyzer_or_raise().get_connectivity(page)
 
     @require_built
     def get_hubs(self, threshold: int | None = None) -> list[PageLike]:
@@ -272,7 +282,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._analyzer.get_hubs(threshold)  # type: ignore[union-attr]
+        return self._analyzer_or_raise().get_hubs(threshold)
 
     @require_built
     def get_leaves(self, threshold: int | None = None) -> list[PageLike]:
@@ -293,7 +303,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._analyzer.get_leaves(threshold)  # type: ignore[union-attr]
+        return self._analyzer_or_raise().get_leaves(threshold)
 
     @require_built
     def get_orphans(self) -> list[PageLike]:
@@ -311,7 +321,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._analyzer.get_orphans()  # type: ignore[union-attr]
+        return self._analyzer_or_raise().get_orphans()
 
     @require_built
     def get_connectivity_report(
@@ -412,7 +422,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._analyzer.get_connectivity_score(page)  # type: ignore[union-attr]
+        return self._analyzer_or_raise().get_connectivity_score(page)
 
     @require_built
     def get_layers(self) -> PageLayers:
@@ -431,7 +441,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._analyzer.get_layers()  # type: ignore[union-attr]
+        return self._analyzer_or_raise().get_layers()
 
     @require_built
     def get_metrics(self) -> GraphMetrics:
@@ -459,7 +469,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._reporter.format_stats()  # type: ignore[union-attr]
+        return self._reporter_or_raise().format_stats()
 
     @require_built
     def get_actionable_recommendations(self) -> list[str]:
@@ -472,7 +482,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._reporter.get_actionable_recommendations()  # type: ignore[union-attr]
+        return self._reporter_or_raise().get_actionable_recommendations()
 
     @require_built
     def get_seo_insights(self) -> list[str]:
@@ -485,7 +495,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._reporter.get_seo_insights()  # type: ignore[union-attr]
+        return self._reporter_or_raise().get_seo_insights()
 
     @require_built
     def get_content_gaps(self) -> list[str]:
@@ -498,7 +508,7 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        return self._reporter.get_content_gaps()  # type: ignore[union-attr]
+        return self._reporter_or_raise().get_content_gaps()
 
     @require_built
     def compute_pagerank(
