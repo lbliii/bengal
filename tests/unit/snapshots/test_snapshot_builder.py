@@ -181,6 +181,21 @@ def test_snapshot_section_hierarchy(site, build_site):
         assert section_snap.root == snapshot.root_section or section_snap == snapshot.root_section
 
 
+@pytest.mark.bengal(testroot="test-versioned")
+def test_snapshot_nav_root_matches_section_root(site, build_site):
+    """Versioned docs sections should use their own docs tree as nav root."""
+    build_site()
+
+    snapshot = create_site_snapshot(site)
+
+    docs_sections = {s.href: s for s in snapshot.sections if s.name == "docs"}
+    assert len(docs_sections) >= 3
+
+    for href, docs in docs_sections.items():
+        assert docs.root is not None, href
+        assert docs.root.href == href
+
+
 # =============================================================================
 # NavTree pre-computation tests
 # =============================================================================

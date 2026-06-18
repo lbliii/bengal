@@ -105,10 +105,15 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
 
     # Phase 2.5: Set root references on all sections (post-processing)
     def find_root_snapshot(snapshot: SectionSnapshot) -> SectionSnapshot:
-        """Find root section by walking up parent chain."""
+        """Find nav root section, mirroring ``Section.root`` semantics."""
         current = snapshot
         while current.parent is not None:
-            current = current.parent
+            if current.metadata.get("nav_root"):
+                return current
+            parent = current.parent
+            if parent.parent is not None and parent.parent.name == "_versions":
+                return current
+            current = parent
         return current
 
     for orig_section_id, section_snapshot in list(section_cache.items()):

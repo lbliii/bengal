@@ -67,14 +67,20 @@ per-call overhead of {% include %} (context copy, template lookup).
      Native <details>/<summary> = the disclosure, so versions stay switchable
      with zero JS (each option is a real <a>); CSS rotates the caret via [open];
      version-selector.js only adds close-on-outside-click + Esc + arrow keys. #}
-  {% let vcur = current_version ?? site.latest_version %}
-  {% let vlabel = vcur?.label ?? 'Latest' %}
-  {% let vstatus = vcur?.status ?? 'current' %}
-  {# Identify the active version by the page's own version id (a plain string),
-     not current_version.id: on section-index pages current_version arrives as
-     an unresolved LazyValue and plain attribute access on it throws K-RUN-001,
-     which silently drops every section-index page from the build. #}
+  {# Resolve the pill label/status from page.version + the versions list.
+     Do not read current_version.label: on section-index pages current_version
+     arrives as an unresolved LazyValue and attribute access on it throws
+     K-RUN-001 (dropping the page) or falls back to site.latest_version
+     ("Latest" on older-version pages). The menu already matches by page.version. #}
   {% let cur_version_id = page?.version %}
+  {% let vlabel = site.latest_version?.label ?? 'Latest' %}
+  {% let vstatus = 'current' %}
+  {% for v in versions %}
+  {% if cur_version_id is not none and cur_version_id == v.id %}
+  {% let vlabel = v.label %}
+  {% let vstatus = v.status or (v.deprecated and 'deprecated' or 'legacy') %}
+  {% end %}
+  {% end %}
   <details class="docs-nav-vswitch" data-version-switcher>
     <summary class="docs-nav-group-header docs-nav-vswitch__summary" title="Switch documentation version">
       {% if show_nav_icons %}
