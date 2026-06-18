@@ -4,7 +4,7 @@
  * PATTERN: POPOVER (see assets/COMPONENT-PATTERNS.md)
  * - Share dropdowns and metadata panel use native [popover] API
  * - Browser handles: show/hide, light dismiss, escape key, top layer
- * - JS handles: Copy functionality, AI share, popover positioning
+ * - JS handles: Copy functionality, AI share
  *
  * Supports both action-bar (classic) and page-hero (magazine) variants.
  */
@@ -23,77 +23,9 @@
   ready(init);
 
   function init() {
-    initPopoverPositioning();
     initCopyActions();
     initAIShareActions();
     updateShareLinks();
-  }
-
-  /**
-   * Initialize popover positioning relative to triggers
-   * Native popover appears in top layer, so we need to position it manually
-   */
-  function initPopoverPositioning() {
-    // Find all popover triggers
-    const triggers = document.querySelectorAll('[popovertarget]');
-
-    triggers.forEach(trigger => {
-      const targetId = trigger.getAttribute('popovertarget');
-      const popover = document.getElementById(targetId);
-
-      if (!popover) return;
-
-      // Position popover when it opens (not beforetoggle - need dimensions)
-      popover.addEventListener('toggle', (e) => {
-        if (e.newState === 'open') {
-          positionPopover(trigger, popover);
-        }
-      });
-
-      // Handle chevron rotation
-      const chevron = trigger.querySelector('[class*="chevron"]');
-      if (chevron) {
-        popover.addEventListener('toggle', (e) => {
-          if (e.newState === 'open') {
-            chevron.style.transform = 'rotate(180deg)';
-          } else {
-            chevron.style.transform = 'rotate(0deg)';
-          }
-        });
-      }
-    });
-  }
-
-  /**
-   * Position popover relative to its trigger
-   */
-  function positionPopover(trigger, popover) {
-    const rect = trigger.getBoundingClientRect();
-    const popoverRect = popover.getBoundingClientRect();
-
-    // Position below trigger, aligned to right edge
-    let top = rect.bottom + 8;
-    let left = rect.right - popoverRect.width;
-
-    // Ensure it doesn't go off-screen left
-    if (left < 8) {
-      left = 8;
-    }
-
-    // Ensure it doesn't go off-screen right
-    const rightOverflow = left + popoverRect.width - window.innerWidth + 8;
-    if (rightOverflow > 0) {
-      left -= rightOverflow;
-    }
-
-    // Ensure it doesn't go off-screen bottom
-    if (top + popoverRect.height > window.innerHeight - 8) {
-      // Position above trigger instead
-      top = rect.top - popoverRect.height - 8;
-    }
-
-    popover.style.top = `${top}px`;
-    popover.style.left = `${left}px`;
   }
 
   /**

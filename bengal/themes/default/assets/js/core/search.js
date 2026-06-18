@@ -3,7 +3,7 @@
  *
  * Pattern: DIALOG (see COMPONENT-PATTERNS.md)
  * - Element: <dialog id="search-modal">
- * - Browser: focus trap, escape key, backdrop
+ * - Browser: focus trap, escape key, backdrop (native — no hand-rolled Tab handler)
  * - JS: search logic, keyboard shortcuts, result rendering
  *
  * Using Lunr.js for client-side full-text search
@@ -915,31 +915,6 @@
                 e.preventDefault();
                 selectResult();
                 break;
-
-            case 'Tab':
-                // Trap focus within modal
-                handleTabKey(e);
-                break;
-        }
-    }
-
-    function handleTabKey(e) {
-        const focusableElements = modal.querySelectorAll(
-            'input, button, [tabindex]:not([tabindex="-1"])'
-        );
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-                e.preventDefault();
-                lastElement.focus();
-            }
-        } else {
-            if (document.activeElement === lastElement) {
-                e.preventDefault();
-                firstElement.focus();
-            }
         }
     }
 

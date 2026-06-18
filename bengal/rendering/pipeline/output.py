@@ -393,6 +393,10 @@ def format_html(html: str, page: PageLike, site: SiteLike) -> str:
 
     try:
         from bengal.postprocess.html_output import format_html_output
+        from bengal.postprocess.static_markup import enhance_theme_markup
+
+        base_url = str(site.config.get("baseurl", "") or "")
+        html = enhance_theme_markup(html, base_url=base_url)
 
         # RFC: rfc-build-performance-optimizations Phase 1.1
         # Check fast_mode first (highest priority) - skip all formatting

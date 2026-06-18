@@ -4,7 +4,7 @@
  * Pattern: POPOVER (see COMPONENT-PATTERNS.md)
  * - Element: <div id="theme-menu" popover class="*--popover">
  * - Browser handles: Show/hide, light dismiss, escape key, top layer
- * - JS handles: Positioning relative to trigger, theme/palette persistence
+ * - JS handles: theme/palette persistence
  *
  * Theme features:
  * - Light/Dark/System theme switching
@@ -162,10 +162,9 @@
         }
       });
 
-      // Position and update states when popover opens
+      // Update active states when popover opens
       menu.addEventListener('toggle', function (e) {
         if (e.newState === 'open') {
-          positionPopover(menu, triggerBtn);
           updatePopoverActiveStates(menu);
         }
       });
@@ -173,31 +172,6 @@
       // Initial active states
       updatePopoverActiveStates(menu);
     });
-  }
-
-  /**
-   * Position popover relative to its trigger button
-   */
-  function positionPopover(popover, trigger) {
-    if (!trigger) return;
-
-    const triggerRect = trigger.getBoundingClientRect();
-    const popoverRect = popover.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-
-    // Position below the trigger, aligned to right edge
-    let top = triggerRect.bottom + 8;
-    let right = viewportWidth - triggerRect.right;
-
-    // Ensure it doesn't go off-screen left
-    const left = viewportWidth - right - popoverRect.width;
-    if (left < 8) {
-      right = viewportWidth - popoverRect.width - 8;
-    }
-
-    popover.style.top = top + 'px';
-    popover.style.right = right + 'px';
-    popover.style.left = 'auto';
   }
 
   /**

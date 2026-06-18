@@ -98,25 +98,23 @@ Each pattern has specific naming conventions to make the implementation clear.
 
 **JS handles:** Open/close state, hover timing, keyboard navigation.
 
-**CSS handles:** Positioning (absolute within parent), visibility.
+**CSS handles:** Positioning (absolute within parent), visibility via `:hover` / `:focus-within`.
 
 **Naming:**
-- HTML: `[data-state="open|closed"]` on container and trigger
-- CSS: `[data-state="open"]` selectors for visibility
-- JS: Event listeners for mouseenter/mouseleave
-- Classes: `.has-dropdown`, `.submenu`
+- HTML: `.has-submenu` on items with children
+- CSS: `.nav-main > li.has-submenu:hover > .submenu` and `:focus-within`
+- JS: none (mobile submenus use `enhancements/mobile-nav.js`)
 
 **Example:**
 ```html
-<li class="has-dropdown" data-state="closed">
-  <a href="/docs" data-state="closed" aria-haspopup="true">Docs</a>
+<li class="has-submenu">
+  <a href="/docs">Docs</a>
   <ul class="submenu"><!-- items --></ul>
 </li>
 ```
 
 **Files:**
-- `core/nav-dropdown.js` - Hover state management
-- `layouts/header.css` - `.submenu` positioning
+- `layouts/header.css` - `.submenu` positioning and reveal
 - `components/navigation.css` - Navigation styles
 
 ---

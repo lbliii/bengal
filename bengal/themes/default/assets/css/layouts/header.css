@@ -263,8 +263,9 @@ header[role="banner"][data-sticky="false"] {
   position: relative;
 }
 
-/* Nav link becomes positioning context for dropdown (when JS adds has-dropdown) */
-.nav-main>li.has-dropdown>a {
+/* Nav links with submenus - positioning context for dropdown */
+.nav-main>li.has-submenu>a,
+.nav-main>li.has-submenu>.nav-dropdown-trigger {
   position: relative;
 }
 
@@ -295,39 +296,13 @@ header[role="banner"][data-sticky="false"] {
   display: block;
 }
 
-/* Fallback: Show dropdown on hover (works even without JavaScript) */
-.nav-main>li:hover>.submenu,
-.nav-main>li:focus-within>.submenu {
+/* Show dropdown on hover or keyboard focus-within (no JS) */
+.nav-main>li.has-submenu:hover>.submenu,
+.nav-main>li.has-submenu:focus-within>.submenu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   pointer-events: auto;
-}
-
-/* Dropdown is open (JavaScript-controlled via data-state OR hover fallback) */
-.nav-main>li[data-state="open"] .submenu,
-.nav-main>li.has-dropdown[data-state="open"] .submenu,
-.nav-main>li.has-dropdown:hover .submenu,
-.nav-main>li.has-dropdown:hover>.submenu {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-  /* Enable interaction when visible */
-}
-
-/* Also show when hovering over submenu itself */
-.nav-main>li.has-dropdown .submenu:hover {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-/* Nav link state styling (Supabase/Radix pattern) */
-.nav-main>li.has-dropdown>a[data-state="open"] {
-  color: var(--color-primary);
-  background-color: var(--color-bg-hover);
 }
 
 [data-theme="dark"] .nav-main .submenu {
@@ -872,9 +847,8 @@ header[role="banner"][data-sticky="false"] {
    See: assets/COMPONENT-PATTERNS.md
 
    - Element: <div id="theme-menu" popover class="*--popover">
-   - Browser: show/hide, light dismiss, escape, top layer
-   - JS: positioning (theme.js → positionPopover)
-   - Suffix: --popover indicates this pattern
+   - Browser: show/hide, light dismiss, escape, top layer, anchor positioning
+   - JS: theme/palette persistence only
    ============================================ */
 
 /* Theme controls container */
@@ -895,9 +869,13 @@ header[role="banner"][data-sticky="false"] {
     0 4px 16px rgba(0, 0, 0, 0.12),
     0 1px 3px rgba(0, 0, 0, 0.08);
 
-  /* Fixed positioning - JS sets exact position relative to trigger */
+  /* Anchor-positioned below trigger (Popover Invoker Link); no JS positioning */
   position: fixed;
   inset: unset;
+  position-anchor: auto;
+  top: calc(anchor(bottom) + 8px);
+  right: anchor(right);
+  left: auto;
 
   /* Hidden by default */
   opacity: 0;

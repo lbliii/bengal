@@ -438,9 +438,13 @@
   padding: 0;
   border: none;
 
-  /* Fixed positioning - top layer handles stacking */
+  /* Anchor-positioned below trigger (Popover Invoker Link); no JS positioning */
   position: fixed;
   inset: unset;
+  position-anchor: auto;
+  top: calc(anchor(bottom) + 8px);
+  right: anchor(right);
+  left: auto;
 
   /* Appearance */
   min-width: 240px;
@@ -489,9 +493,13 @@
   padding: 0;
   border: none;
 
-  /* Fixed positioning - JS sets exact position relative to trigger */
+  /* Anchor-positioned below trigger (Popover Invoker Link); no JS positioning */
   position: fixed;
   inset: unset;
+  position-anchor: auto;
+  top: calc(anchor(bottom) + 8px);
+  right: anchor(right);
+  left: auto;
 
   /* Appearance */
   padding: 0.625rem 1rem;

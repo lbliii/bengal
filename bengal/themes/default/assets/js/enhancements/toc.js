@@ -40,7 +40,8 @@
   let headings = [];
 
   // Store handlers for cleanup
-  let scrollHandler = null;
+  let progressScrollHandler = null;
+  let headingObserver = null;
   let hashChangeHandler = null;
   let resizeHandler = null;
   let keyboardHandler = null;
@@ -104,48 +105,12 @@
   }
 
   /**
-   * Update active TOC item based on scroll position
-   *
-   * Performance: Batches all DOM reads before DOM writes to avoid forced reflows.
-   * This prevents the browser from recalculating layout multiple times per frame.
+   * Update active TOC item from IntersectionObserver entries
    */
-  function updateActiveItem() {
-    const viewportOffset = 120; // Offset from top of viewport
-
-    // ========================================
-    // PHASE 1: Batch all DOM reads
-    // ========================================
-
-    // Read all heading positions in one batch (avoids interleaved read/write)
-    const headingRects = headings.map(heading => ({
-      top: heading.element.getBoundingClientRect().top,
-      heading: heading
-    }));
-
-    // Read container rect once (if needed for scroll-into-view)
-    let containerRect = null;
-    if (tocScrollContainer) {
-      containerRect = tocScrollContainer.getBoundingClientRect();
-    }
-
-    // Find active heading (closest one above viewport offset)
-    let activeIndex = 0;
-    for (let i = headingRects.length - 1; i >= 0; i--) {
-      if (headingRects[i].top <= viewportOffset) {
-        activeIndex = i;
-        break;
-      }
-    }
-
-    // Only update if changed
+  function applyActiveIndex(activeIndex) {
     if (activeIndex === currentActiveIndex) return;
     currentActiveIndex = activeIndex;
 
-    // ========================================
-    // PHASE 2: Batch all DOM writes
-    // ========================================
-
-    // Collect class changes to apply
     const activeHeading = headings[activeIndex];
     const activeLink = activeHeading ? activeHeading.link : null;
     const activeParentGroup = activeLink ? activeLink.closest('details.toc-group') : null;
@@ -158,7 +123,6 @@
       && activeTrackSectionGroup.closest('.toc-sidebar').getAttribute('data-track-filtering') === 'true'
     );
 
-    // Remove active class from all links
     headings.forEach((heading, index) => {
       if (index === activeIndex) {
         heading.link.classList.add('active');
@@ -167,20 +131,15 @@
       }
     });
 
-    // Handle group expand/collapse (using native [open] attribute)
     if (activeParentGroup) {
-      // Active link is inside a collapsible group
-      // Collect ALL ancestor groups (nested groups need parent groups open too)
       const ancestorGroups = new Set();
       let currentGroup = activeParentGroup;
       while (currentGroup) {
         ancestorGroups.add(currentGroup);
-        // Find next ancestor group
         const parent = currentGroup.parentElement?.closest('details.toc-group');
         currentGroup = parent;
       }
 
-      // Expand all ancestor groups (from active up to root)
       ancestorGroups.forEach(group => {
         if (!group.open) {
           const groupId = getGroupId(group);
@@ -188,15 +147,11 @@
         }
       });
 
-      // Collapse groups that are NOT ancestors of active item
       tocGroups.forEach(group => {
         if (ancestorGroups.has(group)) {
           return;
         }
 
-        // Track TOCs swap between top-level section groups as you scroll.
-        // Within the active track section, keep nested subsection groups expanded
-        // so the sidebar shows the full article TOC instead of only the section header.
         if (preserveTrackSectionGroups && activeTrackSectionGroup.contains(group)) {
           const activeSectionGroupId = getGroupId(group);
           if (!group.open) {
@@ -211,8 +166,6 @@
         }
       });
     } else {
-      // Active link is a standalone item (not in a group)
-      // Collapse ALL groups to keep the minimal view
       tocGroups.forEach(group => {
         const groupId = getGroupId(group);
         if (group.open) {
@@ -221,8 +174,8 @@
       });
     }
 
-    // Scroll active link into view if needed (using cached containerRect)
-    if (tocScrollContainer && activeLink && containerRect) {
+    if (tocScrollContainer && activeLink) {
+      const containerRect = tocScrollContainer.getBoundingClientRect();
       const linkRect = activeLink.getBoundingClientRect();
       if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
         activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -231,11 +184,72 @@
   }
 
   /**
-   * Update on scroll (progress + active item)
+   * Update active TOC item based on scroll position
+   *
+   * Performance: Batches all DOM reads before DOM writes to avoid forced reflows.
+   * This prevents the browser from recalculating layout multiple times per frame.
+   */
+  function updateActiveItem() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const index = headings.findIndex(h => h.id === hash);
+    if (index >= 0) {
+      applyActiveIndex(index);
+    }
+  }
+
+  /**
+   * Update on scroll (progress bar only; active item uses IntersectionObserver)
    */
   function updateOnScroll() {
     updateProgress();
-    updateActiveItem();
+  }
+
+  /**
+   * Initialize IntersectionObserver scroll-spy for heading active state
+   */
+  function initHeadingObserver() {
+    if (!('IntersectionObserver' in window) || !headings.length) {
+      applyActiveIndex(0);
+      return;
+    }
+
+    const visibleHeadings = new Map();
+
+    headingObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const index = headings.findIndex(h => h.element === entry.target);
+        if (index < 0) return;
+
+        if (entry.isIntersecting) {
+          visibleHeadings.set(index, entry.intersectionRatio);
+        } else {
+          visibleHeadings.delete(index);
+        }
+      });
+
+      if (visibleHeadings.size === 0) {
+        return;
+      }
+
+      let bestIndex = 0;
+      let bestRatio = -1;
+      visibleHeadings.forEach((ratio, index) => {
+        if (ratio >= bestRatio) {
+          bestRatio = ratio;
+          bestIndex = index;
+        }
+      });
+
+      applyActiveIndex(bestIndex);
+    }, {
+      root: null,
+      rootMargin: '-120px 0px -55% 0px',
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1]
+    });
+
+    headings.forEach(({ element }) => headingObserver.observe(element));
+    applyActiveIndex(0);
   }
 
   // ============================================================================
@@ -384,29 +398,23 @@
   }
 
   // ============================================================================
-  // Smooth Scroll to Sections
+  // Smooth Scroll to Sections (native scroll-behavior on html)
   // ============================================================================
 
   /**
-   * Initialize smooth scroll on TOC links
+   * Focus hash targets for accessibility after native smooth scroll
    */
-  function initSmoothScroll() {
+  function initHashFocus() {
     tocItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
+      item.addEventListener('click', () => {
         const id = item.getAttribute('data-toc-item').slice(1);
         const target = document.getElementById(id);
+        if (!target) return;
 
-        if (target) {
-          const offsetTop = target.offsetTop - 100; // Account for fixed header
-          window.scrollTo({
-            top: offsetTop,
-            behavior: 'smooth'
-          });
-
-          // Update URL without jumping
-          history.replaceState(null, '', '#' + id);
+        if (!target.hasAttribute('tabindex')) {
+          target.setAttribute('tabindex', '-1');
         }
+        requestAnimationFrame(() => target.focus({ preventScroll: true }));
       });
     });
   }
@@ -506,19 +514,23 @@
     // Initialize all features
     initGroupToggles();
     initControlButtons();
-    initSmoothScroll();
+    initHashFocus();
     initKeyboardNavigation();
+    initHeadingObserver();
 
-    // Set up scroll listener (recreate the handler each init — cleanup() nulls
-    // it on disconnect, so a reconnect must not re-add a stale null listener).
-    scrollHandler = throttleScroll(updateOnScroll);
-    window.addEventListener('scroll', scrollHandler, { passive: true });
+    progressScrollHandler = throttleScroll(updateOnScroll);
+    window.addEventListener('scroll', progressScrollHandler, { passive: true });
 
-    // Initial update
-    updateOnScroll();
+    updateProgress();
 
-    // Update on hash change (e.g., clicking links elsewhere)
-    hashChangeHandler = updateActiveItem;
+    hashChangeHandler = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      const index = headings.findIndex(h => h.id === hash);
+      if (index >= 0) {
+        applyActiveIndex(index);
+      }
+    };
     window.addEventListener('hashchange', hashChangeHandler);
 
     // Update on resize (debounced)
@@ -530,9 +542,13 @@
    * Cleanup function
    */
   function cleanup() {
-    if (scrollHandler) {
-      window.removeEventListener('scroll', scrollHandler);
-      scrollHandler = null;
+    if (progressScrollHandler) {
+      window.removeEventListener('scroll', progressScrollHandler);
+      progressScrollHandler = null;
+    }
+    if (headingObserver) {
+      headingObserver.disconnect();
+      headingObserver = null;
     }
     if (hashChangeHandler) {
       window.removeEventListener('hashchange', hashChangeHandler);
