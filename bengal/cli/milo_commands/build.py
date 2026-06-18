@@ -543,6 +543,14 @@ def _build_versions(
 
     _install_discovered_versions(site, discovered_versions, base_config=version_config)
 
+    # Capabilities are a build-environment decision and apply to every version
+    # build, including worktrees of tags cut before the capability existed.
+    inherited_capabilities = (
+        site.config.get("capabilities")
+        if isinstance(site.config.get("capabilities"), dict)
+        else None
+    )
+
     if all_versions:
         cli.info(
             f"Found {len(discovered_versions)} versions: {', '.join(v.id for v in discovered_versions)}"
@@ -584,6 +592,7 @@ def _build_versions(
                 current_version=v,
                 output_dir=root_output_dir if v.latest else staging_root / v.id / "public",
                 base_config=version_config,
+                inherited_capabilities=inherited_capabilities,
             )
 
             worktree_build_opts = BuildOptions(
@@ -654,6 +663,7 @@ def _build_versions(
         current_version=v,
         output_dir=output_dir,
         base_config=version_config,
+        inherited_capabilities=inherited_capabilities,
     )
 
     version_build_opts = BuildOptions(
@@ -709,15 +719,43 @@ def _install_discovered_versions(site, versions, *, base_config=None) -> None:
 
 
 def _prepare_git_version_site(
-    site, *, discovered_versions, current_version, output_dir, base_config=None
+    site,
+    *,
+    discovered_versions,
+    current_version,
+    output_dir,
+    base_config=None,
+    inherited_capabilities=None,
 ) -> None:
     """Prepare a site instance to render one discovered Git version."""
     _install_discovered_versions(site, discovered_versions, base_config=base_config)
+    _apply_inherited_capabilities(site, inherited_capabilities)
     site.current_version = current_version
     site.output_dir = output_dir
     if "build" not in site.config:
         site.config["build"] = {}
     site.config["build"]["output_dir"] = str(output_dir)
+
+
+def _apply_inherited_capabilities(site, inherited_capabilities) -> None:
+    """Seed a version worktree's ``[capabilities]`` from the orchestrating build.
+
+    Self-hosted capabilities (Mermaid/KaTeX/Iconify) are a *build-environment*
+    decision — "how we render the docs site today" — not a property of what a
+    historical release tag happened to ship. Worktree builds of older tags read
+    config from the checked-out tree, so a tag cut before a capability was
+    enabled would silently render its diagrams as raw text. Inheriting the
+    orchestrating build's capability flags (which wins on conflict) lets the
+    current tooling provision and activate the feature for every version build.
+    Vendor provisioning and runtime resolution both key off the worktree's own
+    ``assets/vendor/`` dir, so this is sufficient for the whole chain.
+    """
+    if not isinstance(inherited_capabilities, dict) or not inherited_capabilities:
+        return
+    existing = site.config.get("capabilities")
+    merged = dict(existing) if isinstance(existing, dict) else {}
+    merged.update(inherited_capabilities)
+    site.config["capabilities"] = merged
 
 
 def _merge_staged_version_output(*, source_dir, root_output_dir, sections, version_id: str) -> None:
