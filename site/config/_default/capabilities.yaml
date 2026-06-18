@@ -1,0 +1,5 @@
+# Runtime capabilities (opt-in heavy JS — self-hosted at build time)
+# See: site/content/releases/0.5.1.md (#533)
+capabilities:
+  mermaid: true
+  iconify: true
