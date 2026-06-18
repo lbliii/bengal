@@ -24,18 +24,15 @@
      * @param {CSSStyleDeclaration} [cachedStyles] - Optional cached getComputedStyle result
      */
     function getCSSVariable(variable, fallback = '#000000', cachedStyles = null) {
+        // Palette tokens use oklch(), light-dark(), relative-color, and color-mix.
+        // getPropertyValue returns the authored expression unevaluated; Mermaid only
+        // accepts concrete sRGB. Always resolve via the browser's color engine.
+        const resolved = resolveColor('var(' + variable + ')');
+        if (resolved) return resolved;
+
         const styles = cachedStyles || getComputedStyle(document.documentElement);
         const value = styles.getPropertyValue(variable).trim();
-        if (!value) return fallback;
-        // Derived palette tokens are authored as relative-color / color-mix
-        // expressions (e.g. "oklch(from var(--color-primary) calc(l - 0.07) c h)").
-        // getPropertyValue returns these unevaluated for unregistered custom
-        // properties, which Mermaid's color parser cannot consume. Resolve them to
-        // a concrete sRGB value before handing them to Mermaid.
-        if (value.includes('from ') || value.includes('color-mix')) {
-            return resolveColor('var(' + variable + ')') || fallback;
-        }
-        return value;
+        return value || fallback;
     }
 
     /**
@@ -68,6 +65,7 @@
         const htmlEl = document.documentElement;
         const themeAttr = htmlEl.getAttribute('data-theme');
         if (themeAttr === 'dark') return true;
+        if (themeAttr === 'light') return false;
         if (htmlEl.classList.contains('dark')) return true;
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return true;

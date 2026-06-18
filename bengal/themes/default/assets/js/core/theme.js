@@ -71,6 +71,24 @@
     return localStorage.getItem(PALETTE_KEY) || '';
   }
 
+  /**
+   * Resolve the palette currently applied to the page.
+   * Inline theme init may set data-palette from site defaults before localStorage
+   * is populated, so fall back to the DOM attribute and BENGAL_THEME_DEFAULTS.
+   */
+  function getEffectivePalette() {
+    return (
+      getPalette() ||
+      document.documentElement.getAttribute('data-palette') ||
+      (window.BENGAL_THEME_DEFAULTS && window.BENGAL_THEME_DEFAULTS.palette) ||
+      ''
+    );
+  }
+
+  function getStoredAppearance() {
+    return localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
+  }
+
   function setPalette(palette) {
     if (palette !== null) {
       if (palette) {
@@ -178,8 +196,8 @@
    * Update active states for popover-based menus
    */
   function updatePopoverActiveStates(menu) {
-    const currentAppearance = localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
-    const currentPalette = getPalette();
+    const currentAppearance = getStoredAppearance();
+    const currentPalette = getEffectivePalette();
 
     // Update appearance buttons
     menu.querySelectorAll('[data-appearance]').forEach(function (btn) {
@@ -191,6 +209,12 @@
     menu.querySelectorAll('[data-palette]').forEach(function (btn) {
       const palette = btn.getAttribute('data-palette');
       btn.classList.toggle('active', palette === currentPalette);
+    });
+  }
+
+  function refreshAllPopoverActiveStates() {
+    document.querySelectorAll('.theme-dropdown__menu--popover[popover]').forEach(function (menu) {
+      updatePopoverActiveStates(menu);
     });
   }
 
@@ -218,19 +242,20 @@
     setPalette: setPalette
   };
 
-  // Auto-initialize after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      initTheme();
-      setupToggleButton();
-      setupPopoverMenus();
-      watchSystemTheme();
-    });
-  } else {
+  function init() {
     initTheme();
     setupToggleButton();
     setupPopoverMenus();
     watchSystemTheme();
+    window.addEventListener('themechange', refreshAllPopoverActiveStates);
+    window.addEventListener('palettechange', refreshAllPopoverActiveStates);
+  }
+
+  // Auto-initialize after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
   log('[BengalTheme] Initialized');
