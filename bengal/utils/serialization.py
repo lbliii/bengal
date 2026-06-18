@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ def to_jsonable(value: Any) -> Any:
         return value
     if isinstance(value, Path):
         return str(value)
+    if isinstance(value, MappingProxyType):
+        return {str(k): to_jsonable(v) for k, v in value.items()}
 
     # Handle dataclasses (including those from reloaded modules where is_dataclass might fail)
     if is_dataclass(value) or hasattr(value, "__dataclass_fields__"):

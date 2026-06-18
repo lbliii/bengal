@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from html import escape as html_escape
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
@@ -46,7 +46,10 @@ __all__ = [
     "FileResolver",
     "IncludeDirective",
     "LiteralIncludeDirective",
+    "SiteFileResolver",
 ]
+
+_MAX_INCLUDE_BYTES = 1_048_576  # 1 MiB
 
 
 # =============================================================================
@@ -95,6 +98,103 @@ class FileResolver(Protocol):
         ...
 
 
+class SiteFileResolver:
+    """Resolve and load include targets relative to a Bengal site."""
+
+    def __init__(self, site_root: Path) -> None:
+        self._site_root = site_root.resolve()
+
+    def resolve_path(self, path: str, source_file: str | None) -> Path | None:
+        return resolve_include_path(path, source_file=source_file, site_root=self._site_root)
+
+    def load_file(
+        self,
+        path: Path,
+        start_line: int | None = None,
+        end_line: int | None = None,
+    ) -> str | None:
+        content, error = load_include_file(path, start_line=start_line, end_line=end_line)
+        return None if error else content
+
+
+def resolve_include_path(
+    path: str,
+    *,
+    source_file: str | Path | None,
+    site_root: Path,
+) -> Path | None:
+    """Resolve an include path relative to the source page or site root."""
+    cleaned = path.strip()
+    if not cleaned:
+        return None
+
+    root = site_root.resolve()
+    raw = Path(cleaned)
+    candidates: list[Path] = []
+    if raw.is_absolute():
+        candidates.append(raw)
+    if source_file:
+        candidates.append(Path(source_file).resolve().parent / raw)
+    candidates.extend((root / "content" / raw, root / raw))
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            resolved = candidate.resolve(strict=False)
+        except OSError:
+            continue
+        try:
+            resolved.relative_to(root)
+        except ValueError:
+            continue
+        if resolved.is_file():
+            return resolved
+    return None
+
+
+def load_include_file(
+    path: Path,
+    *,
+    start_line: int | None = None,
+    end_line: int | None = None,
+    max_bytes: int = _MAX_INCLUDE_BYTES,
+) -> tuple[str, str]:
+    """Load include file content with optional 1-indexed line bounds."""
+    try:
+        size = path.stat().st_size
+        if size > max_bytes:
+            return "", f"File too large ({size} bytes, max {max_bytes})"
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return "", str(exc)
+
+    if start_line is None and end_line is None:
+        return text, ""
+
+    lines = text.splitlines(keepends=True)
+    start_idx = max((start_line or 1) - 1, 0)
+    end_idx = end_line if end_line is not None else len(lines)
+    return "".join(lines[start_idx:end_idx]), ""
+
+
+def _site_root_from_context(page_context: Any | None, site: Any | None) -> Path | None:
+    if site is not None and hasattr(site, "root_path"):
+        return Path(site.root_path)
+    if page_context is not None and hasattr(page_context, "site") and page_context.site is not None:
+        return Path(page_context.site.root_path)
+    return None
+
+
+def _source_file_from_context(page_context: Any | None) -> str | None:
+    if page_context is None:
+        return None
+    source_path = getattr(page_context, "source_path", None)
+    return str(source_path) if source_path else None
+
+
 # =============================================================================
 # Include Directive
 # =============================================================================
@@ -104,8 +204,11 @@ class FileResolver(Protocol):
 class IncludeOptions(DirectiveOptions):
     """Options for include directive."""
 
+    file: str = ""
     start_line: int | None = None
     end_line: int | None = None
+    file_path: str = ""
+    error: str = ""
 
 
 class IncludeDirective:
@@ -160,17 +263,13 @@ class IncludeDirective:
         happens in a separate integration step, not during parse.
         The parse method just captures the configuration.
         """
-        file_path = title.strip() if title else ""
+        file_path = (title.strip() if title else "") or options.file.strip()
 
-        # Store configuration in options
         computed_opts = replace(
             options,
-            start_line=options.start_line,
-            end_line=options.end_line,
+            file_path=file_path,
+            error="" if file_path else "No file path specified",
         )
-        # Add file path as attribute
-        object.__setattr__(computed_opts, "file_path", file_path)
-        object.__setattr__(computed_opts, "error", "" if file_path else "No file path specified")
 
         return Directive(
             location=location,
@@ -186,15 +285,42 @@ class IncludeDirective:
         node: Directive[IncludeOptions],
         rendered_children: str,
         sb: StringBuilder,
+        *,
+        page_context: Any | None = None,
+        site: Any | None = None,
     ) -> None:
         """Render include directive."""
         opts = node.options
 
-        error = getattr(opts, "error", "")
+        error = opts.error
+        file_path = opts.file_path
+        if not error and not rendered_children.strip():
+            site_root = _site_root_from_context(page_context, site)
+            if site_root is None:
+                error = "Include requires site context to load files"
+            else:
+                resolved = resolve_include_path(
+                    file_path,
+                    source_file=_source_file_from_context(page_context),
+                    site_root=site_root,
+                )
+                if resolved is None:
+                    error = f"File not found: {file_path}"
+                else:
+                    content, load_error = load_include_file(
+                        resolved,
+                        start_line=opts.start_line,
+                        end_line=opts.end_line,
+                    )
+                    if load_error:
+                        error = load_error
+                    else:
+                        sb.append(content)
+                        return
+
         if error:
             import warnings
 
-            file_path = getattr(opts, "file_path", "unknown")
             loc = node.location
             loc_str = f" (line {loc.line})" if loc and hasattr(loc, "line") else ""
             warnings.warn(
@@ -272,12 +398,16 @@ EXTENSION_LANGUAGE_MAP = {
 class LiteralIncludeOptions(DirectiveOptions):
     """Options for literalinclude directive."""
 
+    file: str = ""
     language: str = ""
     start_line: int | None = None
     end_line: int | None = None
     emphasize_lines: str = ""
     linenos: bool = False
     caption: str = ""
+    file_path: str = ""
+    code: str = ""
+    error: str = ""
 
 
 class LiteralIncludeDirective:
@@ -322,23 +452,20 @@ class LiteralIncludeDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build literalinclude AST node."""
-        file_path = title.strip() if title else ""
+        file_path = (title.strip() if title else "") or options.file.strip()
 
-        # Auto-detect language from extension if not specified
         language = options.language
         if not language and file_path:
             ext = Path(file_path).suffix.lower()
             language = EXTENSION_LANGUAGE_MAP.get(ext, "")
 
-        # Store configuration in options
         computed_opts = replace(
             options,
             language=language,
+            file_path=file_path,
+            code="",
+            error="" if file_path else "No file path specified",
         )
-        # Add computed attributes
-        object.__setattr__(computed_opts, "file_path", file_path)
-        object.__setattr__(computed_opts, "code", "")  # Will be populated by integration
-        object.__setattr__(computed_opts, "error", "" if file_path else "No file path specified")
 
         return Directive(
             location=location,
@@ -353,15 +480,40 @@ class LiteralIncludeDirective:
         node: Directive[LiteralIncludeOptions],
         rendered_children: str,
         sb: StringBuilder,
+        *,
+        page_context: Any | None = None,
+        site: Any | None = None,
     ) -> None:
         """Render literalinclude as code block."""
         opts = node.options
 
-        error = getattr(opts, "error", "")
+        error = opts.error
+        file_path = opts.file_path
+        code = opts.code
+        if not error and not code:
+            site_root = _site_root_from_context(page_context, site)
+            if site_root is None:
+                error = "Literal include requires site context to load files"
+            else:
+                resolved = resolve_include_path(
+                    file_path,
+                    source_file=_source_file_from_context(page_context),
+                    site_root=site_root,
+                )
+                if resolved is None:
+                    error = f"File not found: {file_path}"
+                else:
+                    code, load_error = load_include_file(
+                        resolved,
+                        start_line=opts.start_line,
+                        end_line=opts.end_line,
+                    )
+                    if load_error:
+                        error = load_error
+
         if error:
             import warnings
 
-            file_path = getattr(opts, "file_path", "unknown")
             loc = node.location
             loc_str = f" (line {loc.line})" if loc and hasattr(loc, "line") else ""
             warnings.warn(
@@ -375,7 +527,6 @@ class LiteralIncludeDirective:
             )
             return
 
-        code = getattr(opts, "code", "")
         language = opts.language
         linenos = opts.linenos
         emphasize_lines = opts.emphasize_lines

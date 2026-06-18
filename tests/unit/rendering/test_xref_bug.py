@@ -262,3 +262,73 @@ class TestLinksCollector:
         source = "Just a paragraph."
         result = parser._md(source)
         assert "<p>" in result
+
+
+class TestWikilinkInlineCodeAlias:
+    """Regression: [[target|`Code`]] must resolve after inline-code HTML is emitted."""
+
+    @pytest.fixture
+    def xref_index(self):
+        mock_page = MockPage(
+            title="Return Values",
+            href="/docs/about/core-concepts/return-values/",
+            slug="return-values",
+        )
+        return {
+            "by_path": {"docs/about/core-concepts/return-values": mock_page},
+            "by_slug": {},
+            "by_id": {},
+            "by_heading": {},
+            "by_anchor": {},
+        }
+
+    def test_inline_code_alias_resolves(self, parser, xref_index):
+        parser.enable_cross_references(xref_index)
+
+        source = "Return [[docs/about/core-concepts/return-values|`Page`]] from a handler."
+        result = parser.parse(source, {})
+
+        assert "[[docs/about/core-concepts/return-values" not in result
+        assert '<a href="/docs/about/core-concepts/return-values/">' in result
+        assert "<code>Page</code></a>" in result
+
+    def test_inline_code_alias_with_call_syntax(self, parser, xref_index):
+        parser.enable_cross_references(xref_index)
+
+        source = "Use [[docs/about/core-concepts/return-values|`app.check()`]] here."
+        result = parser.parse(source, {})
+
+        assert '<a href="/docs/about/core-concepts/return-values/">' in result
+        assert "<code>app.check()</code></a>" in result
+
+    def test_xref_inside_standalone_code_stays_literal(self, parser, xref_index):
+        """Inline code wrapping a wikilink must remain literal."""
+        parser.enable_cross_references(xref_index)
+
+        source = "Literal `[[docs/about/core-concepts/return-values|Page]]` in code."
+        result = parser.parse(source, {})
+
+        assert "<code>[[docs/about/core-concepts/return-values|Page]]</code>" in result
+        assert result.count('<a href="/docs/about/core-concepts/return-values/">') == 0
+
+    def test_emphasis_in_alias_resolves(self, parser, xref_index):
+        """Other inline HTML in aliases should resolve (same split bug class)."""
+        parser.enable_cross_references(xref_index)
+
+        source = "See [[docs/about/core-concepts/return-values|*Page*]] for details."
+        result = parser.parse(source, {})
+
+        assert '<a href="/docs/about/core-concepts/return-values/">' in result
+        assert "<em>Page</em></a>" in result
+
+    def test_substitute_xrefs_unit(self, xref_index):
+        plugin = CrossReferencePlugin(xref_index)
+        html = (
+            "<p>Return [[docs/about/core-concepts/return-values|"
+            "<code>Page</code>]] from handler.</p>"
+        )
+        result = plugin._substitute_xrefs(html)
+
+        assert "[[docs/about/core-concepts/return-values" not in result
+        assert '<a href="/docs/about/core-concepts/return-values/">' in result
+        assert "<code>Page</code></a>" in result

@@ -634,7 +634,7 @@ class RenderingPipeline:
 
             meta = page.metadata
             metadata_with_source = dict(meta or {})
-            metadata_with_source["_source_path"] = page.source_path
+            metadata_with_source["_source_path"] = str(page.source_path)
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_with_source["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
@@ -663,7 +663,7 @@ class RenderingPipeline:
             # Build mutable metadata for parser (CascadeView is immutable)
             meta = page.metadata
             metadata_for_parser = dict(meta or {})
-            metadata_for_parser["_source_path"] = page.source_path
+            metadata_for_parser["_source_path"] = str(page.source_path)
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
@@ -709,6 +709,8 @@ class RenderingPipeline:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
 
+                        from bengal.utils.serialization import to_jsonable
+
                         parser_with_document = cast("Any", self.parser)
                         doc = None
                         consume_last_document = getattr(self.parser, "consume_last_document", None)
@@ -718,7 +720,7 @@ class RenderingPipeline:
                             doc = parser_with_document.parse_to_document(
                                 source, metadata_for_parser
                             )
-                        ast_cache = patitas.to_dict(doc)
+                        ast_cache = to_jsonable(patitas.to_dict(doc))
                     elif hasattr(self.parser, "parse_to_ast"):
                         ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
                         ast_cache = ast_tokens

@@ -204,6 +204,18 @@ class CodeTabItem:
     code_lang: str  # Actual language for highlighting
 
 
+def _unique_sync_values(tabs: tuple[CodeTabItem, ...]) -> tuple[str, ...]:
+    """Derive per-tab sync keys, suffixing duplicates within a group."""
+    counts: dict[str, int] = {}
+    values: list[str] = []
+    for tab in tabs:
+        base = tab.lang.lower().replace(" ", "-")
+        seen = counts.get(base, 0)
+        counts[base] = seen + 1
+        values.append(base if seen == 0 else f"{base}-{seen + 1}")
+    return tuple(values)
+
+
 # =============================================================================
 # Code Tabs Directive
 # =============================================================================
@@ -410,16 +422,15 @@ class CodeTabsDirective:
         sb.append(f'<div class="code-tabs" id="{tab_id}" data-bengal="tabs"{sync_attr}>\n')
         sb.append('  <ul class="tab-nav" role="tablist">\n')
 
+        sync_values = _unique_sync_values(tabs)
         for i, tab in enumerate(tabs):
             active_class = ' class="active"' if i == 0 else ""
             aria_selected = "true" if i == 0 else "false"
 
-            sync_value = tab.lang.lower().replace(" ", "-")
-            sync_value_attr = (
-                f' data-sync-value="{html_escape(sync_value)}"'
-                if sync_key and sync_key.lower() != "none"
-                else ""
-            )
+            sync_value_attr = ""
+            if sync_key and sync_key.lower() != "none":
+                sync_value = sync_values[i]
+                sync_value_attr = f' data-sync-value="{html_escape(sync_value)}"'
 
             # Build tab label with optional icon
             icon_html = self._get_language_icon(tab.code_lang)
