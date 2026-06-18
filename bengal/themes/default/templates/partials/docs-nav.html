@@ -70,6 +70,11 @@ per-call overhead of {% include %} (context copy, template lookup).
   {% let vcur = current_version ?? site.latest_version %}
   {% let vlabel = vcur?.label ?? 'Latest' %}
   {% let vstatus = vcur?.status ?? 'current' %}
+  {# Identify the active version by the page's own version id (a plain string),
+     not current_version.id: on section-index pages current_version arrives as
+     an unresolved LazyValue and plain attribute access on it throws K-RUN-001,
+     which silently drops every section-index page from the build. #}
+  {% let cur_version_id = page?.version %}
   <details class="docs-nav-vswitch" data-version-switcher>
     <summary class="docs-nav-group-header docs-nav-vswitch__summary" title="Switch documentation version">
       {% if show_nav_icons %}
@@ -91,7 +96,7 @@ per-call overhead of {% include %} (context copy, template lookup).
 
     <ul class="docs-nav-vswitch__menu" aria-label="Documentation versions">
       {% for v in versions %}
-      {% let v_is_current = current_version and current_version.id == v.id %}
+      {% let v_is_current = cur_version_id is not none and cur_version_id == v.id %}
       {% let v_status = v.status or (v.deprecated and 'deprecated' or 'legacy') %}
       <li class="docs-nav-vswitch__item{{ ' is-current' if v_is_current else '' }}{{ ' is-deprecated' if v.deprecated else '' }}">
         <a class="docs-nav-vswitch__link"
