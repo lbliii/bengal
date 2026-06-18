@@ -254,14 +254,13 @@ class Renderer:
         """
         # Read the two config keys directly (mirrors get_i18n_config's strategy /
         # share_taxonomies semantics) rather than importing it: rendering (layer 6) must
-        # not depend on orchestration (layer 7). Guard isinstance checks keep this from
-        # raising on minimal/mock site.config objects used by renderer unit tests — on
-        # 3.14t, bool(MagicMock) is a TypeError, not a truthy fallback.
+        # not depend on orchestration (layer 7). Use .get chains (Config + dict) and
+        # isinstance guards so mock site.config objects do not hit bool(MagicMock) on 3.14t.
         config = getattr(self.site, "config", None)
-        if not isinstance(config, dict):
+        if config is None or not hasattr(config, "get"):
             return False
-        i18n_raw = config.get("i18n", {})
-        if not isinstance(i18n_raw, dict):
+        i18n_raw = config.get("i18n", {}) or {}
+        if not hasattr(i18n_raw, "get"):
             return False
         strategy_raw = i18n_raw.get("strategy")
         strategy = strategy_raw if isinstance(strategy_raw, str) else "none"
