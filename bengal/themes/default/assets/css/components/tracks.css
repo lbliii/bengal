@@ -50,6 +50,11 @@
 }
 
 /* Tracks Grid */
+.tracks-layout {
+  container-type: inline-size;
+  container-name: tracks-layout;
+}
+
 .tracks-grid {
     display: grid;
     /* Use min() to ensure grid doesn't overflow on very small screens */
@@ -110,11 +115,19 @@
     }
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
+/* Container-query layout (#540) — grid responds to slot width, not viewport */
+@container tracks-layout (max-width: 1024px) {
     .tracks-grid {
         grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
         gap: var(--space-5);
+    }
+}
+
+@container tracks-layout (max-width: 768px) {
+    .tracks-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+        margin-top: var(--space-6);
     }
 }
 
@@ -134,12 +147,6 @@
 
     .tracks-intro {
         font-size: var(--text-base);
-    }
-
-    .tracks-grid {
-        grid-template-columns: 1fr;
-        gap: var(--space-5);
-        margin-top: var(--space-6);
     }
 
     .track-card-header {

@@ -108,8 +108,7 @@ def get_theme_js_bundle_order() -> list[str]:
     2. core/define.js - Custom-element foundation (Bengal.define + Bengal.Base)
     3. core/theme.js - Theme switching (merged from theme-toggle.js + theme-init.js)
     4. core/search.js - Search (merged from search.js, search-modal.js, search-page.js, search-preload.js)
-    5. core/nav-dropdown.js - Navigation dropdowns (always needed)
-    6. core/session-path-tracker.js - Analytics (always needed)
+    5. core/session-path-tracker.js - Analytics (always needed)
     7. core/build-badge.js - Footer build-time badge (optional; no-op if absent)
     8. enhancements/mobile-nav.js - Mobile navigation
     9. enhancements/tabs.js - Tab component
@@ -131,7 +130,6 @@ def get_theme_js_bundle_order() -> list[str]:
         "core/define.js",
         "core/theme.js",
         "core/search.js",
-        "core/nav-dropdown.js",
         "core/session-path-tracker.js",
         "core/build-badge.js",
         "enhancements/mobile-nav.js",

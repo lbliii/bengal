@@ -1,0 +1,1 @@
+Built sites using the default theme load less JavaScript and share one visual system for callouts, hub cards, and search UI. Nav dropdowns, popovers, and code-copy controls now rely on native browser behavior and build-time markup instead of runtime scripts.

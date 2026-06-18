@@ -1,5 +1,4 @@
 {# Warning callout. Usage: {{% warning %}}Caution here{{% /warning %}} #}
-<div class="callout callout-warning">
-  <p class="callout-title">Warning</p>
-  <div class="callout-content">{{ shortcode.Inner }}</div>
-</div>
+{% with admonition_type="warning", admonition_title="Warning", admonition_icon="warning" %}
+{% include "partials/admonition-shortcode.html" %}
+{% end %}

@@ -75,7 +75,6 @@ CSS_SHARED: list[str] = [
     "components/badges.css",
     "components/labels.css",
     "components/icons.css",
-    "components/alerts.css",
     "components/admonitions.css",
     "components/tabs.css",
     "components/tabs-native.css",
@@ -146,12 +145,12 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
     "autodoc": [
         "components/autodoc.css",
         "components/reference-docs.css",
-        "components/api-hub.css",
+        "components/hub-cards.css",
     ],
     "autodoc-python": [
         "components/autodoc.css",
         "components/reference-docs.css",
-        "components/api-hub.css",
+        "components/hub-cards.css",
     ],
     "autodoc-cli": [
         "components/autodoc.css",
@@ -185,7 +184,6 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
         "components/hub-cards.css",
     ],
     "api-hub": [
-        "components/api-hub.css",
         "components/hub-cards.css",
     ],
 }
@@ -202,7 +200,6 @@ CSS_FEATURE_MAP: dict[str, list[str]] = {
     # Search functionality
     "search": [
         "components/search.css",
-        "components/search-modal.css",
     ],
     # Mermaid diagrams
     "mermaid": [
@@ -242,4 +239,4 @@ CSS_EXPERIMENTAL: list[str] = [
 # ============================================================================
 # Manifest version for cache invalidation
 # ============================================================================
-MANIFEST_VERSION: int = 1
+MANIFEST_VERSION: int = 2

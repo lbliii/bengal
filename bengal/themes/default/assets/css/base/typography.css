@@ -150,84 +150,174 @@ a {
   text-decoration: none;
 }
 
-/* Content link styles - scoped to prose */
-.prose a:not(.button):not(.btn) {
-  color: var(--color-text-link);
-  background-image: linear-gradient(
-    to right,
-    var(--color-primary-light) 0%,
-    var(--color-primary-light) 100%
-  );
-  background-repeat: no-repeat;
-  background-size: 0% 2px;
-  background-position: 0% 100%;
-  padding-bottom: 0.1em;
-  transition:
-    color var(--duration-200) var(--ease-out),
-    background-size var(--duration-200) var(--ease-out),
-    background-position var(--duration-200) var(--ease-out);
-  font-weight: var(--weight-medium);
-  word-break: break-word;
-  overflow-wrap: break-word;
-  position: relative;
-}
+/* Content link styles — @scope bounds prose link treatment (#540) */
+@scope (.prose) {
+  to (.button, .btn, .card, .card-link, [data-no-external-icon]) {
+    a {
+      color: var(--color-text-link);
+      background-image: linear-gradient(
+        to right,
+        var(--color-primary-light) 0%,
+        var(--color-primary-light) 100%
+      );
+      background-repeat: no-repeat;
+      background-size: 0% 2px;
+      background-position: 0% 100%;
+      padding-bottom: 0.1em;
+      transition:
+        color var(--duration-200) var(--ease-out),
+        background-size var(--duration-200) var(--ease-out),
+        background-position var(--duration-200) var(--ease-out);
+      font-weight: var(--weight-medium);
+      word-break: break-word;
+      overflow-wrap: break-word;
+      position: relative;
+    }
 
-.prose a:not(.button):not(.btn):hover {
-  color: var(--color-text-link-hover);
-  background-size: 100% 2px;
-  background-image: linear-gradient(
-    to right,
-    var(--color-text-link-hover) 0%,
-    var(--color-text-link-hover) 100%
-  );
-  /* Subtle raised effect like kbd - single crisp shadow for dimension */
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
-  transform: translate3d(0, -0.5px, 0);
-  transition:
-    color var(--duration-200) var(--ease-out),
-    background-size var(--duration-200) var(--ease-out),
-    background-position var(--duration-200) var(--ease-out),
-    text-shadow var(--duration-200) var(--ease-out),
-    transform var(--duration-200) var(--ease-out);
-}
+    a:hover {
+      color: var(--color-text-link-hover);
+      background-size: 100% 2px;
+      background-image: linear-gradient(
+        to right,
+        var(--color-text-link-hover) 0%,
+        var(--color-text-link-hover) 100%
+      );
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+      transform: translate3d(0, -0.5px, 0);
+      transition:
+        color var(--duration-200) var(--ease-out),
+        background-size var(--duration-200) var(--ease-out),
+        background-position var(--duration-200) var(--ease-out),
+        text-shadow var(--duration-200) var(--ease-out),
+        transform var(--duration-200) var(--ease-out);
+    }
 
-/* Dark mode: Subtle shadow for visibility without blur */
-[data-theme="dark"] .prose a:not(.button):not(.btn):hover {
-  /* Single crisp shadow - visible in dark mode without making text fuzzy */
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
-}
+    a:focus-visible {
+      outline: 2px solid var(--color-border-focus);
+      outline-offset: 2px;
+      border-radius: var(--border-radius-small);
+      background-size: 100% 2px;
+    }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .prose a:not(.button):not(.btn):hover {
-    /* Single crisp shadow - visible in dark mode without making text fuzzy */
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+    a:active {
+      color: var(--color-primary-active);
+      background-image: linear-gradient(
+        to right,
+        var(--color-primary-active) 0%,
+        var(--color-primary-active) 100%
+      );
+      text-shadow:
+        inset 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.15),
+        -0.2px -0.2px 0.2px rgba(255, 255, 255, 0.3);
+      transform: translate3d(0, 0.5px, 0);
+      transition:
+        color 0.05s ease-out,
+        background-size 0.05s ease-out,
+        text-shadow 0.05s ease-out,
+        transform 0.05s ease-out;
+    }
+
+    a[data-external="true"],
+    a[rel*="external"],
+    a[target="_blank"][href^="http"] {
+      display: inline;
+    }
+
+    a[data-external="true"]::after,
+    a[rel*="external"]::after,
+    a[target="_blank"][href^="http"]::after {
+      content: '';
+      display: inline-block;
+      width: 0.75em;
+      height: 0.75em;
+      margin-inline-start: 0.2em;
+      margin-inline-end: 0;
+      flex-shrink: 0;
+      background-color: currentColor;
+      -webkit-mask-image: var(--external-link-icon-mask-image);
+      mask-image: var(--external-link-icon-mask-image);
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      mask: var(--external-link-icon-mask-image) no-repeat center / contain;
+      opacity: 0.6;
+      vertical-align: -0.1em;
+      transition: opacity var(--transition-fast), transform var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    a[data-external="true"]:hover::after,
+    a[rel*="external"]:hover::after,
+    a[target="_blank"][href^="http"]:hover::after {
+      opacity: 1;
+      transform: translate(1px, -1px);
+    }
+
+    a[data-external="true"]:has(> img:only-child)::after,
+    a[rel*="external"]:has(> img:only-child)::after,
+    a[target="_blank"][href^="http"]:has(> img:only-child)::after {
+      display: none;
+    }
+
+    a[data-external="true"]:has(code)::after,
+    a[rel*="external"]:has(code)::after,
+    a[target="_blank"][href^="http"]:has(code)::after {
+      margin-inline-start: 0.3em;
+    }
+  }
+
+  to (.button, .btn) {
+    a[href^="#"] {
+      color: var(--color-text-secondary);
+      background-image: linear-gradient(
+        to right,
+        var(--color-border-light) 0%,
+        var(--color-border-light) 100%
+      );
+    }
+
+    a[href^="#"]:hover {
+      color: var(--color-text-link);
+      background-image: linear-gradient(
+        to right,
+        var(--color-text-link) 0%,
+        var(--color-text-link) 100%
+      );
+    }
+  }
+
+  table a[data-external="true"]::after,
+  table a[rel*="external"]::after,
+  table a[target="_blank"][href^="http"]::after {
+    width: 0.65em;
+    height: 0.65em;
+    margin-inline-start: 0.15em;
   }
 }
 
-.prose a:not(.button):not(.btn):focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-  border-radius: var(--border-radius-small);
-  background-size: 100% 2px;
+[data-theme="dark"] {
+  @scope (.prose) {
+    to (.button, .btn) {
+      a:hover {
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+    }
+  }
 }
 
-.prose a:not(.button):not(.btn):active {
-  color: var(--color-primary-active);
-  background-image: linear-gradient(
-    to right,
-    var(--color-primary-active) 0%,
-    var(--color-primary-active) 100%
-  );
-  /* Neumorphic pressed state - key being pressed */
-  text-shadow:
-    inset 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.15),
-    -0.2px -0.2px 0.2px rgba(255, 255, 255, 0.3);
-  transform: translate3d(0, 0.5px, 0);
-  transition:
-    color 0.05s ease-out,
-    background-size 0.05s ease-out,
-    text-shadow 0.05s ease-out,
-    transform 0.05s ease-out;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    @scope (.prose) {
+      to (.button, .btn) {
+        a:hover {
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+      }
+    }
+  }
 }
 
 /* ============================================
@@ -238,82 +328,6 @@ a {
 
 :root {
   --external-link-icon-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
-}
-
-/* External link selector (shared across all rules) */
-.prose a[data-external="true"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]),
-.prose a[rel*="external"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]),
-.prose a[target="_blank"][href^="http"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]) {
-  /* Inline-flex keeps icon attached to text, prevents orphaned icons */
-  display: inline;
-}
-
-/* External link icon - inline flow, not absolute */
-.prose a[data-external="true"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon])::after,
-.prose a[rel*="external"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon])::after,
-.prose a[target="_blank"][href^="http"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon])::after {
-  content: '';
-  display: inline-block;
-  /* Icon size scales with text */
-  width: 0.75em;
-  height: 0.75em;
-  /* Tight left margin, no right margin - icon hugs text */
-  margin-inline-start: 0.2em;
-  margin-inline-end: 0;
-  /* Flex-shrink prevents icon from being squished */
-  flex-shrink: 0;
-  /* Icon styling via mask */
-  background-color: currentColor;
-  -webkit-mask-image: var(--external-link-icon-mask-image);
-  mask-image: var(--external-link-icon-mask-image);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  /* Shorthand for older browsers */
-  mask: var(--external-link-icon-mask-image) no-repeat center / contain;
-  opacity: 0.6;
-  /* Align icon with text baseline - slight offset for visual centering */
-  vertical-align: -0.1em;
-  /* Smooth hover transition */
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-  /* Prevent icon from wrapping alone to next line */
-  white-space: nowrap;
-}
-
-/* Hover state - icon becomes more visible and animates */
-.prose a[data-external="true"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]):hover::after,
-.prose a[rel*="external"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]):hover::after,
-.prose a[target="_blank"][href^="http"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]):hover::after {
-  opacity: 1;
-  transform: translate(1px, -1px);
-}
-
-/* --- Edge Case Exclusions --- */
-
-/* Links containing only images - no icon needed */
-.prose a[data-external="true"]:has(> img:only-child)::after,
-.prose a[rel*="external"]:has(> img:only-child)::after,
-.prose a[target="_blank"][href^="http"]:has(> img:only-child)::after {
-  display: none;
-}
-
-/* Links in tables - use smaller icon to fit cells */
-.prose table a[data-external="true"]::after,
-.prose table a[rel*="external"]::after,
-.prose table a[target="_blank"][href^="http"]::after {
-  width: 0.65em;
-  height: 0.65em;
-  margin-inline-start: 0.15em;
-}
-
-/* Links containing inline code - adjust spacing */
-.prose a[data-external="true"]:has(code)::after,
-.prose a[rel*="external"]:has(code)::after,
-.prose a[target="_blank"][href^="http"]:has(code)::after {
-  margin-inline-start: 0.3em;
 }
 
 /* Tab/Accordion navigation links - never show external icon */
@@ -327,30 +341,13 @@ a {
 
 /* Print: Hide icon, show URL instead (handled in print.css) */
 @media print {
-  .prose a[data-external="true"]::after,
-  .prose a[rel*="external"]::after,
-  .prose a[target="_blank"][href^="http"]::after {
-    display: none;
+  @scope (.prose) {
+    a[data-external="true"]::after,
+    a[rel*="external"]::after,
+    a[target="_blank"][href^="http"]::after {
+      display: none;
+    }
   }
-}
-
-/* Anchor links (content only) */
-.prose a[href^="#"]:not(.button):not(.btn) {
-  color: var(--color-text-secondary);
-  background-image: linear-gradient(
-    to right,
-    var(--color-border-light) 0%,
-    var(--color-border-light) 100%
-  );
-}
-
-.prose a[href^="#"]:not(.button):not(.btn):hover {
-  color: var(--color-text-link);
-  background-image: linear-gradient(
-    to right,
-    var(--color-text-link) 0%,
-    var(--color-text-link) 100%
-  );
 }
 
 /* Disabled links */

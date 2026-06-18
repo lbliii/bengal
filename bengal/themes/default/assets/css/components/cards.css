@@ -754,16 +754,6 @@ a.card:hover {
   container-name: card-grid;
 }
 
-/* ============================================
-   CARD GRID LAYOUTS
-   ============================================ */
-
-/* Container for card grid - enables container queries */
-.card-grid-container {
-  container-type: inline-size;
-  container-name: card-grid;
-}
-
 .card-grid {
   display: grid;
   gap: var(--card-gap, var(--space-6));
@@ -811,16 +801,14 @@ a.card:hover {
   grid-template-columns: repeat(6, 1fr);
 }
 
-/* Responsive Columns - Mobile-first breakpoints */
+/* Responsive Columns — container queries (#540) */
 .card-grid[data-columns~="1-2"],
 .card-grid[data-columns~="1-2-3"],
 .card-grid[data-columns~="1-2-3-4"] {
   grid-template-columns: 1fr;
 }
 
-/* Tablet: 2 columns */
-@media (min-width: 640px) {
-
+@container card-grid (min-width: 640px) {
   .card-grid[data-columns~="1-2"],
   .card-grid[data-columns~="1-2-3"],
   .card-grid[data-columns~="1-2-3-4"] {
@@ -828,17 +816,14 @@ a.card:hover {
   }
 }
 
-/* Desktop: 3 columns */
-@media (min-width: 1024px) {
-
+@container card-grid (min-width: 1024px) {
   .card-grid[data-columns~="1-2-3"],
   .card-grid[data-columns~="1-2-3-4"] {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* Large Desktop: 4 columns */
-@media (min-width: 1280px) {
+@container card-grid (min-width: 1280px) {
   .card-grid[data-columns~="1-2-3-4"] {
     grid-template-columns: repeat(4, 1fr);
   }

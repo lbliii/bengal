@@ -28,36 +28,10 @@
    * @returns {Promise<void>}
    */
   async function copyToClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return;
-      } catch (err) {
-        log('Clipboard API failed, using fallback:', err);
-        // Fall through to fallback
-      }
+    if (!navigator.clipboard?.writeText) {
+      throw new Error('Clipboard API unavailable');
     }
-
-    // Fallback for older browsers
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '0';
-    textarea.style.opacity = '0';
-    textarea.style.pointerEvents = 'none';
-    document.body.appendChild(textarea);
-
-    try {
-      textarea.select();
-      textarea.setSelectionRange(0, text.length); // For iOS
-      const successful = document.execCommand('copy');
-      if (!successful) {
-        throw new Error('execCommand copy failed');
-      }
-    } finally {
-      document.body.removeChild(textarea);
-    }
+    await navigator.clipboard.writeText(text);
   }
 
   /**
