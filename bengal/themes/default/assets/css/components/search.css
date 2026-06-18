@@ -2381,9 +2381,10 @@ body.search-modal-open {
 .search-modal__heading-matches,
 .search-page__heading-matches {
   list-style: none;
-  margin: 0.25rem 0 0 1.25rem;
+  margin-block: 0.25rem 0;
+  margin-inline-start: 1.25rem;
   padding: 0;
-  border-left: 2px solid var(--color-border);
+  border-inline-start: 2px solid var(--color-border);
 }
 
 .search-modal__heading-match,
@@ -2426,7 +2427,7 @@ body.search-modal-open {
 .search-modal__heading-snippet,
 .search-page__heading-snippet {
   flex-basis: 100%;
-  margin-left: 1.25rem;
+  margin-inline-start: 1.25rem;
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   line-height: 1.4;
