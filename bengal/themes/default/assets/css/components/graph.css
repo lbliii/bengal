@@ -617,16 +617,16 @@
  * canvas explorer reads these via getComputedStyle and keeps hex fallbacks.
  */
 :root {
-    --graph-community-0: light-dark(oklch(from var(--color-accent) 0.63 0.15 h),        oklch(from var(--color-accent) 0.74 0.15 h));
-    --graph-community-1: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 36)),  oklch(from var(--color-accent) 0.74 0.15 calc(h + 36)));
-    --graph-community-2: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 72)),  oklch(from var(--color-accent) 0.74 0.15 calc(h + 72)));
-    --graph-community-3: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 108)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 108)));
-    --graph-community-4: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 144)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 144)));
-    --graph-community-5: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 180)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 180)));
-    --graph-community-6: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 216)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 216)));
-    --graph-community-7: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 252)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 252)));
-    --graph-community-8: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 288)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 288)));
-    --graph-community-9: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 324)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 324)));
+    --graph-community-0: light-dark(oklch(from var(--color-accent) 0.63 0.16 h),        oklch(from var(--color-accent) 0.78 0.17 h));
+    --graph-community-1: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 36)),  oklch(from var(--color-accent) 0.78 0.17 calc(h + 36)));
+    --graph-community-2: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 72)),  oklch(from var(--color-accent) 0.78 0.17 calc(h + 72)));
+    --graph-community-3: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 108)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 108)));
+    --graph-community-4: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 144)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 144)));
+    --graph-community-5: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 180)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 180)));
+    --graph-community-6: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 216)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 216)));
+    --graph-community-7: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 252)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 252)));
+    --graph-community-8: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 288)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 288)));
+    --graph-community-9: light-dark(oklch(from var(--color-accent) 0.63 0.16 calc(h + 324)), oklch(from var(--color-accent) 0.78 0.17 calc(h + 324)));
     /* Long-tail communities beyond the ramp fall to a muted, theme-aware tint. */
     --graph-community-other: color-mix(in oklab, var(--color-text-secondary), var(--color-bg-primary) 30%);
 }
@@ -641,8 +641,8 @@
     --graph-node-orphan-glow: rgba(255, 107, 107, 0.4);
     --graph-node-generated: #4ECDC4;     /* Teal - system/auto content */
     --graph-node-generated-glow: rgba(78, 205, 196, 0.4);
-    --graph-link-color: rgba(120, 120, 120, 0.25);
-    --graph-link-highlight: rgba(255, 149, 0, 0.6);
+    --graph-link-color: rgba(120, 120, 120, 0.35);
+    --graph-link-highlight: rgba(255, 149, 0, 0.75);
 }
 
 [data-theme="dark"] {
@@ -655,8 +655,8 @@
     --graph-node-orphan-glow: rgba(255, 138, 138, 0.5);
     --graph-node-generated: #5DDDD4;     /* Bright teal */
     --graph-node-generated-glow: rgba(93, 221, 212, 0.5);
-    --graph-link-color: rgba(100, 100, 100, 0.2);
-    --graph-link-highlight: rgba(255, 179, 71, 0.7);
+    --graph-link-color: rgba(170, 175, 190, 0.42);
+    --graph-link-highlight: rgba(255, 179, 71, 0.85);
 }
 
 /* ============================================

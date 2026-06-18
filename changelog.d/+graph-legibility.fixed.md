@@ -1,0 +1,1 @@
+The full-page knowledge graph explorer now resolves theme colors to canvas-safe rgb values (fixing invisible nodes when community tokens use oklch/light-dark), enforces a minimum on-screen node size when zoomed out, labels the top hub pages with readable pills, and draws brighter edges in dark mode.

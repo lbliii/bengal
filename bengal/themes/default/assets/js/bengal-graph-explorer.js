@@ -28,8 +28,11 @@
     var WORLD = 2000;          // world extent that [0,1] coords map into
     var MIN_SCALE = 0.05;
     var MAX_SCALE = 5;
-    var LABEL_SCALE = 0.9;     // draw labels once zoomed past this
+    var LABEL_SCALE = 0.9;     // draw extra labels once zoomed past this
     var GRID_CELL = 80;        // picking grid cell size (world units)
+    var MIN_NODE_PX = 3.5;     // minimum on-screen radius (zoomed-out legibility)
+    var MIN_HUB_PX = 6;        // minimum for hubs / high-importance nodes
+    var HUB_LABEL_COUNT = 18;  // always label the top N hubs, even when zoomed out
 
     // Note: fit-to-view snaps instantly (no entrance animation), so there is
     // nothing to gate behind prefers-reduced-motion here.
@@ -43,6 +46,9 @@
     var colors = {};
     var communityColors = [];   // categorical topic-cluster palette (CSS tokens)
     var communityLabels = {};   // community id -> display label (from stats)
+    var graphStats = null;      // stats block from graph.json (for legend rebuild)
+    var labelHubIds = {};       // node ids that always get a label at fit scale
+    var colorProbe = null;      // hidden element for resolving CSS vars → rgb()
     var hovered = null;
     var dirty = false;
     var rafPending = false;
@@ -80,35 +86,52 @@
     }
 
     // ---- Theme colors --------------------------------------------------------
-    function resolveColors() {
-        var cs = getComputedStyle(document.documentElement);
-        function v(name, fallback) {
-            return (cs.getPropertyValue(name) || '').trim() || fallback;
+    // Canvas fillStyle cannot parse oklch()/light-dark()/color-mix() strings.
+    // getPropertyValue on custom props returns those raw values, so resolve each
+    // token through a hidden probe element and read the computed rgb() color.
+    function ensureColorProbe() {
+        if (colorProbe) return colorProbe;
+        colorProbe = document.createElement('span');
+        colorProbe.setAttribute('aria-hidden', 'true');
+        colorProbe.style.cssText =
+            'position:absolute;left:-9999px;visibility:hidden;pointer-events:none';
+        document.documentElement.appendChild(colorProbe);
+        return colorProbe;
+    }
+
+    function resolveCssColor(varName, fallback) {
+        var probe = ensureColorProbe();
+        probe.style.color = fallback;
+        probe.style.color = 'var(' + varName + ', ' + fallback + ')';
+        var resolved = getComputedStyle(probe).color;
+        if (!resolved || resolved === 'rgba(0, 0, 0, 0)' || !/^rgba?\(/i.test(resolved)) {
+            return fallback;
         }
+        return resolved;
+    }
+
+    function resolveColors() {
         colors = {
-            hub: v('--graph-node-hub', '#FF9500'),
-            regular: v('--graph-node-regular', '#E8E0D8'),
-            orphan: v('--graph-node-orphan', '#FF5A5A'),
-            generated: v('--graph-node-generated', '#4ECDC4'),
-            link: v('--graph-link-color', 'rgba(100,100,100,0.25)'),
-            linkHi: v('--graph-link-highlight', 'rgba(255,200,120,0.95)'),
-            // These tokens are `--color-text-primary`/`--color-bg-primary` in the
-            // theme; the old `--color-text`/`--color-bg` names don't exist, so
-            // labels used to always fall back to #222/#fff (wrong in dark mode).
-            label: v('--color-text-primary', '#222'),
-            labelBg: v('--color-bg-primary', '#fff'),
-            communityOther: v('--graph-community-other', '#9aa0a6')
+            hub: resolveCssColor('--graph-node-hub', '#FF9500'),
+            regular: resolveCssColor('--graph-node-regular', '#E8E0D8'),
+            orphan: resolveCssColor('--graph-node-orphan', '#FF5A5A'),
+            generated: resolveCssColor('--graph-node-generated', '#4ECDC4'),
+            link: resolveCssColor('--graph-link-color', 'rgba(100,100,100,0.35)'),
+            linkHi: resolveCssColor('--graph-link-highlight', 'rgba(255,200,120,0.95)'),
+            label: resolveCssColor('--color-text-primary', '#222'),
+            labelBg: resolveCssColor('--color-bg-elevated', '#fff'),
+            nodeRim: resolveCssColor('--color-bg-primary', '#fff'),
+            communityOther: resolveCssColor('--graph-community-other', '#9aa0a6')
         };
-        // Categorical community palette (topic clusters). Hex fallbacks keep the
-        // canvas painting even if an engine returns an unevaluated
-        // oklch()/color-mix() string from getComputedStyle.
         var COMMUNITY_FALLBACKS = [
             '#FF9500', '#4ECDC4', '#A78BFA', '#F472B6', '#34D399',
             '#60A5FA', '#FBBF24', '#FB7185', '#2DD4BF', '#C084FC'
         ];
         communityColors = [];
         for (var i = 0; i < COMMUNITY_PALETTE_SIZE; i++) {
-            communityColors.push(v('--graph-community-' + i, COMMUNITY_FALLBACKS[i]));
+            communityColors.push(
+                resolveCssColor('--graph-community-' + i, COMMUNITY_FALLBACKS[i])
+            );
         }
     }
     function nodeColor(n) {
@@ -118,6 +141,57 @@
             return communityColors[n.community % communityColors.length];
         }
         return colors[n.type] || colors.regular;
+    }
+
+    function nodeImportance(n) {
+        return (n.incoming_refs || 0) + (n.outgoing_refs || 0) + (n.connectivity || 0);
+    }
+
+    function nodeScreenRadius(n) {
+        var scaled = n.size * Math.min(1, camera.scale * 1.2);
+        var floor = (n.type === 'hub' || n.size >= 22) ? MIN_HUB_PX : MIN_NODE_PX;
+        if (camera.scale < LABEL_SCALE) {
+            if (n.type === 'hub') floor = Math.max(floor, MIN_HUB_PX + 2);
+            else if (n.size >= 22) floor = Math.max(floor, MIN_NODE_PX + 2);
+            else if (n.size >= 14) floor = Math.max(floor, MIN_NODE_PX + 0.5);
+        }
+        return Math.max(floor, scaled);
+    }
+
+    function buildLabelHubs() {
+        labelHubIds = {};
+        var sorted = nodes.slice().sort(function (a, b) {
+            return nodeImportance(b) - nodeImportance(a);
+        });
+        for (var i = 0; i < Math.min(HUB_LABEL_COUNT, sorted.length); i++) {
+            labelHubIds[sorted[i].id] = true;
+        }
+    }
+
+    function drawNodeLabel(text, lx, ly, r) {
+        if (!text) return;
+        ctx.font = '600 11px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        var metrics = ctx.measureText(text);
+        var padX = 5;
+        var padY = 3;
+        var w = metrics.width + padX * 2;
+        var h = 13 + padY * 2;
+        var x = lx - w / 2;
+        var y = ly + r + 3;
+        ctx.fillStyle = colors.labelBg;
+        ctx.globalAlpha = 0.92;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, w, h, 4);
+        } else {
+            ctx.rect(x, y, w, h);
+        }
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = colors.label;
+        ctx.fillText(text, lx, y + padY);
     }
 
     // ---- Picking grid --------------------------------------------------------
@@ -143,7 +217,7 @@
                     var n = bucket[i];
                     var dx = n.wx - wx, dy = n.wy - wy;
                     var d2 = dx * dx + dy * dy;
-                    var r = n.size + 4;
+                    var r = nodeScreenRadius(n) + 4;
                     if (d2 <= r * r && d2 < bestD) { bestD = d2; best = n; }
                 }
             }
@@ -224,7 +298,6 @@
         }
 
         // Edges
-        ctx.lineWidth = 1;
         for (var i = 0; i < edges.length; i++) {
             var e = edges[i];
             var s = e._s, t = e._t;
@@ -239,7 +312,8 @@
 
             var isHi = hovered && (e.source === hovered.id || e.target === hovered.id);
             ctx.strokeStyle = isHi ? colors.linkHi : colors.link;
-            ctx.globalAlpha = hovered ? (isHi ? 1 : 0.08) : (e.weight === 2 ? 0.7 : 0.5);
+            ctx.lineWidth = isHi ? 1.5 : (e.weight === 2 ? 1.1 : 0.9);
+            ctx.globalAlpha = hovered ? (isHi ? 1 : 0.15) : (e.weight === 2 ? 0.85 : 0.7);
             ctx.beginPath();
             ctx.moveTo(sx, sy);
             ctx.lineTo(tx, ty);
@@ -264,31 +338,37 @@
                 var nd = list[b];
                 var visible = isVisible(nd);
                 var dim = (!visible) || (hovered && hovered.id !== nd.id && !(hoverSet && hoverSet[nd.id]));
-                ctx.globalAlpha = visible ? (dim ? (tagParam ? 0 : 0.12) : 1) : (tagParam ? 0 : 0.12);
-                var r = Math.max(1.5, nd.size * Math.min(1, camera.scale * 1.2));
+                ctx.globalAlpha = visible ? (dim ? (tagParam ? 0 : 0.18) : 1) : (tagParam ? 0 : 0.18);
+                var r = nodeScreenRadius(nd);
+                var sxNd = toScreenX(nd.wx);
+                var syNd = toScreenY(nd.wy);
                 ctx.beginPath();
-                ctx.arc(toScreenX(nd.wx), toScreenY(nd.wy), r, 0, Math.PI * 2);
+                ctx.arc(sxNd, syNd, r, 0, Math.PI * 2);
                 ctx.fill();
+                if (!dim && r >= 2.5) {
+                    ctx.strokeStyle = colors.nodeRim;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = visible ? 0.35 : ctx.globalAlpha;
+                    ctx.stroke();
+                }
             }
         }
         ctx.globalAlpha = 1;
 
-        // Labels — only when zoomed in, or for hubs / the hovered node.
+        // Labels — top hubs always; more appear as you zoom in or on hover.
         var showLabels = camera.scale >= LABEL_SCALE;
-        if (showLabels || hovered) {
-            ctx.fillStyle = colors.label;
-            ctx.font = '11px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
+        if (showLabels || hovered || Object.keys(labelHubIds).length) {
             for (var l = 0; l < nodes.length; l++) {
                 var ln = nodes[l];
                 if (!isVisible(ln)) continue;
                 var labelThis = (hovered && (ln.id === hovered.id || (hoverSet && hoverSet[ln.id]))) ||
+                                labelHubIds[ln.id] ||
                                 (showLabels && (ln.type === 'hub' || camera.scale >= 1.6));
                 if (!labelThis) continue;
-                var lx = toScreenX(ln.wx), ly = toScreenY(ln.wy);
+                var lx = toScreenX(ln.wx);
+                var ly = toScreenY(ln.wy);
                 if (lx < -pad || lx > vw + pad || ly < -pad || ly > vh + pad) continue;
-                ctx.fillText(ln.label || '', lx, ly + ln.size + 2);
+                drawNodeLabel(ln.label || '', lx, ly, nodeScreenRadius(ln));
             }
         }
     }
@@ -413,8 +493,16 @@
         }, { passive: false });
 
         on(window, 'resize', resize);
-        on(window, 'themechange', function () { resolveColors(); requestRedraw(); });
-        on(window, 'palettechange', function () { resolveColors(); requestRedraw(); });
+        on(window, 'themechange', function () {
+            resolveColors();
+            if (graphStats) buildCommunityLegend(graphStats);
+            requestRedraw();
+        });
+        on(window, 'palettechange', function () {
+            resolveColors();
+            if (graphStats) buildCommunityLegend(graphStats);
+            requestRedraw();
+        });
 
         on(document, 'keydown', function (e) {
             if (e.key === '/' || (e.metaKey && e.key === 'k') || (e.ctrlKey && e.key === 'k')) {
@@ -506,6 +594,7 @@
             return { source: s, target: t, weight: e.weight || 1, _s: nodeById[s], _t: nodeById[t] };
         });
         buildGrid();
+        buildLabelHubs();
     }
 
     function boot() {
@@ -538,6 +627,7 @@
                 setupControls();
                 setupInteraction();
                 buildA11yList();
+                graphStats = data.stats;
                 buildCommunityLegend(data.stats);
 
                 if (loadingEl) loadingEl.classList.add('hidden');
