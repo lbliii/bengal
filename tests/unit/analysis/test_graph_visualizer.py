@@ -69,6 +69,9 @@ class TestTemplateExists:
         content = explorer.read_text(encoding="utf-8")
         assert "tagParam" in content
         assert "nodeMatchesTag" in content
+        assert "resolveCssColor" in content
+        assert "nodeScreenRadius" in content
+        assert "buildLabelHubs" in content
         # No D3 API usage (comments may mention D3, but nothing should call it).
         assert "d3.forceSimulation" not in content
         assert "d3.select" not in content
