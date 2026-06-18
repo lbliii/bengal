@@ -1,6 +1,9 @@
 # Bengal build outputs
 public/
 
+# Capability vendor assets (downloaded at build time when [capabilities] enabled)
+assets/vendor/
+
 # Bengal cache and dev files
 .bengal/
 
