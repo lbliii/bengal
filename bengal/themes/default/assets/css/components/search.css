@@ -2373,3 +2373,179 @@ body.search-modal-open {
     animation-duration: 1.5s;
   }
 }
+
+/* ============================================
+   HEADING DEEP-LINK SUB-RESULTS
+   ============================================ */
+
+.search-modal__heading-matches,
+.search-page__heading-matches {
+  list-style: none;
+  margin: 0.25rem 0 0 1.25rem;
+  padding: 0;
+  border-left: 2px solid var(--color-border);
+}
+
+.search-modal__heading-match,
+.search-page__heading-match {
+  margin: 0;
+}
+
+.search-modal__heading-link,
+.search-page__heading-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  padding: 0.35rem 0.5rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--border-radius-small, 4px);
+  font-size: var(--text-body-sm, 0.875rem);
+}
+
+.search-modal__heading-link:hover,
+.search-page__heading-link:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+}
+
+.search-modal__heading-icon,
+.search-page__heading-icon {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.search-modal__heading-title,
+.search-page__heading-title {
+  font-weight: var(--weight-medium, 500);
+}
+
+.search-modal__heading-snippet,
+.search-page__heading-snippet {
+  flex-basis: 100%;
+  margin-left: 1.25rem;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.4;
+}
+
+/* ============================================
+   KEYBOARD SHORTCUTS HELP DIALOG
+   ============================================ */
+
+.keyboard-shortcuts-dialog {
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: min(480px, calc(100vw - 2rem));
+}
+
+.keyboard-shortcuts-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.keyboard-shortcuts-dialog__backdrop {
+  display: none;
+}
+
+.keyboard-shortcuts-dialog__panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-xl, 16px);
+  box-shadow: var(--elevation-modal, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+  overflow: hidden;
+}
+
+.keyboard-shortcuts-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.keyboard-shortcuts-dialog__title {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: var(--weight-semibold, 600);
+}
+
+.keyboard-shortcuts-dialog__close {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small, 4px);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.keyboard-shortcuts-dialog__body {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.keyboard-shortcuts-dialog__group + .keyboard-shortcuts-dialog__group {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.keyboard-shortcuts-dialog__group h3 {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.keyboard-shortcuts-dialog__group dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.keyboard-shortcuts-dialog__group dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.keyboard-shortcuts-dialog__group dt {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-weight: var(--weight-normal, 400);
+}
+
+.keyboard-shortcuts-dialog__group dd {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
+.keyboard-shortcuts-dialog__group kbd {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .keyboard-shortcuts-dialog::backdrop {
+    backdrop-filter: none;
+  }
+}

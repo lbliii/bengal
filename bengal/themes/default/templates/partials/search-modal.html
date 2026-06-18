@@ -32,6 +32,7 @@ Usage:
 {% let modal_enabled = ui_config?.modal ?? false %}
 
 {% if modal_enabled %}
+<bengal-search>
 <dialog id="search-modal" class="search-modal"
   aria-label="{{ t('search.aria_label', default='Search documentation') }}">
   {# Backdrop for clicking outside to close #}
@@ -123,5 +124,6 @@ Usage:
     </footer>
   </div>
 </dialog>
+</bengal-search>
 
 {% end %}
