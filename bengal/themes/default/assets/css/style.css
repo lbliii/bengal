@@ -120,10 +120,6 @@
 }
 
 @layer components {
-  @import url('components/alerts.css');
-}
-
-@layer components {
   @import url('components/tabs.css');
 }
 
@@ -218,16 +214,11 @@
 }
 
 @layer components {
-  @import url('components/api-hub.css');
-}
-
-@layer components {
   @import url('components/widgets.css');
 }
 
 @layer components {
   @import url('components/search.css');
-  @import url('components/search-modal.css');
 }
 
 @layer components {
@@ -495,8 +486,6 @@ main {
   cursor: not-allowed;
   pointer-events: none;
 }
-
-/* Alerts - moved to components/alerts.css */
 
 /* Loading Indicator */
 .loading {

@@ -1,5 +1,4 @@
 {# Danger callout. Usage: {{% danger %}}Critical info{{% /danger %}} #}
-<div class="callout callout-danger">
-  <p class="callout-title">Danger</p>
-  <div class="callout-content">{{ shortcode.Inner }}</div>
-</div>
+{% with admonition_type="danger", admonition_title="Danger", admonition_icon="danger" %}
+{% include "partials/admonition-shortcode.html" %}
+{% end %}

@@ -1,0 +1,11 @@
+{# Shared admonition markup for Hugo-style shortcodes (warning/tip/danger). #}
+{% let _type = admonition_type ?? 'note' %}
+{% let _title = admonition_title ?? _type | title %}
+{% let _icon = admonition_icon ?? _type %}
+<div class="admonition {{ _type }}">
+  <p class="admonition-title">
+    <span class="admonition-icon-wrapper">{{ icon(_icon, size=20, css_class="admonition-icon") }}</span>
+    <span class="admonition-title-text">{{ _title }}</span>
+  </p>
+  {{ shortcode.Inner }}
+</div>

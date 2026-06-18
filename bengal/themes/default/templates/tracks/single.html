@@ -92,8 +92,11 @@ Or set `type: track` to auto-select this template
     {% elif item_content %}
     {{ item_content | resolve_links_for_embedding(item_page) | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% else %}
-    <div class="alert alert-warning">
-      <p><strong>Content Unavailable</strong></p>
+    <div class="admonition warning">
+      <p class="admonition-title">
+        <span class="admonition-icon-wrapper">{{ icon("warning", size=20, css_class="admonition-icon") }}</span>
+        <span class="admonition-title-text">Content Unavailable</span>
+      </p>
       <p>This page has no content available.</p>
       <p class="mb-0">
         <a href="{{ item_href }}" class="btn btn-sm btn-primary">
@@ -179,8 +182,11 @@ Or set `type: track` to auto-select this template
         {% else %}
         {# Missing Page Warning #}
         <section id="track-section-{{ loop.index }}" class="track-section">
-          <div class="alert alert-warning">
-            <h3 class="h5">Section {{ loop.index }}: Page Not Found</h3>
+          <div class="admonition warning">
+            <p class="admonition-title">
+              <span class="admonition-icon-wrapper">{{ icon("warning", size=20, css_class="admonition-icon") }}</span>
+              <span class="admonition-title-text">Section {{ loop.index }}: Page Not Found</span>
+            </p>
             <p class="mb-0">Could not find page: <code>{{ item_slug }}</code></p>
           </div>
         </section>
@@ -188,8 +194,11 @@ Or set `type: track` to auto-select this template
         {% end %}
       </div>
       {% elif not track %}
-      <div class="alert alert-warning">
-        <h4 class="alert-heading">Track Not Found</h4>
+      <div class="admonition warning">
+        <p class="admonition-title">
+          <span class="admonition-icon-wrapper">{{ icon("warning", size=20, css_class="admonition-icon") }}</span>
+          <span class="admonition-title-text">Track Not Found</span>
+        </p>
         <p>Could not find a track definition with ID <code>{{ track_id }}</code> in
           <code>site/data/tracks.yaml</code>.</p>
         <hr>

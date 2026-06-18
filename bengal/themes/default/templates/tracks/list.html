@@ -121,14 +121,16 @@ MAIN TEMPLATE
         {% end %}
     </header>
 
-    {# Tracks Grid #}
+    {# Tracks Grid — container queries respond to slot width, not viewport (#540) #}
     {% if tracks_data | length > 0 %}
+    <div class="tracks-layout">
     <div class="tracks-grid">
         {% for id, track in tracks_data | items %}
         {# O(1) lookup from pre-computed map #}
         {% let track_page = track_page_map[id] if id in track_page_map else none %}
         {{ track_card(id, track, track_page) }}
         {% end %}
+    </div>
     </div>
     {% else %}
     {# Empty State #}
