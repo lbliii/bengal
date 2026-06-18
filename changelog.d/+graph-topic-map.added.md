@@ -1,0 +1,3 @@
+The knowledge graph at `/graph/` now reads as a topic map: pages are colored by the cluster they belong to, sized by how central they are to the site, and grouped into separated lobes instead of one dense hairball. A legend lists the largest topics and clicking one isolates that cluster.
+
+Clusters (Louvain communities) and importance (PageRank) are computed at build time and shipped in `graph.json`; cluster colors derive from the active palette's accent hue in OKLCH, so they adapt to every palette and to light/dark automatically. Node positions and cluster ids are deterministic, so the graph output is byte-identical across rebuilds.

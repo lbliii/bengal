@@ -375,6 +375,46 @@
     transform: scale(1.2);
 }
 
+/* Community (topic-cluster) legend: clickable rows that isolate a cluster. */
+.graph-legend-community {
+    width: 100%;
+    border: none;
+    background: none;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin-inline: -6px;
+}
+
+.graph-legend-community .graph-legend-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.graph-legend-community .graph-legend-count {
+    margin-inline-start: 8px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-muted, #9e9e9e);
+}
+
+.graph-legend-community:hover {
+    background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+}
+
+.graph-legend-community.is-active {
+    background: color-mix(in oklab, var(--color-accent) 18%, transparent);
+}
+
+.graph-legend-community.is-active .graph-legend-label {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
 /* Graph Nodes and Links */
 .graph-node {
     cursor: pointer;
@@ -520,6 +560,20 @@
     font-size: 12px;
 }
 
+.graph-tooltip-cluster {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.graph-tooltip-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 .graph-tooltip .tags {
     display: flex;
     flex-wrap: wrap;
@@ -549,6 +603,34 @@
  * These use vibrant, saturated colors that stand out against
  * the background while staying harmonious with each palette.
  */
+/* ============================================
+   COMMUNITY (TOPIC-CLUSTER) PALETTE
+   ============================================
+ * Categorical colors for Louvain communities, used to paint the graph as a
+ * topic map (the Obsidian-style "wow"). Coherent with Pridelands by
+ * construction: every color is derived from the live `--color-accent` by
+ * ROTATING its hue in OKLCH space (36° steps span the wheel), so the whole
+ * ramp shifts automatically per palette and adapts per scheme via light-dark()
+ * — no parallel hardcoded-hex palette, no [data-theme=dark] override blocks.
+ * Community ids are rank-ordered (0 = largest) and stable (see
+ * community_detection renumber), so color assignment is deterministic. The
+ * canvas explorer reads these via getComputedStyle and keeps hex fallbacks.
+ */
+:root {
+    --graph-community-0: light-dark(oklch(from var(--color-accent) 0.63 0.15 h),        oklch(from var(--color-accent) 0.74 0.15 h));
+    --graph-community-1: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 36)),  oklch(from var(--color-accent) 0.74 0.15 calc(h + 36)));
+    --graph-community-2: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 72)),  oklch(from var(--color-accent) 0.74 0.15 calc(h + 72)));
+    --graph-community-3: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 108)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 108)));
+    --graph-community-4: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 144)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 144)));
+    --graph-community-5: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 180)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 180)));
+    --graph-community-6: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 216)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 216)));
+    --graph-community-7: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 252)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 252)));
+    --graph-community-8: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 288)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 288)));
+    --graph-community-9: light-dark(oklch(from var(--color-accent) 0.63 0.15 calc(h + 324)), oklch(from var(--color-accent) 0.74 0.15 calc(h + 324)));
+    /* Long-tail communities beyond the ramp fall to a muted, theme-aware tint. */
+    --graph-community-other: color-mix(in oklab, var(--color-text-secondary), var(--color-bg-primary) 30%);
+}
+
 :root {
     /* Default palette (Bengal Orange) - Vibrant and distinct */
     --graph-node-hub: #FF9500;           /* Bold orange - central importance */

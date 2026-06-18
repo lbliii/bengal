@@ -41,6 +41,8 @@
     var grid = {};             // picking grid: "cx,cy" -> [node, ...]
     var camera = { scale: 1, tx: 0, ty: 0 };
     var colors = {};
+    var communityColors = [];   // categorical topic-cluster palette (CSS tokens)
+    var communityLabels = {};   // community id -> display label (from stats)
     var hovered = null;
     var dirty = false;
     var rafPending = false;
@@ -50,6 +52,9 @@
     var query = '';
     var typeFilter = 'all';
     var tagParam = null;
+    var communityFilter = null; // when set, isolate one topic cluster (legend click)
+
+    var COMMUNITY_PALETTE_SIZE = 10;
 
     function on(target, event, handler, opts) {
         target.addEventListener(event, handler, opts);
@@ -87,11 +92,33 @@
             generated: v('--graph-node-generated', '#4ECDC4'),
             link: v('--graph-link-color', 'rgba(100,100,100,0.25)'),
             linkHi: v('--graph-link-highlight', 'rgba(255,200,120,0.95)'),
-            label: v('--color-text', '#222'),
-            labelBg: v('--color-bg', '#fff')
+            // These tokens are `--color-text-primary`/`--color-bg-primary` in the
+            // theme; the old `--color-text`/`--color-bg` names don't exist, so
+            // labels used to always fall back to #222/#fff (wrong in dark mode).
+            label: v('--color-text-primary', '#222'),
+            labelBg: v('--color-bg-primary', '#fff'),
+            communityOther: v('--graph-community-other', '#9aa0a6')
         };
+        // Categorical community palette (topic clusters). Hex fallbacks keep the
+        // canvas painting even if an engine returns an unevaluated
+        // oklch()/color-mix() string from getComputedStyle.
+        var COMMUNITY_FALLBACKS = [
+            '#FF9500', '#4ECDC4', '#A78BFA', '#F472B6', '#34D399',
+            '#60A5FA', '#FBBF24', '#FB7185', '#2DD4BF', '#C084FC'
+        ];
+        communityColors = [];
+        for (var i = 0; i < COMMUNITY_PALETTE_SIZE; i++) {
+            communityColors.push(v('--graph-community-' + i, COMMUNITY_FALLBACKS[i]));
+        }
     }
-    function nodeColor(n) { return colors[n.type] || colors.regular; }
+    function nodeColor(n) {
+        // Colour by topic community (the "map" look); fall back to type colour
+        // for unclustered nodes or pre-community data.
+        if (typeof n.community === 'number' && n.community >= 0 && communityColors.length) {
+            return communityColors[n.community % communityColors.length];
+        }
+        return colors[n.type] || colors.regular;
+    }
 
     // ---- Picking grid --------------------------------------------------------
     function gridKey(wx, wy) {
@@ -133,11 +160,51 @@
     }
     function isVisible(n) {
         if (tagParam && !nodeMatchesTag(n)) return false;
+        if (communityFilter !== null && n.community !== communityFilter) return false;
         var matchesSearch = !query ||
             (n.label || '').toLowerCase().indexOf(query) !== -1 ||
             (n.tags || []).some(function (t) { return t.toLowerCase().indexOf(query) !== -1; });
         var matchesType = typeFilter === 'all' || n.type === typeFilter;
         return matchesSearch && matchesType;
+    }
+
+    // ---- Community (topic-cluster) legend -----------------------------------
+    function communityColorFor(id) {
+        if (!communityColors.length) return colors.communityOther;
+        return communityColors[id % communityColors.length];
+    }
+    function buildCommunityLegend(stats) {
+        var legend = document.querySelector('.graph-legend');
+        if (!legend || !stats || !stats.communities || !stats.communities.length) return;
+        communityLabels = {};
+        stats.communities.forEach(function (c) { communityLabels[c.id] = c.label; });
+        var top = stats.communities.slice(0, 8);
+        var frag = document.createElement('div');
+        var html = '<h3>Topic clusters</h3>';
+        top.forEach(function (c) {
+            html += '<button type="button" class="graph-legend-item graph-legend-community" ' +
+                'data-community="' + c.id + '" aria-pressed="false">' +
+                '<span class="graph-legend-color" style="background:' + communityColorFor(c.id) + '"></span>' +
+                '<span class="graph-legend-label">' + escapeHtml(c.label || ('Cluster ' + c.id)) + '</span>' +
+                '<span class="graph-legend-count">' + (c.size || 0) + '</span>' +
+                '</button>';
+        });
+        frag.innerHTML = html;
+        legend.innerHTML = frag.innerHTML;
+        // Click a cluster to isolate it; click again (or another) to toggle.
+        legend.querySelectorAll('.graph-legend-community').forEach(function (btn) {
+            on(btn, 'click', function () {
+                var id = parseInt(btn.getAttribute('data-community'), 10);
+                communityFilter = (communityFilter === id) ? null : id;
+                legend.querySelectorAll('.graph-legend-community').forEach(function (b) {
+                    var on2 = (communityFilter !== null) &&
+                        (parseInt(b.getAttribute('data-community'), 10) === communityFilter);
+                    b.setAttribute('aria-pressed', on2 ? 'true' : 'false');
+                    b.classList.toggle('is-active', on2);
+                });
+                requestRedraw();
+            });
+        });
     }
 
     // ---- Rendering -----------------------------------------------------------
@@ -261,9 +328,15 @@
                 return '<span class="tag">' + escapeHtml(t) + '</span>';
             }).join('') + '</div>'
             : '';
+        var clusterLine = '';
+        if (typeof n.community === 'number' && n.community >= 0 && communityLabels[n.community]) {
+            clusterLine = '<p class="graph-tooltip-cluster">' +
+                '<span class="graph-tooltip-swatch" style="background:' + communityColorFor(n.community) + '"></span>' +
+                escapeHtml(communityLabels[n.community]) + '</p>';
+        }
         tooltipEl.innerHTML = '<h4>' + escapeHtml(n.label || 'Untitled') + '</h4>' +
             '<p>' + (n.reading_time || 0) + ' min read · ' +
-            (n.incoming_refs || 0) + ' in / ' + (n.outgoing_refs || 0) + ' out</p>' + tags;
+            (n.incoming_refs || 0) + ' in / ' + (n.outgoing_refs || 0) + ' out</p>' + clusterLine + tags;
         tooltipEl.style.display = 'block';
         tooltipEl.style.left = (evt.clientX + 12) + 'px';
         tooltipEl.style.top = (evt.clientY + 12) + 'px';
@@ -349,7 +422,11 @@
             } else if (e.key === 'Escape') {
                 if (searchInput) searchInput.value = '';
                 if (filterSelect) filterSelect.value = 'all';
-                query = ''; typeFilter = 'all';
+                query = ''; typeFilter = 'all'; communityFilter = null;
+                document.querySelectorAll('.graph-legend-community').forEach(function (b) {
+                    b.setAttribute('aria-pressed', 'false');
+                    b.classList.remove('is-active');
+                });
                 requestRedraw();
             }
         });
@@ -461,6 +538,7 @@
                 setupControls();
                 setupInteraction();
                 buildA11yList();
+                buildCommunityLegend(data.stats);
 
                 if (loadingEl) loadingEl.classList.add('hidden');
                 requestRedraw();

@@ -240,12 +240,18 @@ class KnowledgeGraph:
         if self._builder:
             return self._builder.get_analysis_pages()
 
-        # Fallback if build() not called yet
+        # Fallback if build() not called yet. Sort by the stable page id so the
+        # order matches the builder path and stays build-reproducible (see
+        # GraphBuilder.get_analysis_pages for why order is load-bearing).
+        from bengal.analysis.utils.pages import stable_page_id
         from bengal.utils.autodoc import is_autodoc_page
 
-        if not self.exclude_autodoc:
-            return list(self.site.pages)
-        return [p for p in self.site.pages if not is_autodoc_page(p)]
+        if self.exclude_autodoc:
+            pages = [p for p in self.site.pages if not is_autodoc_page(p)]
+        else:
+            pages = list(self.site.pages)
+        pages.sort(key=lambda p: stable_page_id(self.site, p))
+        return pages
 
     @require_built
     def get_connectivity(self, page: PageLike) -> PageConnectivity:

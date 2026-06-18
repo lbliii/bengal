@@ -12,6 +12,44 @@ from bengal.analysis.graph.community_detection import (
     LouvainCommunityDetector,
     detect_communities,
 )
+from bengal.analysis.utils.pages import stable_page_id
+
+
+def _ring_graph(n=24):
+    """An undirected ring of ``n`` nodes.
+
+    Deliberately shuffle-order sensitive: a ring has no unambiguous community
+    structure, so WHERE Louvain places the community boundaries depends on the
+    order nodes are visited. (A cleanly-separable graph like two dense cliques
+    converges to the same partition regardless of visit order and would make a
+    determinism assertion vacuous.) Verified to discriminate: with the global
+    ``random`` module two runs of this fixture diverge; with a local seeded PRNG
+    they are identical.
+    """
+    pages = [Mock(source_path=Path(f"r{i:02d}.md"), metadata={}) for i in range(n)]
+
+    site = Mock()
+    site.pages = pages
+    site.root_path = None
+
+    graph = Mock()
+    graph.site = site
+    graph.outgoing_refs = defaultdict(set)
+    graph.get_analysis_pages.return_value = pages
+
+    for i in range(n):
+        graph.outgoing_refs[pages[i]].add(pages[(i + 1) % n])
+        graph.outgoing_refs[pages[(i + 1) % n]].add(pages[i])
+    return graph, site, pages
+
+
+def _community_by_stable_id(results, site):
+    """Map each page's stable id -> its community id (the bake-relevant view)."""
+    out = {}
+    for community in results.communities:
+        for page in community.pages:
+            out[stable_page_id(site, page)] = community.id
+    return out
 
 
 class TestCommunity:
@@ -318,32 +356,42 @@ class TestLouvainCommunityDetector:
         # Higher resolution should produce at least as many communities
         assert len(results_high.communities) >= len(results_low.communities)
 
-    def test_random_seed_reproducibility(self):
-        """Test that random seed makes results reproducible."""
-        pages = [Mock(source_path=Path(f"page{i}.md"), metadata={}) for i in range(10)]
+    def test_seeded_runs_are_id_stable(self):
+        """Same seed yields the same community id for every page (not just count).
 
-        site = Mock()
-        site.pages = pages
+        The old test only compared community *count* + modularity, which can match
+        even when individual pages land in different communities — useless as a
+        guard for baking community ids into ``graph.json``. This asserts the
+        bake-relevant invariant: the stable-id -> community-id map is identical.
+        """
+        graph, site, _ = _ring_graph()
 
-        # Create some connections
-        graph = Mock()
-        graph.site = site
-        graph.outgoing_refs = defaultdict(set)
-        graph.get_analysis_pages.return_value = pages
+        results1 = LouvainCommunityDetector(graph, random_seed=42).detect()
+        results2 = LouvainCommunityDetector(graph, random_seed=42).detect()
 
-        for i in range(len(pages) - 1):
-            graph.outgoing_refs[pages[i]].add(pages[i + 1])
+        assert _community_by_stable_id(results1, site) == _community_by_stable_id(results2, site)
 
-        # Run twice with same seed
-        detector1 = LouvainCommunityDetector(graph, random_seed=42)
-        results1 = detector1.detect()
+    def test_unseeded_build_path_is_reproducible(self):
+        """The path the BUILD actually takes (no explicit seed) must reproduce.
 
-        detector2 = LouvainCommunityDetector(graph, random_seed=42)
-        results2 = detector2.detect()
+        No build caller passes ``random_seed``, so determinism on the unseeded
+        path is what protects the warm==cold byte-parity of baked community ids.
+        This is the discriminating guard: if Louvain reverts to the *global*
+        ``random`` module (whose state advances between the two runs in this same
+        process), the two community maps diverge and this fails. With a local
+        seeded PRNG they are identical.
+        """
+        graph, site, _ = _ring_graph()
 
-        # Should get same number of communities
-        assert len(results1.communities) == len(results2.communities)
-        assert results1.modularity == results2.modularity
+        results1 = LouvainCommunityDetector(graph).detect()  # no seed = build path
+        results2 = LouvainCommunityDetector(graph).detect()
+
+        map1 = _community_by_stable_id(results1, site)
+        map2 = _community_by_stable_id(results2, site)
+        assert map1 == map2
+        # And community ids are rank-ordered (0 = largest), so the assignment is
+        # meaningful and stable to bake as a color index.
+        assert results1.communities[0].size >= results1.communities[-1].size
 
     def test_filters_generated_pages(self):
         """Test that generated pages are excluded."""

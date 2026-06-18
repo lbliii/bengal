@@ -210,6 +210,8 @@ def compute_force_layout(
     *,
     seed: int = 1,
     iterations: int | None = None,
+    communities: Mapping[str, int] | None = None,
+    weights: Mapping[tuple[str, str], float] | None = None,
 ) -> dict[str, tuple[float, float]]:
     """Fruchterman-Reingold layout, normalized to ``[0, 1]``.
 
@@ -219,10 +221,22 @@ def compute_force_layout(
             ``node_ids`` are ignored.
         seed: PRNG seed for the deterministic initial placement.
         iterations: Override the (otherwise N-derived) iteration count.
+        communities: Optional ``node_id -> community_id`` map. When given, the
+            layout becomes community-aware: each community is assigned a ring
+            centroid (deterministically, by sorted community id) and nodes are
+            seeded near + gravitated toward their community's centroid instead of
+            a single global center. This separates clusters into distinct visual
+            lobes (the "topic map" look) rather than one center-piled hairball,
+            and — because nodes start near their final neighborhood — tends to
+            converge in fewer iterations.
+        weights: Optional ``(source, target) -> weight`` map (any key order).
+            Edge attraction is scaled by the weight (capped), so strongly /
+            bidirectionally linked pairs sit closer together.
 
     Returns:
         ``dict[node_id, (x, y)]`` with coordinates in ``[0, 1]``. Empty input
-        yields an empty dict; a single node is centered.
+        yields an empty dict; a single node is centered. Deterministic for a
+        given (node set, edge set, communities, weights, seed).
     """
     ids = sorted(set(node_ids))
     n = len(ids)
@@ -232,11 +246,44 @@ def compute_force_layout(
         return {ids[0]: (0.5, 0.5)}
 
     rng = _Rng(seed)
-    # Deterministic initial scatter in a unit square.
-    pos: dict[str, list[float]] = {nid: [rng.random(), rng.random()] for nid in ids}
+
+    # Community centroids on a ring (deterministic: sorted community ids). Nodes
+    # without a community fall to a synthetic center bucket so the math is total.
+    centroids: dict[int, tuple[float, float]] = {}
+    if communities:
+        comm_ids = sorted({int(communities.get(nid, -1)) for nid in ids})
+        num_comms = len(comm_ids)
+        ring_r = 0.35
+        for rank, cid in enumerate(comm_ids):
+            if num_comms <= 1:
+                centroids[cid] = (0.5, 0.5)
+            else:
+                angle = 2.0 * math.pi * rank / num_comms
+                centroids[cid] = (0.5 + ring_r * math.cos(angle), 0.5 + ring_r * math.sin(angle))
+
+    def _centroid(nid: str) -> tuple[float, float]:
+        return (
+            centroids.get(int(communities.get(nid, -1)), (0.5, 0.5)) if communities else (0.5, 0.5)
+        )
+
+    # Initial placement. With communities, seed each node near its centroid (so
+    # clusters start apart); otherwise a deterministic scatter in the unit box.
+    pos: dict[str, list[float]] = {}
+    for nid in ids:
+        if communities:
+            cx, cy = _centroid(nid)
+            pos[nid] = [cx + (rng.random() - 0.5) * 0.12, cy + (rng.random() - 0.5) * 0.12]
+        else:
+            pos[nid] = [rng.random(), rng.random()]
 
     valid = set(ids)
     clean_edges = sorted((s, t) for s, t in edges if s in valid and t in valid and s != t)
+
+    # Normalize edge weights to sorted-pair keys for direction-independent lookup.
+    weight_by_pair: dict[tuple[str, str], float] = {}
+    if weights:
+        for (s, t), w in weights.items():
+            weight_by_pair[(s, t) if s <= t else (t, s)] = float(w)
 
     # FR ideal edge length for a unit area.
     k = math.sqrt(1.0 / n)
@@ -289,14 +336,15 @@ def compute_force_layout(
                     db[0] -= fx
                     db[1] -= fy
 
-        # --- Attraction along edges (springs) ---
+        # --- Attraction along edges (springs), scaled by edge weight ---
         for s, t in clean_edges:
             sx, sy = pos[s]
             tx, ty = pos[t]
             dx = sx - tx
             dy = sy - ty
             dist = math.sqrt(dx * dx + dy * dy) or 1e-6
-            f = (dist * dist) / k
+            w = weight_by_pair.get((s, t) if s <= t else (t, s), 1.0)
+            f = (dist * dist) / k * min(w, 3.0)
             fx = (dx / dist) * f
             fy = (dy / dist) * f
             disp[s][0] -= fx
@@ -304,11 +352,19 @@ def compute_force_layout(
             disp[t][0] += fx
             disp[t][1] += fy
 
-        # --- Mild gravity toward center (keeps disconnected nodes in frame) ---
+        # --- Gravity. Community-aware: pull toward the community centroid (so
+        # clusters stay as separated lobes) plus a weak global cohesion that
+        # keeps the whole graph framed. Without communities, a single mild pull
+        # toward center (keeps disconnected nodes in frame). ---
         for nid in ids:
             px, py = pos[nid]
-            disp[nid][0] += (0.5 - px) * k * 0.5
-            disp[nid][1] += (0.5 - py) * k * 0.5
+            if communities:
+                cx, cy = _centroid(nid)
+                disp[nid][0] += (cx - px) * k * 0.9 + (0.5 - px) * k * 0.12
+                disp[nid][1] += (cy - py) * k * 0.9 + (0.5 - py) * k * 0.12
+            else:
+                disp[nid][0] += (0.5 - px) * k * 0.5
+                disp[nid][1] += (0.5 - py) * k * 0.5
 
         # --- Integrate, capped by temperature ---
         for nid in ids:
