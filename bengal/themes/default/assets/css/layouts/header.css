@@ -263,6 +263,16 @@ header[role="banner"][data-sticky="false"] {
   position: relative;
 }
 
+/* Invisible hover bridge — keeps submenu open while moving through the gap */
+.nav-main>li.has-submenu::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: var(--space-2);
+}
+
 /* Nav links with submenus - positioning context for dropdown */
 .nav-main>li.has-submenu>a,
 .nav-main>li.has-submenu>.nav-dropdown-trigger {
