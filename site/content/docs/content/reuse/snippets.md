@@ -45,8 +45,8 @@ Include it in any page:
 
 Here is some content.
 
-```{include} snippets/warning.md
-```
+:::{include} snippets/warning.md
+:::
 
 More content.
 ````
@@ -56,10 +56,10 @@ More content.
 Include only a portion of a file:
 
 ````markdown
-```{include} snippets/api-example.md
+:::{include} snippets/api-example.md
 :start-line: 5
 :end-line: 20
-```
+:::
 ````
 
 This includes lines 5-20 from the file.
@@ -77,8 +77,8 @@ Use the `{literalinclude}` directive to include code files as syntax-highlighted
 ### Basic Usage
 
 ````markdown
-```{literalinclude} examples/api.py
-```
+:::{literalinclude} examples/api.py
+:::
 ````
 
 This automatically:
@@ -91,10 +91,10 @@ This automatically:
 Include only a portion of a code file:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :start-line: 10
 :end-line: 25
-```
+:::
 ````
 
 ### Emphasize Lines
@@ -102,29 +102,29 @@ Include only a portion of a code file:
 Highlight specific lines:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :emphasize-lines: 7,8,9
-```
+:::
 ````
 
 Or a range:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :emphasize-lines: 7-9
-```
+:::
 ````
 
 ### Complete Example
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :language: python
 :start-line: 10
 :end-line: 30
 :emphasize-lines: 15,16,17
 :linenos: true
-```
+:::
 ````
 
 ## Supported Languages

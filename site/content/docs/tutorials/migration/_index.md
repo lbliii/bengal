@@ -26,8 +26,8 @@ convert syntax, update config, then verify with `bengal build` and
 
 ## Common Migration Steps
 
-```{include} _snippets/migration/common-steps.md
-```
+:::{include} _snippets/migration/common-steps.md
+:::
 
 ## Universal Conversions
 
