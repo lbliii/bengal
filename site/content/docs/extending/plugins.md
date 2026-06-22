@@ -244,7 +244,7 @@ Built-in Mermaid, KaTeX, and Iconify use the same mechanism.
 
 ```python
 # my_viz/__init__.py
-from bengal.capabilities.spec import CapabilityAsset, CapabilitySpec
+from bengal.capabilities.spec import CapabilityAsset, CapabilitySpec, FenceRenderSpec
 
 MY_VIZ = CapabilitySpec(
     name="my_viz",
@@ -258,6 +258,7 @@ MY_VIZ = CapabilitySpec(
     html_patterns=(r"""class=["']my-viz["']""",),
     source_patterns=(r"```my-viz",),
     fence_languages=("my-viz",),
+    fence_render=FenceRenderSpec(element="div", css_class="my-viz"),
 )
 ```
 
@@ -266,7 +267,8 @@ Each spec declares:
 - **Assets** — vendor files downloaded or copied into `assets/vendor/` at build time
 - **Content detectors** — HTML/source/metadata patterns for per-page gating (#571)
 - **depends_on / implies** — e.g. Iconify depends on Mermaid and is implied when a diagram is present
-- **fence_languages** — documents the fence/shortcode render contract (render hooks remain core-owned until a future dispatcher lands)
+- **fence_languages** + **fence_render** — declarative fence → HTML contract; core routes fenced code through the registry (#584)
+- **init** — load position, lazy selector, companion scripts; the default theme consumes these via registry-driven wiring (#585)
 
 ### 2. Register the Entry Point
 
@@ -287,7 +289,11 @@ path = "vendor/my-viz.min.js"
 ```
 
 Site owners control activation and supply-chain overrides; content authors use the
-feature (e.g. a ` ```my-viz ` fence) without touching config.
+feature (e.g. a ` ```my-viz ` fence) without touching config. See
+[[docs/building/configuration/capabilities|Runtime Capabilities (site owner guide)]]
+for the full owner-facing reference.
+
+A working reference package lives in `examples/capability-demo/`.
 
 ## See Also
 

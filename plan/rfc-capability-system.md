@@ -158,8 +158,28 @@ register via `pyproject.toml`; third parties add their own entry points without 
 
 ### Phase 3 — Supply-chain controls (#573) — LANDED
 
-SRI hashes, source override (self-host/CDN/local), pin override, CSP policy — the
+SRI hashes, source override (self-host/CDN/local), pin override — the
 owner-facing controls that make self-hosting third-party assets trustworthy.
+CSP allowed-origins policy (#589) adds `[capabilities.policy]` for build-time CDN
+provisioning restrictions.
+
+### Phase 4 — Render-hook dispatcher (#584) — LANDED
+
+Fence → HTML transforms route through the capability registry. Each spec declares
+`fence_render` (or derives it from a single `fence_languages` entry). Core
+`blocks.py` no longer hardcodes Mermaid.
+
+### Phase 5 — Registry-driven theme init (#585) — LANDED
+
+`CapabilityInitContract` drives head/body asset tags, lazy loaders, companion
+scripts, and runtime fetch globals via `build_capability_wiring()`. The default
+theme iterates `capability_wiring` instead of branching on capability names.
+
+### Phase 6 — Ecosystem tooling (#586–#588) — LANDED
+
+- `bengal capability list|info|validate` CLI (#588)
+- Reference package at `examples/capability-demo/` (#586)
+- Site-owner docs at `docs/building/configuration/capabilities/` (#587)
 
 ---
 

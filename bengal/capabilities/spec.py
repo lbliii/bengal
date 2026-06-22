@@ -16,6 +16,23 @@ LoadPosition = Literal["head", "body"]
 
 
 @dataclass(frozen=True, slots=True)
+class FenceRenderSpec:
+    """Declarative fence → HTML contract (#584)."""
+
+    element: str = "div"
+    css_class: str = ""
+    escape_content: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeFetchAsset:
+    """Named vendor JSON fetched at runtime (e.g. Iconify icon packs)."""
+
+    name: str
+    rel_path: str
+
+
+@dataclass(frozen=True, slots=True)
 class CapabilityAsset:
     """One vendor file provisioned at build time."""
 
@@ -25,12 +42,17 @@ class CapabilityAsset:
 
 @dataclass(frozen=True, slots=True)
 class CapabilityInitContract:
-    """Declarative JS runtime init contract (theme wiring is separate)."""
+    """Declarative JS runtime init contract consumed by the default theme (#585)."""
 
     load_position: LoadPosition = "body"
     defer: bool = True
     module: bool = False
     lazy_loader_key: str | None = None
+    companion_scripts: tuple[str, ...] = ()
+    lazy_selector: str | None = None
+    css_files: tuple[str, ...] = ()
+    runtime_fetch_assets: tuple[RuntimeFetchAsset, ...] = ()
+    runtime_global: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +71,7 @@ class CapabilitySpec:
     source_patterns: tuple[str, ...] = ()
     metadata_keys: tuple[str, ...] = ()
     fence_languages: tuple[str, ...] = ()
+    fence_render: FenceRenderSpec | None = None
     depends_on: tuple[str, ...] = ()
     implies: tuple[str, ...] = ()
     init: CapabilityInitContract | None = None
@@ -77,3 +100,12 @@ class CapabilitySpec:
 
     def compiled_source_patterns(self) -> tuple[re.Pattern[str], ...]:
         return tuple(re.compile(p, re.IGNORECASE) for p in self.source_patterns)
+
+    def resolved_fence_render(self) -> FenceRenderSpec | None:
+        """Return explicit or derived fence render spec for this capability."""
+        if self.fence_render is not None:
+            return self.fence_render
+        if len(self.fence_languages) == 1:
+            lang = self.fence_languages[0]
+            return FenceRenderSpec(element="div", css_class=lang, escape_content=True)
+        return None

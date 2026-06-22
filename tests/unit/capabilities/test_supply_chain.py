@@ -71,6 +71,41 @@ class TestResolveVendorAsset:
                 site_root=tmp_path,
             )
 
+    def test_cdn_mode_deny_blocks_download(self, tmp_path: Path) -> None:
+        import pytest
+
+        from bengal.capabilities.supply_chain import resolve_vendor_asset
+
+        config = {"capabilities": {"mermaid": True, "policy": {"cdn_mode": "deny"}}}
+        with pytest.raises(ValueError, match="CDN vendor downloads are disabled"):
+            resolve_vendor_asset(
+                config,
+                "mermaid",
+                "mermaid.min.js",
+                "https://cdn.jsdelivr.net/npm/mermaid@{pin}/dist/mermaid.min.js",
+                site_root=tmp_path,
+            )
+
+    def test_allowed_cdn_origins_enforced(self, tmp_path: Path) -> None:
+        import pytest
+
+        from bengal.capabilities.supply_chain import resolve_vendor_asset
+
+        config = {
+            "capabilities": {
+                "mermaid": True,
+                "policy": {"allowed_cdn_origins": ["unpkg.com"]},
+            }
+        }
+        with pytest.raises(ValueError, match="not allowed"):
+            resolve_vendor_asset(
+                config,
+                "mermaid",
+                "mermaid.min.js",
+                "https://cdn.jsdelivr.net/npm/mermaid@{pin}/dist/mermaid.min.js",
+                site_root=tmp_path,
+            )
+
 
 class TestCapabilityVendorHelperLocalSource:
     def test_provisions_from_local_path(self, tmp_path: Path) -> None:

@@ -35,6 +35,7 @@ class CapabilityRegistry:
     _by_name: dict[str, CapabilitySpec]
     _html_patterns: dict[str, tuple[re.Pattern[str], ...]]
     _source_patterns: dict[str, tuple[re.Pattern[str], ...]]
+    _fence_languages: dict[str, CapabilitySpec]
 
     @classmethod
     def from_specs(cls, specs: Iterable[CapabilitySpec]) -> CapabilityRegistry:
@@ -42,11 +43,13 @@ class CapabilityRegistry:
         by_name = {spec.name: spec for spec in ordered}
         html_patterns = {spec.name: spec.compiled_html_patterns() for spec in ordered}
         source_patterns = {spec.name: spec.compiled_source_patterns() for spec in ordered}
+        fence_languages = _build_fence_language_index(ordered)
         return cls(
             specs=tuple(ordered),
             _by_name=by_name,
             _html_patterns=html_patterns,
             _source_patterns=source_patterns,
+            _fence_languages=fence_languages,
         )
 
     @property
@@ -76,6 +79,28 @@ class CapabilityRegistry:
     def source_patterns(self, name: str) -> tuple[re.Pattern[str], ...]:
         return self._source_patterns.get(name, ())
 
+    def fence_spec_for_language(self, language: str) -> CapabilitySpec | None:
+        return self._fence_languages.get(language.lower())
+
+
+def _build_fence_language_index(specs: list[CapabilitySpec]) -> dict[str, CapabilitySpec]:
+    index: dict[str, CapabilitySpec] = {}
+    for spec in specs:
+        render = spec.resolved_fence_render()
+        if render is None:
+            continue
+        for language in spec.fence_languages:
+            key = language.lower()
+            if key in index:
+                existing = index[key].name
+                msg = (
+                    f"Duplicate fence language {language!r} registered by "
+                    f"{existing!r} and {spec.name!r}"
+                )
+                raise ValueError(msg)
+            index[key] = spec
+    return index
+
 
 def _validate_and_order(specs: list[CapabilitySpec]) -> list[CapabilitySpec]:
     if not specs:
@@ -95,6 +120,11 @@ def _validate_and_order(specs: list[CapabilitySpec]) -> list[CapabilitySpec]:
             if dep not in by_name:
                 msg = f"Capability {spec.name!r} references unknown capability {dep!r}"
                 raise ValueError(msg)
+
+    for spec in specs:
+        if spec.fence_languages and spec.resolved_fence_render() is None:
+            msg = f"Capability {spec.name!r} declares fence_languages but no fence_render contract"
+            raise ValueError(msg)
 
     implied_names = {name for spec in specs for name in spec.implies}
     for spec in specs:
