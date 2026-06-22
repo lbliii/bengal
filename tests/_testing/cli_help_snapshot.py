@@ -25,12 +25,21 @@ def normalize_root_help(text: str) -> str:
     """Normalize help text for stable comparison (version-agnostic)."""
     lines: list[str] = []
     for line in text.splitlines():
-        if _VERSION_LINE_RE.match(line):
+        stripped = line.strip()
+        if stripped in {"bengal VERSION", "# bengal VERSION"} or _VERSION_LINE_RE.match(line):
             lines.append("bengal VERSION")
         else:
             lines.append(line.rstrip())
     normalized = "\n".join(lines).strip()
     return f"{normalized}\n" if normalized else ""
+
+
+def format_doc_embedded_help(help_text: str) -> str:
+    """Format normalized help for cli.md without triggering CLI contract lint."""
+    lines = help_text.rstrip("\n").splitlines()
+    if lines and lines[0] == "bengal VERSION":
+        lines[0] = "# bengal VERSION"
+    return "\n".join(lines) + "\n"
 
 
 def capture_root_help_command_sections(cli_app: BengalCLI | None = None) -> str:
@@ -87,7 +96,7 @@ def update_cli_doc_root_help(doc_path: Path | None = None) -> bool:
     """Replace the embedded root help block in cli.md. Returns True if changed."""
     path = doc_path or _CLI_DOC
     text = path.read_text(encoding="utf-8")
-    help_text = capture_root_help_command_sections().rstrip("\n")
+    help_text = format_doc_embedded_help(capture_root_help_command_sections())
     updated, count = re.subn(
         r"(\$ bengal --help\n)(.*?)(```)",
         lambda match: f"{match.group(1)}{help_text}\n{match.group(3)}",

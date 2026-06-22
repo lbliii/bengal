@@ -195,7 +195,7 @@ annotated command signatures.
 
 ```bash
 $ bengal --help
-bengal VERSION
+# bengal VERSION
 
 Static site generator for Python teams — every layer pure Python, scales with your cores
 

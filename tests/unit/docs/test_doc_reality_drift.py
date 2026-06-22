@@ -132,8 +132,8 @@ def test_architecture_cli_doc_matches_shipped_version() -> None:
     """The architecture CLI help snapshot is version-agnostic; stale versions must not linger."""
     doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
     text = doc.read_text(encoding="utf-8")
-    assert "bengal VERSION" in text, (
-        "cli.md root help snapshot should use the normalized `bengal VERSION` placeholder. "
+    assert "# bengal VERSION" in text, (
+        "cli.md root help snapshot should use the normalized `# bengal VERSION` placeholder. "
         "Regenerate with: python scripts/update_cli_help_snapshot.py"
     )
     known_stale = ("0.3.3", "0.3.2", "0.3.1", "0.3.0")
