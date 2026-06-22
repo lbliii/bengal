@@ -120,8 +120,8 @@ features:
 
 ### 5. Build and Preview
 
-```{include} _snippets/scaffold/serve.md
-```
+:::{include} _snippets/scaffold/serve.md
+:::
 
 ---
 

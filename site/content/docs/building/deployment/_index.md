@@ -39,8 +39,8 @@ the `public/` directory, and point your host at it.
 
 When you are ready to ship, run the production build:
 
-```{include} _snippets/deploy/production-build.md
-```
+:::{include} _snippets/deploy/production-build.md
+:::
 
 This command:
 

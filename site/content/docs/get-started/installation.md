@@ -38,24 +38,24 @@ Bengal requires **Python 3.14 or later**. For best performance, use the free-thr
 :icon: rocket
 :badge: Recommended
 
-```{include} _snippets/install/uv.md
-```
+:::{include} _snippets/install/uv.md
+:::
 
 :::{/tab-item}
 
 :::{tab-item} pip
 :icon: package
 
-```{include} _snippets/install/pip.md
-```
+:::{include} _snippets/install/pip.md
+:::
 
 :::{/tab-item}
 
 :::{tab-item} pipx
 :icon: terminal
 
-```{include} _snippets/install/pipx.md
-```
+:::{include} _snippets/install/pipx.md
+:::
 
 This installs Bengal in an isolated environment while making the `bengal` command available globally.
 :::{/tab-item}
@@ -64,8 +64,8 @@ This installs Bengal in an isolated environment while making the `bengal` comman
 :icon: code
 :badge: Development
 
-```{include} _snippets/install/from-source.md
-```
+:::{include} _snippets/install/from-source.md
+:::
 
 This installs Bengal in editable mode with development dependencies.
 :::{/tab-item}

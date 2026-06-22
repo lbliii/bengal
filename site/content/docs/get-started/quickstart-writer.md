@@ -41,8 +41,8 @@ with the default theme. Skip if you are customizing templates — see
 
 ## Create Your Site
 
-```{include} _snippets/scaffold/blog-site.md
-```
+:::{include} _snippets/scaffold/blog-site.md
+:::
 
 :::{dropdown} Or use a custom skeleton YAML
 :icon: file-text
@@ -84,8 +84,8 @@ See [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]] for mo
 :::{target} hot-reload
 :::
 
-```{include} _snippets/scaffold/serve.md
-```
+:::{include} _snippets/scaffold/serve.md
+:::
 
 ## Create Your First Post
 
@@ -144,8 +144,8 @@ See [[docs/building/configuration|Configuration Reference]] for details.
 
 ## Build and Deploy
 
-```{include} _snippets/deploy/production-build.md
-```
+:::{include} _snippets/deploy/production-build.md
+:::
 
 Deploy to any static host:
 

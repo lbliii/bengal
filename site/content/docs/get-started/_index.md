@@ -39,8 +39,8 @@ Requires Python 3.14 or later. See [[docs/get-started/installation|installation 
 
 ## Create a Site
 
-```{include} _snippets/scaffold/new-site.md
-```
+:::{include} _snippets/scaffold/new-site.md
+:::
 
 ## Pick a Path {#pick-a-path}
 
