@@ -1,6 +1,6 @@
 # RFC: Capabilities as a First-Class, Extensible System
 
-**Status**: Proposed (Phase 0 landed)
+**Status**: Proposed (Phase 0–1 landed; Phase 2 landed #572; Phase 3 landed #573)
 **Created**: 2026-06-18
 **Tracking**: #570 (epic) — children #571, #572, #573; bug fix #569
 **Source**: Root-cause of #569 (Mermaid missing on `/docs/0.5.0/`), generalized to the third-party case
@@ -143,20 +143,20 @@ and copies the fingerprinted file into output.
 This is a correctness fix, not the full design — it makes activation a
 build-environment decision in the one place it was leaking from versioned content.
 
-### Phase 1 — Content-detection as first-class metadata (#571)
+### Phase 1 — Content-detection as first-class metadata (#571) — LANDED
 
 Formalize the build-time half of detection (the runtime half exists in
 `lazy-loaders.js`). A declarative predicate over rendered HTML / parsed AST decides
 which pages get asset wiring, so global enablement costs nothing on non-using pages
 and authors never touch config.
 
-### Phase 2 — Third-party registry via entry-points (#572)
+### Phase 2 — Third-party registry via entry-points (#572) — LANDED
 
 Promote the hardcoded vendor table to a registry populated by `bengal.capabilities`
-entry-points, carrying the author-owned declaration above. Enforces the
-author/owner/content split at the contract boundary.
+entry-points, carrying the author-owned declaration above. Built-in Mermaid/KaTeX/Iconify
+register via `pyproject.toml`; third parties add their own entry points without editing core.
 
-### Phase 3 — Supply-chain controls (#573)
+### Phase 3 — Supply-chain controls (#573) — LANDED
 
 SRI hashes, source override (self-host/CDN/local), pin override, CSP policy — the
 owner-facing controls that make self-hosting third-party assets trustworthy.

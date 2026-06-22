@@ -234,6 +234,61 @@ from bengal.plugins.loader import load_plugins
 frozen = load_plugins(extra_plugins=[MyPlugin()])
 ```
 
+## Runtime Capabilities (Diagram / Math Vendors)
+
+Plugins and standalone packages can register **opt-in runtime capabilities** — heavy
+JS assets provisioned at build time and emitted only on pages that need them.
+Built-in Mermaid, KaTeX, and Iconify use the same mechanism.
+
+### 1. Declare a CapabilitySpec
+
+```python
+# my_viz/__init__.py
+from bengal.capabilities.spec import CapabilityAsset, CapabilitySpec
+
+MY_VIZ = CapabilitySpec(
+    name="my_viz",
+    default_pin="1.0.0",
+    assets=(
+        CapabilityAsset(
+            rel_path="my-viz.min.js",
+            url_template="https://cdn.example.com/my-viz@{pin}/my-viz.min.js",
+        ),
+    ),
+    html_patterns=(r"""class=["']my-viz["']""",),
+    source_patterns=(r"```my-viz",),
+    fence_languages=("my-viz",),
+)
+```
+
+Each spec declares:
+
+- **Assets** — vendor files downloaded or copied into `assets/vendor/` at build time
+- **Content detectors** — HTML/source/metadata patterns for per-page gating (#571)
+- **depends_on / implies** — e.g. Iconify depends on Mermaid and is implied when a diagram is present
+- **fence_languages** — documents the fence/shortcode render contract (render hooks remain core-owned until a future dispatcher lands)
+
+### 2. Register the Entry Point
+
+```toml
+[project.entry-points."bengal.capabilities"]
+my-viz = "my_viz:MY_VIZ"
+```
+
+### 3. Site Owner Enables It
+
+```toml
+[capabilities]
+my_viz = true
+
+[capabilities.sources.my_viz]
+source = "local"
+path = "vendor/my-viz.min.js"
+```
+
+Site owners control activation and supply-chain overrides; content authors use the
+feature (e.g. a ` ```my-viz ` fence) without touching config.
+
 ## See Also
 
 - [Extension Points](/docs/reference/architecture/meta/extension-points/) — Full reference for all extension points

@@ -95,6 +95,11 @@ bengal = "bengal.cli.milo_app:run"
 
 [project.entry-points."bengal.plugins"]
 
+[project.entry-points."bengal.capabilities"]
+mermaid = "bengal.capabilities.builtins:MERMAID_CAPABILITY"
+katex = "bengal.capabilities.builtins:KATEX_CAPABILITY"
+iconify = "bengal.capabilities.builtins:ICONIFY_CAPABILITY"
+
 [project.urls]
 Homepage = "https://lbliii.github.io/bengal/"
 Documentation = "https://lbliii.github.io/bengal/"
