@@ -18,6 +18,12 @@ keywords:
 
 # Bengal for MkDocs Users
 
+
+:::{note}
+**Do I need this?** Yes when migrating from MkDocs. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
+
 You're in familiar territory. Both tools are Python-native and use Markdown. The main change: MkDocs extensions become Bengal directives.
 
 ## Quick Wins (5 Minutes)

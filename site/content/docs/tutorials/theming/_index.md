@@ -4,28 +4,24 @@ nav_title: Theming
 description: Customize templates, learn Kida, and build custom themes
 weight: 20
 draft: false
+tags:
+- persona-themer
 icon: palette
 ---
 
 # Theming Tutorials
 
-Learn to customize Bengal's appearance with templates and themes.
+Hands-on guides for Kida templates and theme customization.
 
-:::{cards}
-:columns: 1-2
-:gap: medium
+:::{note}
+**Do I need this?** Yes when learning templates beyond
+[[docs/get-started/quickstart-themer|Themer Quickstart]]. Writers who only
+publish Markdown can skip theming tutorials.
+:::
 
-:::{card} Getting Started with Kida
-:icon: code
-:link: ./getting-started-with-kida
-:description: Learn Bengal's native template engine
-Master Kida syntax, pattern matching, and pipelines through hands-on examples.
-:::{/card}
-
-:::{card} Swizzle the Default Theme
-:icon: copy
-:link: ./swizzle-default-theme
-:description: Customize templates without forking
-Copy and modify theme templates while keeping them updateable.
-:::{/card}
-:::{/cards}
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::

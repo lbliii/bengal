@@ -9,12 +9,18 @@ tags:
 
 # Design & Theming
 
-**Customizing appearance?** This section covers [[ext:kida:|Kida]] templates,
-CSS/JS assets, and theme packages. **Just writing content?** You can skip
-theming entirely — the default theme works out of the box.
+Customize templates, CSS/JS assets, and theme packages — or skip entirely and
+use the default theme.
 
-**Theme developers** should start with [[docs/get-started/quickstart-themer|Themer
-Quickstart]], then [[docs/theming/themes/customize|Customize the Default Theme]].
+:::{note}
+**Do I need this?** Yes when changing layout, appearance, or template logic.
+**Writers** can skip this section — the default theme works out of the box.
+Start with [[docs/get-started/quickstart-themer|Themer Quickstart]], then
+[[docs/theming/themes/customize|Customize the Default Theme]].
+:::
+
+**Customizing appearance?** This section covers [[ext:kida:|Kida]] templates,
+CSS/JS assets, and theme packages.
 
 :::{glossary}
 :tags: persona-themer

@@ -18,6 +18,12 @@ keywords:
 
 # Bengal for Hugo Users
 
+
+:::{note}
+**Do I need this?** Yes when migrating from Hugo. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
+
 Bengal's content model matches Hugo's. The main difference: shortcodes become directives.
 
 ## Quick Wins (5 Minutes)

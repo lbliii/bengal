@@ -5,10 +5,26 @@ weight: 10
 category: guide
 icon: code
 card_color: blue
+tags:
+- persona-themer
 ---
 # Templating
 
-Bengal's template system uses **[[ext:kida:|Kida]]** as the default engine, with support for Jinja2 and custom engines.
+Bengal's template system uses **[[ext:kida:|Kida]]** as the default engine, with
+support for Jinja2 and custom engines.
+
+:::{note}
+**Do I need this?** Yes when writing or overriding HTML templates. Skip if you
+only write Markdown — see [[docs/content/authoring|Authoring]]. New to templates?
+Start with [[docs/get-started/quickstart-themer|Themer Quickstart]].
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::
 
 ## Template Engines
 

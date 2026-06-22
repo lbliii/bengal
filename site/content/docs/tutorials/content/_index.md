@@ -4,21 +4,24 @@ nav_title: Content
 description: Advanced content organization and structure patterns
 weight: 30
 draft: false
+tags:
+- persona-writer
 icon: tree-structure
 ---
 
 # Content Patterns
 
-Tutorials for organizing and structuring content in powerful ways.
+Advanced content organization beyond the writer quickstart.
 
-:::{cards}
+:::{note}
+**Do I need this?** Yes for multi-part series, explicit progress UI, or complex
+content structure. For everyday writing, see
+[[docs/get-started/quickstart-writer|Writer Quickstart]].
+:::
+
+:::{child-cards}
 :columns: 1
-:gap: medium
-
-:::{card} Create a Tutorial Series
-:icon: list
-:link: ./create-a-tutorial-series
-:description: Multi-part content with navigation and progress
-Build sequential tutorials with prev/next links, progress bars, and series overview pages.
-:::{/card}
-:::{/cards}
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::

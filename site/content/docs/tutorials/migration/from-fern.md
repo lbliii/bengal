@@ -21,6 +21,12 @@ keywords:
 
 # Bengal for Fern Users
 
+
+:::{note}
+**Do I need this?** Yes when migrating from Fern. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
+
 Fern is powerful for API-first teams with SDK generation. Bengal focuses purely on documentation—giving you full control over your content without proprietary syntax. If you're migrating away from Fern's docs platform, this guide shows you how.
 
 ## Quick Wins (5 Minutes)

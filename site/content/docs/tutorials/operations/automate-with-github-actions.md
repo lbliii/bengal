@@ -6,6 +6,7 @@ weight: 30
 draft: false
 lang: en
 tags:
+- persona-operator
 - tutorial
 - ci-cd
 - automation
@@ -21,15 +22,14 @@ category: tutorial
 
 # Automate with GitHub Actions
 
-Set up continuous integration and deployment (CI/CD) for your Bengal site. Automate builds, run tests, and deploy to production with GitHub Actions.
+Set up continuous integration and deployment (CI/CD) for your Bengal site.
 
-## When to Use This Guide
+:::{note}
+**Do I need this?** Yes when automating builds, preview deploys, or CI validation.
+For a manual deploy checklist, see [[docs/building/deployment|Deployment]] first.
+:::
 
-- You want automated builds on every commit
-- You need to run tests before deployment
-- You want to deploy to production automatically
-- You're setting up preview deployments for pull requests
-- You need to validate content and links before publishing
+Automate builds, run tests, and deploy to production with GitHub Actions.
 
 ## Prerequisites
 

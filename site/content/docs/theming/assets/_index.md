@@ -5,10 +5,19 @@ weight: 20
 category: guide
 icon: image
 card_color: green
+tags:
+- persona-themer
 ---
 # Asset Pipeline
 
-Bengal processes your CSS, JavaScript, images, and fonts with optional minification and fingerprinting.
+Bengal processes your CSS, JavaScript, images, and fonts with optional
+minification and fingerprinting.
+
+:::{note}
+**Do I need this?** Yes when adding custom CSS/JS, optimizing assets, or
+debugging missing styles. Skip if your theme handles assets and you only write
+Markdown content.
+:::
 
 ## How Assets Flow
 

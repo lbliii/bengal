@@ -29,6 +29,7 @@ to migrating from another SSG to wiring CI/CD.
 ## Featured Tutorials
 
 ### Sites
+- [[docs/tutorials/sites|Site Tutorials]] — hub with all site build guides
 - [[docs/tutorials/sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes (Beginner, 15 min)
 - [[docs/tutorials/sites/build-a-multi-author-blog|Multi-Author Blog]] — Team blogs with author profiles (Intermediate, 30 min)
 - [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML]] — Define your site in one YAML file (Beginner, 10 min)

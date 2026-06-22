@@ -19,6 +19,12 @@ keywords:
 
 # Bengal for Jekyll Users
 
+
+:::{note}
+**Do I need this?** Yes when migrating from Jekyll. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
+
 Moving from Ruby to Python? Bengal simplifies your stack while keeping the content-first approach you know.
 
 ## Quick Wins (5 Minutes)

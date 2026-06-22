@@ -21,6 +21,12 @@ keywords:
 
 # Bengal for Sphinx/RST Users
 
+
+:::{note}
+**Do I need this?** Yes when migrating from Sphinx/RST. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
+
 You're 80% there. Bengal uses MyST-compatible syntax that mirrors what you already know.
 
 ## Quick Wins (5 Minutes)

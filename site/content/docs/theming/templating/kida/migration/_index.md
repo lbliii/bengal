@@ -2,10 +2,17 @@
 title: Migration
 description: Migrating to Kida from Jinja2
 weight: 30
+tags:
+- persona-themer
 icon: arrow-right
 ---
 
 # Migration
+
+:::{note}
+**Do I need this?** Yes when converting Jinja2 templates to Kida-native
+syntax. Most templates work unchanged — migrate incrementally.
+:::
 
 Most Jinja2 templates work without changes in Kida. Migrate incrementally to use unified `{% end %}` blocks, pattern matching, and pipeline operators. Note that Kida does not support all Jinja2 features (notably `{% macro %}`—use `{% def %}` instead). If you need full Jinja2 compatibility, use the Jinja2 engine by setting `template_engine: jinja2` in your config.
 

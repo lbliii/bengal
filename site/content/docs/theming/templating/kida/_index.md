@@ -4,11 +4,19 @@ nav_title: Kida
 description: Template engine with unified block endings, pattern matching, pipelines, and automatic caching
 weight: 10
 icon: zap
+tags:
+- persona-themer
 ---
 
 # Kida Template Engine
 
 Bengal's default template engine. Kida renders templates faster than Jinja2, supports free-threaded Python, and caches site-scoped blocks automatically.
+
+:::{note}
+**Do I need this?** Yes when writing Kida templates or migrating from Jinja2.
+For a guided tutorial, see [[docs/tutorials/theming/getting-started-with-kida|Kida Tutorial]].
+For exhaustive syntax, see [[docs/reference/kida-syntax|Kida Syntax]].
+:::
 
 **Performance**: Single-threaded, Kida is up to 3.6x faster on minimal templates. Under concurrent workloads, Kida maintains its performance advantage due to its thread-safe, GIL-independent design.
 

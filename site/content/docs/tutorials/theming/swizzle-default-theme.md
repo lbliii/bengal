@@ -6,6 +6,7 @@ weight: 20
 draft: false
 lang: en
 tags:
+- persona-themer
 - tutorial
 - theming
 - templates
@@ -25,8 +26,9 @@ category: tutorial
 In this tutorial, you'll learn how to **swizzle** (copy) templates from Bengal's default theme into your project, customize them, and keep them updated. By the end, you'll have a personalized site that inherits from the default theme while allowing you to make targeted customizations.
 
 :::{note}
-**Who is this for?**
-This tutorial is for developers who want to customize Bengal's default theme without forking it entirely. You should have basic familiarity with HTML and [[ext:kida:docs/syntax|Kida templates]]. No prior experience with swizzling is required.
+**Do I need this?** Yes when customizing default theme templates without forking.
+Try [[docs/get-started/quickstart-themer|Themer Quickstart]] first. For CSS-only
+changes, see [[docs/theming/themes/customize|Customize the Default Theme]].
 :::
 
 ## Goal
