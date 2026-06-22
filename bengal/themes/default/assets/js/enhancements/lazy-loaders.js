@@ -45,6 +45,10 @@
     function loadScript(src, onload, options = {}) {
         const script = document.createElement('script');
         script.src = src;
+        if (options.integrity) {
+            script.integrity = options.integrity;
+            script.crossOrigin = 'anonymous';
+        }
         if (options.async !== false) script.async = true;
         if (onload) script.onload = onload;
         script.onerror = () => {
@@ -106,7 +110,9 @@
         pending.mermaid = true;
         loaded.mermaid = true;
 
-        loadScript(assets.mermaid, initMermaid);
+        loadScript(assets.mermaid, initMermaid, {
+            integrity: assets.mermaidIntegrity || undefined,
+        });
     }
 
     /**

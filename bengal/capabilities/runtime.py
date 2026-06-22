@@ -1,8 +1,10 @@
 """
 Runtime capability resolution for opt-in heavy JS (Mermaid, KaTeX, Iconify).
 
-Capabilities are config-gated and require self-hosted vendor files under
-``assets/vendor/`` (provisioned at build time when enabled).
+Capabilities are config-gated (build-environment decision) and require
+self-hosted vendor files under ``assets/vendor/`` (provisioned at build time
+when enabled). Per-page asset emission is further gated by content detectors
+(#571): a capability must be enabled, provisioned, AND needed on the page.
 
 Note: the knowledge graph (minimap + /graph/ explorer) used to depend on D3 and
 was gated here. It is now a dependency-free, first-party renderer with build-time

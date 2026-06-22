@@ -44,6 +44,7 @@ from bengal.rendering.context import build_page_context
 from __future__ import annotations
 
 import threading
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 from kida import Markup
@@ -511,6 +512,31 @@ def build_page_context(
             if version_obj:
                 context["current_version"] = version_obj.to_dict()
                 context["is_latest_version"] = version_obj.latest
+
+    # Per-page capability gating (#571): enabled (site) AND needed (content).
+    # bengal is normally an engine global; inject a page-scoped override so
+    # templates gate vendor assets on content detection, not site-wide flags.
+    with suppress(Exception):
+        from bengal.capabilities.detectors import (
+            detect_page_capabilities_needed,
+            resolve_effective_capabilities,
+        )
+        from bengal.rendering.metadata import build_template_metadata
+
+        bengal_meta = build_template_metadata(site)
+        site_caps = bengal_meta.get("capabilities")
+        if isinstance(site_caps, dict):
+            html_for_detection = content if content else None
+            page_needed = detect_page_capabilities_needed(
+                page=page,
+                html_content=html_for_detection,
+                metadata=metadata,
+            )
+            context["bengal"] = {
+                **bengal_meta,
+                "capabilities": resolve_effective_capabilities(site_caps, page_needed),
+            }
+            context["page_capabilities"] = page_needed
 
     # Merge extra context
     if extra:

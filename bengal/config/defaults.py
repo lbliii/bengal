@@ -339,11 +339,13 @@ DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
     # Runtime capabilities (opt-in heavy JS — self-hosted, off by default)
     # Enable in bengal.toml; vendors download to assets/vendor/ at build time.
+    # Optional owner overrides: [capabilities.sources.<name>] source/pin/path/sri
     # -------------------------------------------------------------------------
     "capabilities": {
         "mermaid": False,
         "katex": False,
         "iconify": False,
+        "sources": {},
     },
     # -------------------------------------------------------------------------
     # i18n

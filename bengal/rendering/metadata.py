@@ -134,6 +134,15 @@ def _get_capabilities(site: SiteLike | None = None) -> dict[str, bool]:
     return capabilities
 
 
+def _get_vendor_integrity(site: SiteLike | None = None) -> dict[str, str]:
+    if site is None:
+        return {}
+    from bengal.capabilities.vendors import load_vendor_integrity, vendor_dir_for_site
+
+    vendor_dir = vendor_dir_for_site(getattr(site, "root_path", Path()))
+    return load_vendor_integrity(vendor_dir)
+
+
 def build_template_metadata(site: SiteLike) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
@@ -221,6 +230,7 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
 
     i18n = _get_i18n_info(config)
     capabilities = _get_capabilities(site)
+    vendor_integrity = _get_vendor_integrity(site)
 
     full = {
         "engine": engine,
@@ -230,11 +240,16 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
         "i18n": i18n,
         "site": {"baseurl": getattr(site, "baseurl", None)},
         "capabilities": capabilities,
+        "vendor_integrity": vendor_integrity,
     }
 
     if exposure == "minimal":
         # Capabilities always included (needed for conditional template features)
-        result: dict[str, Any] = {"engine": engine, "capabilities": capabilities}
+        result: dict[str, Any] = {
+            "engine": engine,
+            "capabilities": capabilities,
+            "vendor_integrity": vendor_integrity,
+        }
     elif exposure == "standard":
         result = {
             "engine": engine,
@@ -242,6 +257,7 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
             "build": build,
             "i18n": i18n,
             "capabilities": capabilities,
+            "vendor_integrity": vendor_integrity,
         }
     else:  # extended
         result = full

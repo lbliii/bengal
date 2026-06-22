@@ -36,6 +36,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _view_transitions = (_doc_app?.enabled ?? false) and (_doc_app_nav?.view_transitions ?? false) %}
 {% let _transition_style = _doc_app_nav?.transition_style ?? none %}
 {% let _llms_txt_url = '/llms.txt' | absolute_url %}
+{% let _cap_cache_key = (bengal?.capabilities?.mermaid ?? false) ~ '-' ~ (bengal?.capabilities?.katex ?? false) ~ '-' ~ (bengal?.capabilities?.iconify ?? false) %}
 
 {# Auto navigation if main menu is empty #}
 {% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
@@ -211,8 +212,8 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href | absolute_url }}">
     {% end %}
 
-    {# Favicon, preconnect, fonts, stylesheets — site-stable, same for every page in a build #}
-    {% cache 'base-head-assets-' ~ (bengal.build.timestamp ?? '') %}
+    {# Favicon, preconnect, fonts, stylesheets — stable per capability profile #}
+    {% cache 'base-head-assets-' ~ (bengal.build.timestamp ?? '') ~ '-' ~ _cap_cache_key %}
     {# Favicon - use let for safer nil handling #}
     {% let favicon_path = site.favicon ?? none %}
     {% if favicon_path %}
@@ -239,7 +240,8 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
     {% end %}
     {% if bengal?.capabilities?.katex ?? false %}
-    <link rel="stylesheet" href="{{ asset_url('vendor/katex.min.css') }}">
+    {% let _katex_css_sri = bengal?.vendor_integrity?['katex.min.css'] ?? none %}
+    <link rel="stylesheet" href="{{ asset_url('vendor/katex.min.css') }}"{% if _katex_css_sri %} integrity="{{ _katex_css_sri }}" crossorigin="anonymous"{% end %}>
     {% end %}
     {% end %}{# /cache base-head-assets #}
 
@@ -518,7 +520,7 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Scripts #}
     {% block site_scripts %}
-    {% cache 'base-scripts-' ~ (bengal.build.timestamp ?? '') %}
+    {% cache 'base-scripts-' ~ (bengal.build.timestamp ?? '') ~ '-' ~ _cap_cache_key %}
     {% if config.assets.bundle_js ?? false %}
     <script defer src="{{ asset_url('js/bundle.js') }}"></script>
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
@@ -550,7 +552,8 @@ HELPER: Render a menu item (desktop/mobile)
     {% include "partials/link-previews.html" %}
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
     {% if bengal?.capabilities?.katex ?? false %}
-    <script defer src="{{ asset_url('vendor/katex.min.js') }}"></script>
+    {% let _katex_js_sri = bengal?.vendor_integrity?['katex.min.js'] ?? none %}
+    <script defer src="{{ asset_url('vendor/katex.min.js') }}"{% if _katex_js_sri %} integrity="{{ _katex_js_sri }}" crossorigin="anonymous"{% end %}></script>
     <script defer src="{{ asset_url('js/enhancements/math.js') }}"></script>
     {% end %}
     <script>
@@ -558,7 +561,9 @@ HELPER: Render a menu item (desktop/mobile)
             tabulator: '{{ asset_url("js/tabulator.min.js") }}',
             dataTable: '{{ asset_url("js/data-table.js") }}',
             {% if bengal?.capabilities?.mermaid ?? false %}
+            {% let _mermaid_js_sri = bengal?.vendor_integrity?['mermaid.min.js'] ?? none %}
             mermaid: '{{ asset_url("vendor/mermaid.min.js") }}',
+            mermaidIntegrity: {{ (_mermaid_js_sri ?? '') | tojson }},
             {% end %}
             mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}',
             mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}'
