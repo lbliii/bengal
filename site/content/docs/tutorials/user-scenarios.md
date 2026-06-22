@@ -55,7 +55,7 @@ One repo, multiple deployed editions.
 :::
 
 :::{card} More Scenarios
-:link: "#international-site"
+:link: [[docs/tutorials/user-scenarios-specialized|Specialized Scenarios]]
 :icon: ellipsis
 i18n, landing pages, resume, changelog.
 :::

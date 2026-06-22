@@ -4,6 +4,7 @@ nav_title: Hugo
 description: Onboarding guide for Hugo users migrating to Bengal
 weight: 20
 tags:
+- persona-migrator
 - tutorial
 - migration
 - hugo
@@ -560,6 +561,7 @@ categories: [tutorial, python]
 # Bengal
 category: tutorial
 tags: [python]  # Use tags for multiple categories
+- persona-migrator
 ```
 :::{/step}
 

@@ -10,6 +10,7 @@ tags:
 - skeleton
 - yaml
 - quickstart
+- persona-writer
 keywords:
 - skeleton
 - yaml
@@ -23,6 +24,13 @@ icon: file-text
 # Skeleton YAML Quickstart
 
 Define your entire site structure in one YAML file, then scaffold a site from it with `bengal new site`.
+
+:::{note}
+**Do I need this?** Yes when you need a repeatable site blueprint or custom
+scaffold beyond built-in templates. For a standard blog or docs site, use
+[[docs/get-started/scaffold-your-site|Scaffold Your First Site]] or
+`bengal new site --template docs` instead.
+:::
 
 ## The 30-Second Start
 

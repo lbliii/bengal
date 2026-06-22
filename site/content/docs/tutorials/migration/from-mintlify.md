@@ -4,6 +4,7 @@ nav_title: Mintlify
 description: Onboarding guide for Mintlify users migrating to Bengal
 weight: 35
 tags:
+- persona-migrator
 - tutorial
 - migration
 - mintlify

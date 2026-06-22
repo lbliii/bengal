@@ -5,10 +5,25 @@ weight: 50
 category: guide
 icon: warning
 card_color: red
+tags:
+- persona-operator
 ---
+
 # Troubleshooting
 
-Guides for diagnosing and resolving common Bengal issues.
+Diagnose and fix common Bengal build, template, and configuration issues.
+
+:::{note}
+**Do I need this?** Use when a build fails, templates error, or output looks
+wrong. For proactive checks before deploy, see
+[[docs/content/validation|Content Validation]].
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:::
 
 ## Quick Diagnosis
 

@@ -4,6 +4,7 @@ nav_title: Docusaurus
 description: Onboarding guide for Docusaurus and MDX users migrating to Bengal
 weight: 30
 tags:
+- persona-migrator
 - tutorial
 - migration
 - docusaurus

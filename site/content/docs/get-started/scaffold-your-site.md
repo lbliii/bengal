@@ -9,6 +9,7 @@ tags:
 - getting-started
 - scaffolding
 - templates
+- persona-writer
 keywords:
 - scaffold
 - template
@@ -20,7 +21,16 @@ category: tutorials
 
 # Scaffold Your First Site
 
-Bengal provides built-in templates to quickly create sites with common information architectures. This tutorial covers three ways to scaffold a site.
+Bengal provides built-in templates to quickly create sites with common information architectures.
+
+:::{note}
+**Do I need this?** Yes when you want to compare templates or scaffold manually.
+For the fastest path, use [[docs/get-started/quickstart-writer|Writer Quickstart]].
+For YAML-driven scaffolds, see
+[[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]].
+:::
+
+This tutorial covers three ways to scaffold a site.
 
 ## Quick Start: Template-Based Creation
 

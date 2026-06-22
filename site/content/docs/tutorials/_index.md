@@ -44,6 +44,10 @@ to migrating from another SSG to wiring CI/CD.
 - [[docs/tutorials/operations/automate-with-github-actions|GitHub Actions]] — Automated CI/CD pipelines (Intermediate, 20 min)
 - [[docs/tutorials/operations/analyze-site-connectivity|Analyze Site Connectivity]] — Graph analysis for internal linking (Intermediate, 15 min)
 
+### Scenarios
+- [[docs/tutorials/user-scenarios|User Scenarios]] — Blog, docs, portfolio, and mixed-content patterns
+- [[docs/tutorials/user-scenarios-specialized|Specialized Scenarios]] — i18n, landing pages, resume, changelog
+
 ### Migration
 - [[docs/tutorials/migration/from-hugo|From Hugo]]
 - [[docs/tutorials/migration/from-jekyll|From Jekyll]]

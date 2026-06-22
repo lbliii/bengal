@@ -4,6 +4,7 @@ nav_title: Fern
 description: Onboarding guide for Fern Docs users migrating to Bengal
 weight: 40
 tags:
+- persona-migrator
 - tutorial
 - migration
 - fern

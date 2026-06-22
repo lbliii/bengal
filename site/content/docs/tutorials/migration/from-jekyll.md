@@ -4,6 +4,7 @@ nav_title: Jekyll
 description: Onboarding guide for Jekyll users migrating to Bengal
 weight: 25
 tags:
+- persona-migrator
 - tutorial
 - migration
 - jekyll
@@ -178,6 +179,7 @@ title: "My Blog Post"
 date: 2024-01-15 10:30:00 -0500
 categories: [python, tutorial]
 tags: [beginner, tips]
+- persona-migrator
 author: jane
 excerpt: "A brief introduction..."
 published: true
@@ -192,6 +194,7 @@ title: "My Blog Post"
 date: 2024-01-15
 category: python
 tags: [tutorial, beginner, tips]
+- persona-migrator
 author: jane
 description: "A brief introduction..."
 draft: false

@@ -5,16 +5,23 @@ weight: 50
 category: guide
 icon: search
 card_color: green
+tags:
+- persona-operator
 ---
+
 # Site Analysis
 
 Analyze your site's structure to improve navigation and discoverability.
 
-## Do I Need This?
-
 :::{note}
-**Skip this if**: Your site has under 50 pages.  
-**Read this if**: You have a large site and want to optimize internal linking and find orphan pages.
+**Do I need this?** Skip if your site has under 50 pages. Read when you want
+to find orphan pages, improve internal linking, or run connectivity checks in CI.
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
 :::
 
 ## Analysis Tools

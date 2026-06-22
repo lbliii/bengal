@@ -4,6 +4,7 @@ nav_title: MkDocs
 description: Onboarding guide for MkDocs and Material for MkDocs users migrating to Bengal
 weight: 15
 tags:
+- persona-migrator
 - tutorial
 - migration
 - mkdocs
