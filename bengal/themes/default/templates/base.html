@@ -36,7 +36,8 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _view_transitions = (_doc_app?.enabled ?? false) and (_doc_app_nav?.view_transitions ?? false) %}
 {% let _transition_style = _doc_app_nav?.transition_style ?? none %}
 {% let _llms_txt_url = '/llms.txt' | absolute_url %}
-{% let _cap_cache_key = capability_wiring?.cache_key ?? '' %}
+{% let _cap_wiring = capability_wiring | default({'cache_key': '', 'stylesheets': [], 'scripts': [], 'lazy_loaders': [], 'runtime_globals': []}) %}
+{% let _cap_cache_key = _cap_wiring.cache_key %}
 
 {# Auto navigation if main menu is empty #}
 {% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
@@ -239,7 +240,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% if _view_transitions %}
     <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
     {% end %}
-    {% for sheet in capability_wiring?.stylesheets ?? [] %}
+    {% for sheet in _cap_wiring.stylesheets %}
     {% let _sheet_sri = sheet?.integrity ?? none %}
     <link rel="stylesheet" href="{{ asset_url(sheet.path) }}"{% if _sheet_sri %} integrity="{{ _sheet_sri }}" crossorigin="anonymous"{% end %}>
     {% end %}
@@ -551,7 +552,7 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
     {% include "partials/link-previews.html" %}
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
-    {% for script in capability_wiring?.scripts ?? [] %}
+    {% for script in _cap_wiring.scripts %}
     {% let _script_sri = script?.integrity ?? none %}
     <script defer src="{{ asset_url(script.path) }}"{% if _script_sri %} integrity="{{ _script_sri }}" crossorigin="anonymous"{% end %}></script>
     {% end %}
@@ -561,7 +562,7 @@ HELPER: Render a menu item (desktop/mobile)
             dataTable: '{{ asset_url("js/data-table.js") }}'
         };
         window.BENGAL_CAPABILITY_LOADERS = [
-            {% for loader in capability_wiring?.lazy_loaders ?? [] %}
+            {% for loader in _cap_wiring.lazy_loaders %}
             {
                 key: {{ loader.key | tojson }},
                 selector: {{ loader.selector | tojson }},
@@ -575,7 +576,7 @@ HELPER: Render a menu item (desktop/mobile)
             }{% if not loop.last %}, {% end %}
             {% endfor %}
         ];
-        {% for runtime in capability_wiring?.runtime_globals ?? [] %}
+        {% for runtime in _cap_wiring.runtime_globals %}
         window.{{ runtime.name }} = [
             {% for pack in runtime.packs %}
             { name: {{ pack.name | tojson }}, loader: function () { return fetch({{ asset_url(pack.path) | tojson }}).then(function (r) { return r.json(); }); } }{% if not loop.last %}, {% end %}

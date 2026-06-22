@@ -68,7 +68,7 @@ class BengalCLI(CLI):
         {"title": "Create", "commands": ("new",)},
         {
             "title": "Site systems",
-            "commands": ("config", "theme", "content", "version", "i18n", "plugin"),
+            "commands": ("config", "theme", "content", "version", "i18n", "plugin", "capability"),
         },
         {"title": "Inspect and debug", "commands": ("inspect", "debug")},
         {"title": "Infrastructure", "commands": ("cache", "upgrade", "codemod")},

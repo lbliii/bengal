@@ -149,6 +149,7 @@ def capability_validate() -> dict:
     config, site_root = _resolve_site_context()
     if config is None:
         cli.error("Could not load site configuration.")
+        cli.tip("Run from a Bengal site directory or pass --source to a site with bengal.toml.")
         raise SystemExit(1)
 
     issues = validate_capability_config(config, site_root=site_root)

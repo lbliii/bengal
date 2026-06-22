@@ -161,6 +161,9 @@ i18n.status
 plugin.list
 plugin.info
 plugin.validate
+capability.list
+capability.info
+capability.validate
 inspect.page
 inspect.links
 inspect.graph
@@ -176,7 +179,7 @@ cache.hash
 
 Root aliases are part of the contract: `b` for `build`, `s` and `dev` for
 `serve`, `c` for `clean`, and `v` for `check`. Group aliases are `n` for `new`
-and `plugins` for `plugin`.
+and `plugins` for `plugin`. Group aliases are `capabilities` for `capability`.
 
 `health` remains a top-level legacy alias for `check`. It is kept for existing
 automation, but new docs and examples should use `check`.
@@ -213,6 +216,7 @@ Site systems
   version                 Documentation versioning [group]
   i18n                    Internationalization (PO/MO) [group]
   plugin (plugins)        Plugin discovery and readiness [group]
+  capability (capabilities) Runtime capability registry inspection [group]
 
 Inspect and debug
   inspect                 Analyze and inspect your site [group]

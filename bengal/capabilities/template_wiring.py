@@ -96,3 +96,12 @@ def build_capability_wiring(
         "lazy_loaders": lazy_loaders,
         "runtime_globals": runtime_globals,
     }
+
+
+EMPTY_CAPABILITY_WIRING: dict[str, Any] = {
+    "cache_key": "",
+    "stylesheets": [],
+    "scripts": [],
+    "lazy_loaders": [],
+    "runtime_globals": [],
+}
