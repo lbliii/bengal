@@ -5,43 +5,24 @@
  * features are actually needed. Uses IntersectionObserver for
  * viewport-based loading to improve LCP and reduce initial bundle.
  *
- * Libraries handled:
- * - Mermaid.js (~930KB) - Diagram rendering (loads when diagrams near viewport)
- * - Tabulator (~100KB) - Interactive data tables (loads immediately if present)
- *
- * Note: the knowledge-graph minimap/explorer are dependency-free (no D3) and
- * self-load via graph-contextual.js / the /graph/ page, so they are not handled
- * here.
- *
- * Performance optimizations:
- * - IntersectionObserver for viewport-based loading
- * - Single observer instance shared across element types
- * - Preloading of scripts after idle time
+ * Capability vendor scripts are configured via window.BENGAL_CAPABILITY_LOADERS
+ * (registry-driven, #585). Tabulator remains a theme-local lazy asset.
  */
 
 (function () {
     'use strict';
 
-    // Get asset URLs from template-injected config
     const assets = window.BENGAL_LAZY_ASSETS || {};
+    const capabilityLoaders = window.BENGAL_CAPABILITY_LOADERS || [];
 
-    // Track loaded libraries to prevent duplicate loads
-    const loaded = {
-        mermaid: false,
-        tabulator: false
-    };
+    const loaded = { tabulator: false };
+    const pending = {};
 
-    // Track pending loads to prevent race conditions
-    const pending = {
-        mermaid: false
-    };
+    for (const spec of capabilityLoaders) {
+        loaded[spec.key] = false;
+        pending[spec.key] = false;
+    }
 
-    /**
-     * Helper to dynamically load a script
-     * @param {string} src - Script URL
-     * @param {function} [onload] - Callback after load
-     * @param {object} [options] - Script options (async, defer, etc.)
-     */
     function loadScript(src, onload, options = {}) {
         const script = document.createElement('script');
         script.src = src;
@@ -57,10 +38,6 @@
         document.head.appendChild(script);
     }
 
-    /**
-     * Preload a script (hint to browser without blocking)
-     * @param {string} src - Script URL
-     */
     function preloadScript(src) {
         if (!src) return;
         const link = document.createElement('link');
@@ -70,10 +47,6 @@
         document.head.appendChild(link);
     }
 
-    /**
-     * Tabulator (~100KB) - Only load if data tables exist
-     * Loads immediately since tables are typically above-the-fold
-     */
     function loadTabulator() {
         if (loaded.tabulator) return;
         if (!document.querySelector('.bengal-data-table-wrapper')) return;
@@ -85,105 +58,86 @@
         });
     }
 
-    /**
-     * Initialize Mermaid once loaded
-     */
-    function initMermaid() {
-        if (typeof mermaid !== 'undefined') {
-            // Mermaid will auto-initialize elements with class="mermaid"
-            // Load support scripts sequentially
-            if (assets.mermaidToolbar) {
-                loadScript(assets.mermaidToolbar, function () {
-                    if (assets.mermaidTheme) loadScript(assets.mermaidTheme);
-                });
-            }
-        }
+    function loadCompanions(companions, index = 0) {
+        if (!companions || index >= companions.length) return;
+        loadScript(companions[index], () => loadCompanions(companions, index + 1));
     }
 
-    /**
-     * Load Mermaid.js (~930KB) - Deferred until diagrams near viewport
-     */
-    function loadMermaid() {
-        if (loaded.mermaid || pending.mermaid) return;
-        if (!assets.mermaid) return;
+    function loadCapability(spec) {
+        if (!spec || loaded[spec.key] || pending[spec.key]) return;
+        if (!spec.script) return;
 
-        pending.mermaid = true;
-        loaded.mermaid = true;
+        pending[spec.key] = true;
+        loaded[spec.key] = true;
 
-        loadScript(assets.mermaid, initMermaid, {
-            integrity: assets.mermaidIntegrity || undefined,
+        loadScript(spec.script, () => loadCompanions(spec.companions || []), {
+            integrity: spec.integrity || undefined,
         });
     }
 
-    /**
-     * IntersectionObserver-based lazy loading
-     * Only loads libraries when their content is about to enter viewport
-     */
     function setupIntersectionObserver() {
-        // Check for IntersectionObserver support
+        if (!capabilityLoaders.length) return;
+
         if (!('IntersectionObserver' in window)) {
-            // Fallback: load immediately for older browsers
-            if (document.querySelector('.mermaid')) loadMermaid();
+            for (const spec of capabilityLoaders) {
+                if (spec.selector && document.querySelector(spec.selector)) {
+                    loadCapability(spec);
+                }
+            }
             return;
         }
 
-        // Single shared observer for all lazy-loaded elements
-        // rootMargin: Load when within 200px of viewport (anticipate scroll)
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
 
                 const el = entry.target;
-
-                // Determine which library to load based on element class
-                if (el.classList.contains('mermaid')) {
-                    loadMermaid();
+                for (const spec of capabilityLoaders) {
+                    if (spec.selector && el.matches(spec.selector)) {
+                        loadCapability(spec);
+                    }
                 }
 
-                // Stop observing this element
                 observer.unobserve(el);
             });
         }, {
-            rootMargin: '200px 0px', // Load 200px before entering viewport
+            rootMargin: '200px 0px',
             threshold: 0
         });
 
-        // Observe all mermaid diagrams
-        document.querySelectorAll('.mermaid').forEach((el) => {
-            observer.observe(el);
-        });
+        const selectors = capabilityLoaders
+            .map((spec) => spec.selector)
+            .filter(Boolean)
+            .join(', ');
 
-        // Store observer reference for cleanup
+        if (selectors) {
+            document.querySelectorAll(selectors).forEach((el) => observer.observe(el));
+        }
+
         window.BENGAL_LAZY_OBSERVER = observer;
     }
 
-    /**
-     * Preload heavy scripts during idle time
-     * This hints to the browser to fetch scripts in the background
-     * without blocking the main thread or affecting LCP
-     */
     function schedulePreloads() {
-        // Use requestIdleCallback if available, otherwise setTimeout
         const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 2000));
 
         scheduleIdle(() => {
-            // Only preload if self-hosted asset URLs are configured (#550)
-            if (document.querySelector('.mermaid') && !loaded.mermaid && assets.mermaid) {
-                preloadScript(assets.mermaid);
+            for (const spec of capabilityLoaders) {
+                if (!spec.selector || !spec.script || loaded[spec.key]) continue;
+                if (document.querySelector(spec.selector)) {
+                    preloadScript(spec.script);
+                }
             }
         }, { timeout: 3000 });
     }
 
-    // Initialize all loaders
-    loadTabulator(); // Tables load immediately (typically above-fold)
-    setupIntersectionObserver(); // Mermaid loads on scroll
-    schedulePreloads(); // Hint browser to preload during idle
+    loadTabulator();
+    setupIntersectionObserver();
+    schedulePreloads();
 
-    // Export for debugging
     window.BENGAL_LAZY_LOADERS = {
-        loadMermaid: loadMermaid,
-        loadTabulator: loadTabulator,
-        loaded: loaded
+        loadCapability,
+        loadTabulator,
+        loaded
     };
 
 })();

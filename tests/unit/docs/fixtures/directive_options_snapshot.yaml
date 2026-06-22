@@ -1,0 +1,875 @@
+admonition:
+  names: '`{caution}`, `{danger}`, `{error}`, `{example}`, `{important}`, `{info}`,
+    `{note}`, `{seealso}`, `{success}`, `{tip}`, `{warning}`'
+  options_class: AdmonitionOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:collapsible:` | false | — |
+
+    | `:open:` | true | — |'
+asciinema_embed:
+  names: '`{asciinema}`'
+  options_class: AsciinemaOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:cols:` | 80 | — |
+
+    | `:rows:` | 24 | — |
+
+    | `:speed:` | 1.0 | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:loop:` | false | — |
+
+    | `:theme:` | asciinema | — |
+
+    | `:poster:` | npt:0:0 | — |
+
+    | `:idle_time_limit:` | none | — |
+
+    | `:start_at:` | "" | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:recording_id:` | "" | — |
+
+    | `:is_local_file:` | false | — |
+
+    | `:error:` | "" | — |'
+audio_embed:
+  names: '`{audio}`'
+  options_class: AudioOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:controls:` | true | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:loop:` | false | — |
+
+    | `:muted:` | false | — |
+
+    | `:preload:` | metadata | — |
+
+    | `:css_class:` | "" | — |'
+badge:
+  names: '`{badge}`, `{bdg}`'
+  options_class: BadgeOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:css_class:` | badge badge-secondary | — |
+
+    | `:label:` | "" | — |'
+breadcrumbs:
+  names: '`{breadcrumbs}`'
+  options_class: BreadcrumbsOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:separator:` | › | — |
+
+    | `:show_home:` | true | — |
+
+    | `:home_text:` | Home | — |
+
+    | `:home_url:` | / | — |'
+build:
+  names: '`{build}`'
+  options_class: BuildOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:json:` | false | — |
+
+    | `:inline:` | false | — |
+
+    | `:align:` | "" | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:alt:` | Built in badge | — |
+
+    | `:dir_name:` | bengal | — |'
+button:
+  names: '`{button}`'
+  options_class: ButtonOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:color:` | primary | — |
+
+    | `:style:` | default | — |
+
+    | `:size:` | medium | — |
+
+    | `:icon:` | "" | — |
+
+    | `:target:` | "" | — |
+
+    | `:url:` | # | — |
+
+    | `:label:` | Button | — |'
+card:
+  names: '`{card}`'
+  options_class: CardOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:icon:` | "" | — |
+
+    | `:link:` | "" | — |
+
+    | `:description:` | "" | — |
+
+    | `:badge:` | "" | — |
+
+    | `:color:` | "" | — |
+
+    | `:image:` | "" | — |
+
+    | `:footer:` | "" | — |
+
+    | `:pull:` | "" | — |
+
+    | `:layout:` | "" | — |'
+cards_grid:
+  names: '`{cards}`'
+  options_class: CardsOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:columns:` | auto | — |
+
+    | `:gap:` | medium | — |
+
+    | `:style:` | default | — |
+
+    | `:variant:` | navigation | — |
+
+    | `:layout:` | default | — |'
+changed:
+  names: '`{changed}`, `{versionchanged}`'
+  options_class: ChangedOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:css_class:` | version-changed | — |
+
+    | `:version:` | "" | — |
+
+    | `:has_content:` | false | — |'
+checklist:
+  names: '`{checklist}`'
+  options_class: ChecklistOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:style:` | default | — |
+
+    | `:show-progress:` | false | — |
+
+    | `:compact:` | false | — |
+
+    | `:class:` | "" | — |'
+child_cards:
+  names: '`{child-cards}`'
+  options_class: ChildCardsOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:columns:` | auto | — |
+
+    | `:gap:` | medium | — |
+
+    | `:include:` | all | — |
+
+    | `:fields:` | title, description | — |
+
+    | `:layout:` | default | — |
+
+    | `:style:` | default | — |'
+code_tabs:
+  names: '`{code-tabs}`, `{code_tabs}`'
+  options_class: CodeTabsOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:sync:` | language | — |
+
+    | `:linenos:` | none | — |
+
+    | `:tabs:` | none | — |'
+codepen_embed:
+  names: '`{codepen}`'
+  options_class: CodePenOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:default-tab:` | result | — |
+
+    | `:height:` | 300 | — |
+
+    | `:theme:` | dark | — |
+
+    | `:editable:` | false | — |
+
+    | `:preview:` | true | — |
+
+    | `:class:` | "" | — |
+
+    | `:username:` | "" | — |
+
+    | `:pen_id:` | "" | — |
+
+    | `:error:` | "" | — |'
+codesandbox_embed:
+  names: '`{codesandbox}`'
+  options_class: CodeSandboxOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:module:` | "" | — |
+
+    | `:view:` | split | — |
+
+    | `:height:` | 500 | — |
+
+    | `:fontsize:` | 14 | — |
+
+    | `:hidenavigation:` | false | — |
+
+    | `:theme:` | dark | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:sandbox_id:` | "" | — |
+
+    | `:error:` | "" | — |'
+container:
+  names: '`{container}`, `{div}`'
+  options_class: ContainerOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |'
+data_table:
+  names: '`{data-table}`'
+  options_class: DataTableOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:search:` | true | — |
+
+    | `:filter:` | true | — |
+
+    | `:sort:` | true | — |
+
+    | `:pagination:` | 50 | — |
+
+    | `:height:` | auto | — |
+
+    | `:columns:` | "" | — |
+
+    | `:file_path:` | "" | — |
+
+    | `:table_id:` | "" | — |
+
+    | `:visible_columns:` | none | — |
+
+    | `:error:` | "" | — |
+
+    | `:table_columns:` | — | — |
+
+    | `:table_data:` | — | — |'
+deprecated:
+  names: '`{deprecated}`, `{versionremoved}`'
+  options_class: DeprecatedOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:css_class:` | version-deprecated | — |
+
+    | `:version:` | "" | — |
+
+    | `:has_content:` | false | — |'
+dropdown:
+  names: '`{details}`, `{dropdown}`'
+  options_class: DropdownOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:open:` | false | — |
+
+    | `:icon:` | none | — |
+
+    | `:badge:` | none | — |
+
+    | `:color:` | none | — |
+
+    | `:description:` | none | — |'
+example_label:
+  names: '`{example-label}`'
+  options_class: ExampleLabelOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:css_class:` | "" | — |
+
+    | `:prefix:` | Example | — |
+
+    | `:no_prefix:` | false | — |'
+excerpt_break:
+  names: '`{excerpt-break}`'
+  options_class: DirectiveOptions
+  table: _No typed options._
+figure:
+  names: '`{figure}`'
+  options_class: FigureOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:alt:` | "" | — |
+
+    | `:caption:` | "" | — |
+
+    | `:width:` | "" | — |
+
+    | `:height:` | "" | — |
+
+    | `:align:` | "" | — |
+
+    | `:link:` | "" | — |
+
+    | `:target:` | _self | — |
+
+    | `:loading:` | lazy | — |
+
+    | `:class:` | "" | — |'
+gallery:
+  names: '`{gallery}`'
+  options_class: GalleryOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:columns:` | 3 | — |
+
+    | `:lightbox:` | true | — |
+
+    | `:gap:` | 1rem | — |
+
+    | `:aspect_ratio:` | 4/3 | — |
+
+    | `:css_class:` | "" | — |'
+gist_embed:
+  names: '`{gist}`'
+  options_class: GistOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:file:` | "" | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:gist_ref:` | "" | — |
+
+    | `:error:` | "" | — |'
+glossary:
+  names: '`{glossary}`'
+  options_class: GlossaryOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:tags:` | "" | — |
+
+    | `:sorted:` | false | — |
+
+    | `:show_tags:` | false | — |
+
+    | `:collapsed:` | false | — |
+
+    | `:limit:` | 0 | — |
+
+    | `:source:` | data/glossary.yaml | — |'
+icon:
+  names: '`{icon}`, `{svg-icon}`'
+  options_class: IconOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:size:` | 24 | — |
+
+    | `:class:` | "" | — |
+
+    | `:aria-label:` | "" | — |
+
+    | `:icon_name:` | "" | — |
+
+    | `:error:` | "" | — |'
+include:
+  names: '`{include}`'
+  options_class: IncludeOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:file:` | "" | — |
+
+    | `:start_line:` | none | — |
+
+    | `:end_line:` | none | — |
+
+    | `:file_path:` | "" | — |
+
+    | `:error:` | "" | — |'
+list_table:
+  names: '`{list-table}`'
+  options_class: ListTableOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:header-rows:` | 0 | — |
+
+    | `:widths:` | "" | — |
+
+    | `:class:` | "" | — |'
+literalinclude:
+  names: '`{literalinclude}`'
+  options_class: LiteralIncludeOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:file:` | "" | — |
+
+    | `:language:` | "" | — |
+
+    | `:start_line:` | none | — |
+
+    | `:end_line:` | none | — |
+
+    | `:emphasize_lines:` | "" | — |
+
+    | `:linenos:` | false | — |
+
+    | `:caption:` | "" | — |
+
+    | `:file_path:` | "" | — |
+
+    | `:code:` | "" | — |
+
+    | `:error:` | "" | — |'
+marimo_cell:
+  names: '`{marimo}`'
+  options_class: MarimoOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:show-code:` | true | — |
+
+    | `:cache:` | true | — |
+
+    | `:label:` | "" | — |
+
+    | `:code:` | "" | — |
+
+    | `:cell_id:` | 0 | — |
+
+    | `:error:` | "" | — |'
+prev_next:
+  names: '`{prev-next}`'
+  options_class: PrevNextOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:show_title:` | true | — |
+
+    | `:show_section:` | false | — |'
+related:
+  names: '`{related}`'
+  options_class: RelatedOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:limit:` | 5 | — |
+
+    | `:section_title:` | Related Articles | — |
+
+    | `:show_tags:` | false | — |'
+rubric:
+  names: '`{rubric}`'
+  options_class: RubricOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:css_class:` | "" | — |'
+self_hosted_video:
+  names: '`{video}`'
+  options_class: SelfHostedVideoOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:poster:` | "" | — |
+
+    | `:controls:` | true | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:muted:` | false | — |
+
+    | `:loop:` | false | — |
+
+    | `:preload:` | metadata | — |
+
+    | `:width:` | 100% | — |
+
+    | `:aspect:` | 16/9 | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:video_path:` | "" | — |
+
+    | `:mime_type:` | "" | — |
+
+    | `:error:` | "" | — |'
+siblings:
+  names: '`{siblings}`'
+  options_class: SiblingsOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:limit:` | 0 | — |
+
+    | `:exclude_current:` | true | — |
+
+    | `:show_description:` | false | — |'
+since:
+  names: '`{since}`, `{versionadded}`'
+  options_class: SinceOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:css_class:` | version-since | — |
+
+    | `:version:` | "" | — |
+
+    | `:has_content:` | false | — |'
+soundcloud_embed:
+  names: '`{soundcloud}`'
+  options_class: SoundCloudOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:type:` | track | — |
+
+    | `:height:` | 0 | — |
+
+    | `:color:` | ff5500 | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:hide_related:` | false | — |
+
+    | `:show_comments:` | true | — |
+
+    | `:show_user:` | true | — |
+
+    | `:show_reposts:` | false | — |
+
+    | `:visual:` | false | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:url_path:` | "" | — |
+
+    | `:error:` | "" | — |'
+spotify_embed:
+  names: '`{spotify}`'
+  options_class: SpotifyOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:type:` | track | — |
+
+    | `:height:` | 0 | — |
+
+    | `:theme:` | 0 | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:spotify_id:` | "" | — |
+
+    | `:error:` | "" | — |'
+stackblitz_embed:
+  names: '`{stackblitz}`'
+  options_class: StackBlitzOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:file:` | "" | — |
+
+    | `:view:` | both | — |
+
+    | `:height:` | 500 | — |
+
+    | `:hidenavigation:` | false | — |
+
+    | `:hidedevtools:` | false | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:project_id:` | "" | — |
+
+    | `:error:` | "" | — |'
+step:
+  names: '`{step}`'
+  options_class: StepOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:description:` | none | — |
+
+    | `:optional:` | false | — |
+
+    | `:duration:` | none | — |
+
+    | `:step_number:` | none | — |
+
+    | `:heading_level:` | none | — |'
+steps:
+  names: '`{steps}`'
+  options_class: StepsOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:style:` | none | — |
+
+    | `:start:` | 1 | — |'
+tab_item:
+  names: '`{tab}`, `{tab-item}`'
+  options_class: TabItemOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:selected:` | false | — |
+
+    | `:icon:` | none | — |
+
+    | `:badge:` | none | — |
+
+    | `:disabled:` | false | — |
+
+    | `:sync:` | none | — |'
+tab_set:
+  names: '`{tab-set}`, `{tabs}`'
+  options_class: TabSetOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:class:` | none | — |
+
+    | `:name:` | none | — |
+
+    | `:id:` | none | — |
+
+    | `:sync:` | none | — |
+
+    | `:mode:` | none | — |'
+target:
+  names: '`{anchor}`, `{target}`'
+  options_class: TargetOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:id:` | none | — |
+
+    | `:error:` | none | — |'
+tiktok_video:
+  names: '`{tiktok}`'
+  options_class: TikTokOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:width:` | "" | — |
+
+    | `:aspect:` | 9/16 | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:loop:` | false | — |
+
+    | `:muted:` | false | — |
+
+    | `:video_id:` | "" | — |
+
+    | `:embed_url:` | "" | — |
+
+    | `:error:` | "" | — |'
+vimeo_video:
+  names: '`{vimeo}`'
+  options_class: VimeoOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:width:` | "" | — |
+
+    | `:aspect:` | 16/9 | — |
+
+    | `:css_class:` | "" | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:loop:` | false | — |
+
+    | `:muted:` | false | — |
+
+    | `:color:` | "" | — |
+
+    | `:autopause:` | true | — |
+
+    | `:dnt:` | true | — |
+
+    | `:background:` | false | — |
+
+    | `:video_id:` | "" | — |
+
+    | `:embed_url:` | "" | — |
+
+    | `:error:` | "" | — |'
+youtube_video:
+  names: '`{youtube}`'
+  options_class: YouTubeOptions
+  table: '| Option | Default | Description |
+
+    |--------|---------|-------------|
+
+    | `:title:` | "" | — |
+
+    | `:width:` | "" | — |
+
+    | `:aspect:` | 16/9 | — |
+
+    | `:class:` | "" | — |
+
+    | `:autoplay:` | false | — |
+
+    | `:loop:` | false | — |
+
+    | `:muted:` | false | — |
+
+    | `:start:` | 0 | — |
+
+    | `:end:` | none | — |
+
+    | `:privacy:` | true | — |
+
+    | `:controls:` | true | — |
+
+    | `:video_id:` | "" | — |
+
+    | `:embed_url:` | "" | — |
+
+    | `:error:` | "" | — |'

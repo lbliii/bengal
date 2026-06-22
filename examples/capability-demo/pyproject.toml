@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bengal-demo-viz"
+version = "0.1.0"
+description = "Reference third-party runtime capability for Bengal"
+requires-python = ">=3.11"
+dependencies = ["bengal"]
+
+[project.entry-points."bengal.capabilities"]
+demo_viz = "demo_viz:DEMO_VIZ_CAPABILITY"
+
+[tool.hatch.build.targets.wheel]
+packages = ["demo_viz"]

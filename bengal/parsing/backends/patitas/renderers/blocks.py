@@ -287,9 +287,13 @@ class BlockRendererMixin:
         if meta:
             meta.add_code_block(lang)
 
-        if lang == "mermaid":
-            sb.append(f'<div class="mermaid">{escape_html(node.get_code(self._source))}</div>\n')
-            return
+        if lang:
+            from bengal.capabilities.render import render_fenced_code
+
+            rendered = render_fenced_code(lang, node.get_code(self._source))
+            if rendered is not None:
+                sb.append(rendered)
+                return
 
         # Attempt syntax highlighting via delegate (ZCLH protocol)
         if self._delegate and info:

@@ -150,40 +150,12 @@ Kida's native pattern matching replaces long `if/elif` chains:
 {% end %}
 ```
 
-**With expressions**:
-
-```kida
-{% match page.status %}
-  {% case "published" %}
-    <span class="status-published">Published</span>
-  {% case "draft" %}
-    <span class="status-draft">Draft</span>
-  {% case _ %}
-    <span class="status-unknown">Unknown</span>
-{% end %}
-```
-
 ## Variables and Scoping
 
-**Scoping**: `{% let %}` is template-scoped, `{% set %}` is block-scoped, and `{% export %}` promotes variables to template scope. See the [Variables documentation](../theming/templating/kida/syntax/variables.md) for details.
-
-### Template-Scoped Variables (`{% let %}`)
-
-Variables available throughout the entire template:
+**Scoping**: `{% let %}` is template-scoped, `{% set %}` is block-scoped, and `{% export %}` promotes variables to template scope.
 
 ```kida
 {% let site_title = site.config.title %}
-{% let nav_items = site.menus.main %}
-
-{# Available anywhere in template #}
-<h1>{{ site_title }}</h1>
-```
-
-### Block-Scoped Variables (`{% set %}`)
-
-Variables scoped to the current block:
-
-```kida
 {% if page.published %}
   {% set status = "Published" %}
   <span>{{ status }}</span>
@@ -191,62 +163,8 @@ Variables scoped to the current block:
 {# status not available here #}
 ```
 
-### Multi-let (Comma-Separated)
-
-Assign multiple variables in a single `{% let %}` block:
-
-```kida
-{# Single-line multi-let #}
-{% let a = 1, b = 2, c = 3 %}
-
-{# Multi-line multi-let (recommended for readability) #}
-{% let
-    _site_title = config?.title ?? 'Untitled Site',
-    _page_title = page?.title ?? config?.title ?? 'Page',
-    _description = page?.description ?? '' %}
-```
-
-**Recommended pattern** for template setup:
-
-```kida
-{% extends "base.html" %}
-
-{# Group related configuration at template start #}
-{% let
-    _show_sidebar = page?.sidebar ?? true,
-    _show_toc = page?.toc ?? true,
-    _prev = get_prev_page(page),
-    _next = get_next_page(page) %}
-
-{% block content %}
-  {# Variables available throughout #}
-  {% if _show_sidebar %}...{% end %}
-{% end %}
-```
-
-### Tuple Unpacking
-
-Destructure tuples into separate variables:
-
-```kida
-{% let (title, subtitle) = (page.title, page.subtitle) %}
-{% let (first, second) = get_pair() %}
-```
-
-### Exporting from Inner Scope (`{% export %}`)
-
-Make a variable from an inner scope available to the outer scope:
-
-```kida
-{% for post in posts %}
-  {% if post.featured %}
-    {% export featured_post = post %}
-  {% end %}
-{% end %}
-
-{# featured_post available here #}
-{{ featured_post.title }}
-```
+Multi-let, tuple unpacking, and export patterns are documented in
+[[docs/theming/templating/kida/syntax/variables|Variables and Scoping]].
 
 ## Template Structure
 
@@ -326,86 +244,20 @@ Kida functions can access variables from their surrounding context automatically
 {{ button("Default", "/page") }}
 ```
 
-### Calling Functions with Blocks
-
-```kida
-{% def card(item) %}
-  <div class="card">
-    <h3>{{ item.title }}</h3>
-    {% slot %}
-      {# Content passed via call block #}
-    {% endslot %}
-  </div>
-{% end %}
-
-{% call card(page) %}
-  <p>Custom content here</p>
-{% end %}
-```
-
 ## Filters and Pipeline
 
-### Functions vs Filters
-
-Kida templates support both **filters** (transform values) and **functions** (standalone operations).
-
-**Filters** transform a value using `|` or `|>`:
-```kida
-{{ page.title | upper }}                    {# Transform text #}
-{{ site.pages |> where('draft', false) }}  {# Transform collection #}
-```
-
-**Functions** are called directly without a value:
-```kida
-{{ get_page('docs/about') }}               {# Retrieve page #}
-{{ get_data('data/authors.json') }}        {# Load data #}
-{{ ref('docs/getting-started') }}          {# Generate link #}
-```
-
-**When to use which:**
-- **Filter**: You have a value to transform (`{{ value | filter }}`)
-- **Function**: You're performing an operation (`{{ function() }}`)
-
-See [Template Functions Reference](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for details.
-
-### Filter Syntax
+Kida supports **filters** (transform a value with `|` or `|>`) and **functions**
+(called directly). Use `|>` for left-to-right chains of three or more filters:
 
 ```kida
-{{ text | upper }}
-{{ text | truncate(100) }}
-{{ text | default("N/A") }}
-```
-
-### Pipeline Operator (`|>`)
-
-Kida's pipeline operator provides left-to-right readability for complex filter chains:
-
-```kida
-{# Kida: Read left-to-right #}
+{{ page.title | upper }}
 {{ items |> where('published', true) |> sort_by('date') |> take(5) }}
-
-{# Jinja2: Read inside-out #}
-{{ items | selectattr('published') | sort(attribute='date') | first(5) }}
+{{ get_page('docs/about') }}
 ```
 
-**Chaining filters**:
-
-```kida
-{{ page.content
-   |> markdownify
-   |> truncate(200)
-   |> strip_tags }}
-```
-
-:::{tip}
-Use `|>` for chains of 3+ filters. For simple single-filter cases, `|` is fine:
-
-```kida
-{{ text | upper }}           {# Simple: use | #}
-{{ data |> filter |> sort |> take(5) }}  {# Complex: use |> #}
-```
-
-:::
+See [[docs/reference/template-functions|Template Functions]] for the full
+functions-vs-filters guide and [[docs/reference/kida-syntax-reference|Kida Syntax Reference (detailed)]]
+for exhaustive filter and operator lookup.
 
 :::{dropdown} Exhaustive filter, operator, and caching reference
 :icon: book-open

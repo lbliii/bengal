@@ -537,6 +537,15 @@ def build_page_context(
                 "capabilities": resolve_effective_capabilities(site_caps, page_needed),
             }
             context["page_capabilities"] = page_needed
+            from bengal.capabilities.template_wiring import build_capability_wiring
+
+            effective_caps = context["bengal"]["capabilities"]
+            vendor_integrity = bengal_meta.get("vendor_integrity", {})
+            if isinstance(vendor_integrity, dict) and isinstance(effective_caps, dict):
+                context["capability_wiring"] = build_capability_wiring(
+                    effective_caps,
+                    vendor_integrity,
+                )
 
     # Merge extra context
     if extra:

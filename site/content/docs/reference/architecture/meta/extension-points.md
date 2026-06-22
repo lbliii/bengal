@@ -348,6 +348,15 @@ class MyPlugin(Plugin):
 my-plugin = "my_package:MyPlugin"
 ```
 
+**Runtime capabilities** use a separate entry point group — `bengal.capabilities` — for opt-in vendor features (Mermaid, KaTeX, third-party diagram/math packages):
+
+```toml
+[project.entry-points."bengal.capabilities"]
+my-viz = "my_viz:MY_VIZ_CAPABILITY"
+```
+
+Inspect installed capabilities with `bengal capability list`, `bengal capability info <name>`, and `bengal capability validate`.
+
 **Thread Safety**: The registry uses a builder→immutable pattern. During startup, plugins register into a mutable `PluginRegistry`. Before rendering begins, `freeze()` produces a `FrozenPluginRegistry` dataclass that is safe to share across threads during parallel rendering.
 
 **Extension Points**:
