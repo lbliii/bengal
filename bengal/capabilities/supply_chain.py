@@ -20,6 +20,51 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 SourceMode = Literal["cdn", "local"]
+CdnPolicyMode = Literal["allow", "deny"]
+
+
+@dataclass(frozen=True, slots=True)
+class CapabilityPolicy:
+    """Owner-facing CDN provisioning policy (#589)."""
+
+    cdn_mode: CdnPolicyMode = "allow"
+    allowed_cdn_origins: tuple[str, ...] = ()
+
+
+def parse_capability_policy(config: Mapping[str, Any]) -> CapabilityPolicy:
+    """Parse ``[capabilities.policy]`` from site config."""
+    caps = config.get("capabilities")
+    if not isinstance(caps, dict):
+        return CapabilityPolicy()
+    raw = caps.get("policy")
+    if not isinstance(raw, dict):
+        return CapabilityPolicy()
+
+    mode_raw = str(raw.get("cdn_mode", "allow")).strip().lower()
+    cdn_mode: CdnPolicyMode = "deny" if mode_raw == "deny" else "allow"
+
+    origins_raw = raw.get("allowed_cdn_origins")
+    allowed: tuple[str, ...] = ()
+    if isinstance(origins_raw, list):
+        allowed = tuple(str(item).strip().lower() for item in origins_raw if str(item).strip())
+
+    return CapabilityPolicy(cdn_mode=cdn_mode, allowed_cdn_origins=allowed)
+
+
+def assert_cdn_download_allowed(url: str, policy: CapabilityPolicy) -> None:
+    """Reject CDN downloads that violate the configured provisioning policy."""
+    if policy.cdn_mode == "deny":
+        msg = "CDN vendor downloads are disabled by capabilities.policy.cdn_mode = 'deny'"
+        raise ValueError(msg)
+
+    host = urlparse(url).netloc.lower()
+    if policy.allowed_cdn_origins and host not in policy.allowed_cdn_origins:
+        allowed = ", ".join(policy.allowed_cdn_origins)
+        msg = (
+            f"CDN origin {host!r} is not allowed by capabilities.policy "
+            f"(allowed_cdn_origins = [{allowed}])"
+        )
+        raise ValueError(msg)
 
 
 def _default_pin(capability: str) -> str:
@@ -163,6 +208,9 @@ def resolve_vendor_asset(
             expected_sri=expected_sri,
             require_sri=override.require_sri,
         )
+
+    policy = parse_capability_policy(config)
+    assert_cdn_download_allowed(url, policy)
 
     # CDN mode — optional local_path is ignored; fetch from resolved URL.
     if not urlparse(url).scheme:

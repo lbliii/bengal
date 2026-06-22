@@ -1,0 +1,16 @@
+[site]
+title = "Demo Viz Capability"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+
+[theme]
+name = "default"
+
+[capabilities]
+demo_viz = true
+
+[capabilities.sources.demo_viz]
+source = "local"
+path = "vendor/demo.min.js"

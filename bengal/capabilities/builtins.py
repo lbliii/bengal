@@ -6,6 +6,8 @@ from bengal.capabilities.spec import (
     CapabilityAsset,
     CapabilityInitContract,
     CapabilitySpec,
+    FenceRenderSpec,
+    RuntimeFetchAsset,
 )
 
 MERMAID_CAPABILITY = CapabilitySpec(
@@ -21,11 +23,14 @@ MERMAID_CAPABILITY = CapabilitySpec(
     source_patterns=(r"```mermaid|:::\{mermaid\}",),
     metadata_keys=("mermaid",),
     fence_languages=("mermaid",),
+    fence_render=FenceRenderSpec(element="div", css_class="mermaid", escape_content=True),
     implies=("iconify",),
     init=CapabilityInitContract(
         load_position="body",
         defer=True,
         lazy_loader_key="mermaid",
+        lazy_selector=".mermaid",
+        companion_scripts=("js/mermaid-toolbar.js", "js/mermaid-theme.js"),
     ),
 )
 
@@ -49,9 +54,10 @@ KATEX_CAPABILITY = CapabilitySpec(
     ),
     metadata_keys=("math", "katex"),
     init=CapabilityInitContract(
-        load_position="head",
+        load_position="body",
         defer=True,
-        lazy_loader_key="katex",
+        css_files=("katex.min.css",),
+        companion_scripts=("js/enhancements/math.js",),
     ),
 )
 
@@ -76,7 +82,12 @@ ICONIFY_CAPABILITY = CapabilitySpec(
     init=CapabilityInitContract(
         load_position="body",
         defer=True,
-        lazy_loader_key="iconify",
+        runtime_fetch_assets=(
+            RuntimeFetchAsset("fa", "iconify/fa.json"),
+            RuntimeFetchAsset("mdi", "iconify/mdi.json"),
+            RuntimeFetchAsset("logos", "iconify/logos.json"),
+        ),
+        runtime_global="BENGAL_MERMAID_ICON_PACKS",
     ),
 )
 

@@ -36,7 +36,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _view_transitions = (_doc_app?.enabled ?? false) and (_doc_app_nav?.view_transitions ?? false) %}
 {% let _transition_style = _doc_app_nav?.transition_style ?? none %}
 {% let _llms_txt_url = '/llms.txt' | absolute_url %}
-{% let _cap_cache_key = (bengal?.capabilities?.mermaid ?? false) ~ '-' ~ (bengal?.capabilities?.katex ?? false) ~ '-' ~ (bengal?.capabilities?.iconify ?? false) %}
+{% let _cap_cache_key = capability_wiring?.cache_key ?? '' %}
 
 {# Auto navigation if main menu is empty #}
 {% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
@@ -239,9 +239,9 @@ HELPER: Render a menu item (desktop/mobile)
     {% if _view_transitions %}
     <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
     {% end %}
-    {% if bengal?.capabilities?.katex ?? false %}
-    {% let _katex_css_sri = bengal?.vendor_integrity?['katex.min.css'] ?? none %}
-    <link rel="stylesheet" href="{{ asset_url('vendor/katex.min.css') }}"{% if _katex_css_sri %} integrity="{{ _katex_css_sri }}" crossorigin="anonymous"{% end %}>
+    {% for sheet in capability_wiring?.stylesheets ?? [] %}
+    {% let _sheet_sri = sheet?.integrity ?? none %}
+    <link rel="stylesheet" href="{{ asset_url(sheet.path) }}"{% if _sheet_sri %} integrity="{{ _sheet_sri }}" crossorigin="anonymous"{% end %}>
     {% end %}
     {% end %}{# /cache base-head-assets #}
 
@@ -551,30 +551,37 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
     {% include "partials/link-previews.html" %}
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
-    {% if bengal?.capabilities?.katex ?? false %}
-    {% let _katex_js_sri = bengal?.vendor_integrity?['katex.min.js'] ?? none %}
-    <script defer src="{{ asset_url('vendor/katex.min.js') }}"{% if _katex_js_sri %} integrity="{{ _katex_js_sri }}" crossorigin="anonymous"{% end %}></script>
-    <script defer src="{{ asset_url('js/enhancements/math.js') }}"></script>
+    {% for script in capability_wiring?.scripts ?? [] %}
+    {% let _script_sri = script?.integrity ?? none %}
+    <script defer src="{{ asset_url(script.path) }}"{% if _script_sri %} integrity="{{ _script_sri }}" crossorigin="anonymous"{% end %}></script>
     {% end %}
     <script>
         window.BENGAL_LAZY_ASSETS = {
             tabulator: '{{ asset_url("js/tabulator.min.js") }}',
-            dataTable: '{{ asset_url("js/data-table.js") }}',
-            {% if bengal?.capabilities?.mermaid ?? false %}
-            {% let _mermaid_js_sri = bengal?.vendor_integrity?['mermaid.min.js'] ?? none %}
-            mermaid: '{{ asset_url("vendor/mermaid.min.js") }}',
-            mermaidIntegrity: {{ (_mermaid_js_sri ?? '') | tojson }},
-            {% end %}
-            mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}',
-            mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}'
+            dataTable: '{{ asset_url("js/data-table.js") }}'
         };
-        {% if bengal?.capabilities?.iconify ?? false %}
-        window.BENGAL_MERMAID_ICON_PACKS = [
-            { name: 'fa', loader: function () { return fetch('{{ asset_url("vendor/iconify/fa.json") }}').then(function (r) { return r.json(); }); } },
-            { name: 'mdi', loader: function () { return fetch('{{ asset_url("vendor/iconify/mdi.json") }}').then(function (r) { return r.json(); }); } },
-            { name: 'logos', loader: function () { return fetch('{{ asset_url("vendor/iconify/logos.json") }}').then(function (r) { return r.json(); }); } }
+        window.BENGAL_CAPABILITY_LOADERS = [
+            {% for loader in capability_wiring?.lazy_loaders ?? [] %}
+            {
+                key: {{ loader.key | tojson }},
+                selector: {{ loader.selector | tojson }},
+                script: {{ asset_url(loader.script) | tojson }},
+                integrity: {{ (loader.integrity ?? '') | tojson }},
+                companions: [
+                    {% for companion in loader.companions %}
+                    {{ asset_url(companion) | tojson }}{% if not loop.last %}, {% end %}
+                    {% endfor %}
+                ]
+            }{% if not loop.last %}, {% end %}
+            {% endfor %}
         ];
-        {% end %}
+        {% for runtime in capability_wiring?.runtime_globals ?? [] %}
+        window.{{ runtime.name }} = [
+            {% for pack in runtime.packs %}
+            { name: {{ pack.name | tojson }}, loader: function () { return fetch({{ asset_url(pack.path) | tojson }}).then(function (r) { return r.json(); }); } }{% if not loop.last %}, {% end %}
+            {% endfor %}
+        ];
+        {% endfor %}
         window.BENGAL_ICONS = { close: '{{ asset_url("icons/close.svg") }}', enlarge: '{{ asset_url("icons/enlarge.svg") }}', copy: '{{ asset_url("icons/copy.svg") }}', 'download-svg': '{{ asset_url("icons/download.svg") }}', 'download-png': '{{ asset_url("icons/image.svg") }}', 'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}', 'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}', reset: '{{ asset_url("icons/reset.svg") }}' };
     </script>
     <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>

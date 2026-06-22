@@ -1073,6 +1073,26 @@ for name, desc in [
         display_result=False,
     )
 
+# --- capability ---
+capability = cli.group(
+    "capability",
+    description="Runtime capability registry inspection",
+    aliases=("capabilities",),
+)
+
+for name, desc in [
+    ("list", "List registered runtime capabilities"),
+    ("info", "Show capability spec and wiring details"),
+    ("validate", "Validate site capability configuration"),
+]:
+    capability.lazy_command(
+        name,
+        import_path=f"bengal.cli.milo_commands.capability:capability_{name}",
+        description=desc,
+        annotations={"readOnlyHint": True},
+        display_result=False,
+    )
+
 # ---------------------------------------------------------------------------
 # Tier 3 — Analysis & debugging (power users)
 # ---------------------------------------------------------------------------
