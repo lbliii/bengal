@@ -107,74 +107,75 @@ new.lazy_command(
 
 The public command inventory is generated from the Milo registry and guarded by
 unit tests against this documentation, `--llms-txt`, README command snippets,
-and runtime smoke coverage.
+and runtime smoke coverage. Exhaustive per-command flags and arguments are
+autodoc-generated at [[/cli/|Bengal CLI Reference]] during site builds.
 
 ```text cli-command-inventory
-build
-serve
-preview
-clean
-check
 audit
-health
-fix
-upgrade
+build
+cache.hash
+cache.inputs
+capability.info
+capability.list
+capability.validate
+check
+clean
 codemod
-new.site
-new.theme
-new.page
-new.layout
-new.partial
-new.content-type
-config.show
-config.doctor
 config.diff
+config.doctor
 config.init
 config.inspect
-theme.list
-theme.info
+config.show
+content.collections
+content.fetch
+content.schemas
+content.sources
+debug.delta
+debug.deps
+debug.incremental
+debug.migrate
+debug.sandbox
+fix
+health
+i18n.compile
+i18n.extract
+i18n.init
+i18n.status
+i18n.sync
+inspect.graph
+inspect.links
+inspect.page
+inspect.perf
+new.content-type
+new.layout
+new.page
+new.partial
+new.site
+new.theme
+plugin.info
+plugin.list
+plugin.validate
+preview
+serve
+theme.assets
+theme.debug
+theme.directives
 theme.discover
+theme.info
+theme.install
+theme.list
+theme.new
 theme.preview
 theme.swizzle
 theme.swizzle-list
 theme.swizzle-update
-theme.install
-theme.validate
-theme.new
-theme.debug
-theme.directives
 theme.test
-theme.assets
-content.sources
-content.fetch
-content.collections
-content.schemas
-version.list
-version.info
+theme.validate
+upgrade
 version.create
 version.diff
-i18n.init
-i18n.extract
-i18n.compile
-i18n.sync
-i18n.status
-plugin.list
-plugin.info
-plugin.validate
-capability.list
-capability.info
-capability.validate
-inspect.page
-inspect.links
-inspect.graph
-inspect.perf
-debug.incremental
-debug.delta
-debug.deps
-debug.migrate
-debug.sandbox
-cache.inputs
-cache.hash
+version.info
+version.list
 ```
 
 Root aliases are part of the contract: `b` for `build`, `s` and `dev` for
@@ -194,7 +195,8 @@ annotated command signatures.
 
 ```bash
 $ bengal --help
-bengal 0.5.1
+bengal VERSION
+
 Static site generator for Python teams — every layer pure Python, scales with your cores
 
 Core workflow
