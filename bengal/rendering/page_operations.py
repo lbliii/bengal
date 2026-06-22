@@ -16,6 +16,8 @@ from bengal.cache.parsed_output import apply_parsed_links_to_page
 from bengal.content.page_source import get_raw_source
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike
 
 # Compiled patterns for link extraction (used per-page in extract_links)
@@ -85,6 +87,24 @@ def set_directive_links(page: Any, links: list[str]) -> None:
     protocol while the rendering pipeline still renders mutable page instances.
     """
     page._directive_links = links
+
+
+def get_content_dependencies(page: Any) -> list[Path]:
+    """Return include/literalinclude paths collected while parsing a page."""
+    from pathlib import Path
+
+    try:
+        deps = getattr(page, "_content_dependencies", None)
+    except Exception:
+        return []
+    if not deps:
+        return []
+    return [Path(dep).resolve() for dep in deps]
+
+
+def set_content_dependencies(page: Any, deps: list[Path]) -> None:
+    """Store parse-phase include dependencies on the page for effect tracing."""
+    page._content_dependencies = [path.resolve() for path in deps]
 
 
 def get_prerendered_html(page: Any) -> str | None:

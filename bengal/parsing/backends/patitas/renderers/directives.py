@@ -125,6 +125,10 @@ class DirectiveRendererMixin:
             if "site" in sig.parameters:
                 kwargs["site"] = getattr(self, "_site", None)
 
+            # Pass markdown fragment renderer for include directives
+            if "render_markdown_fragment" in sig.parameters:
+                kwargs["render_markdown_fragment"] = self.render_markdown_fragment
+
             # Pass current_page_dir for relative link resolution (./ and ../)
             if "current_page_dir" in sig.parameters:
                 kwargs["current_page_dir"] = self._compute_current_page_dir()

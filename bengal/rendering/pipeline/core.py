@@ -53,7 +53,9 @@ from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.page_operations import (
     extract_links,
+    get_content_dependencies,
     get_prerendered_html,
+    set_content_dependencies,
     set_directive_links,
 )
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -513,11 +515,17 @@ class RenderingPipeline:
         # Enable deferred highlighting for parallel batch processing (3.14t)
         enable_deferred_highlighting(cache=self._highlight_cache)
         try:
-            if hasattr(self.parser, "parse_with_toc_and_context"):
-                parsed_page, directive_links = self._parse_with_context_aware_parser(page, need_toc)
-            else:
-                parsed_page = self._parse_with_legacy(page, need_toc)
-                directive_links = []
+            from bengal.parsing.backends.patitas.render_session import page_render_session
+
+            with page_render_session(page_context=page, site=self.site) as session:
+                if hasattr(self.parser, "parse_with_toc_and_context"):
+                    parsed_page, directive_links = self._parse_with_context_aware_parser(
+                        page, need_toc
+                    )
+                else:
+                    parsed_page = self._parse_with_legacy(page, need_toc)
+                    directive_links = []
+            set_content_dependencies(page, session.content_dependencies)
             if directive_links:
                 set_directive_links(page, directive_links)
 
@@ -852,7 +860,11 @@ class RenderingPipeline:
         from bengal.rendering.asset_tracking import AssetTracker
 
         effect_tracer = BuildEffectTracer.get_instance()
-        effect_recorder = effect_tracer.record_page_render(page, template)
+        effect_recorder = effect_tracer.record_page_render(
+            page,
+            template,
+            parse_dependencies=frozenset(get_content_dependencies(page)),
+        )
 
         render_start = _time.perf_counter()
         rendered_html = ""

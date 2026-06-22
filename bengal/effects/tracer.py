@@ -443,12 +443,22 @@ class EffectTracer:
         Export dependency graph for visualization.
 
         Returns:
-            Dict mapping output paths to their dependencies
+            Dict mapping output paths to their dependencies. Include/snippet
+            dependencies are prefixed with ``include:`` for readability.
         """
         with self._lock:
             graph: dict[str, list[str]] = {}
             for output, effect in self._output_index.items():
-                deps = [str(d) if isinstance(d, Path) else d for d in effect.depends_on]
+                include_deps = {
+                    str(path) for path in effect.metadata.get("include_dependencies", [])
+                }
+                deps: list[str] = []
+                for dep in effect.depends_on:
+                    dep_str = str(dep) if isinstance(dep, Path) else dep
+                    if dep_str in include_deps:
+                        deps.append(f"include:{dep_str}")
+                    else:
+                        deps.append(dep_str)
                 graph[str(output)] = deps
             return graph
 

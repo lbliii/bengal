@@ -1121,6 +1121,7 @@ for name, desc in [
     ("incremental", "Debug incremental rebuild decisions"),
     ("delta", "Compare builds and identify changes"),
     ("deps", "Visualize dependency graph"),
+    ("includes", "Inspect include targets for a page"),
     ("migrate", "Preview or execute content migrations"),
     ("sandbox", "Test directives in isolation"),
 ]:
@@ -1129,7 +1130,7 @@ for name, desc in [
         import_path=f"bengal.cli.milo_commands.debug:debug_{name}",
         description=desc,
         annotations={
-            "readOnlyHint": name in {"incremental", "delta", "deps", "sandbox"},
+            "readOnlyHint": name in {"incremental", "delta", "deps", "includes", "sandbox"},
             "destructiveHint": name == "migrate",
         },
         display_result=False,

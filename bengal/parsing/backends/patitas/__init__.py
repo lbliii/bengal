@@ -659,6 +659,10 @@ class Markdown:
             links_collector: Optional list to collect directive-generated links
         """
         from bengal.cache.directive_cache import get_cache
+        from bengal.parsing.backends.patitas.render_session import (
+            page_render_session,
+            try_get_render_session,
+        )
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         # Use global directive cache if enabled (auto-enabled for versioned sites)
@@ -668,16 +672,41 @@ class Markdown:
         config = self._get_render_config(text_transformer)
         render_token = set_render_config(config)
         try:
-            renderer = HtmlRenderer(
-                source,
-                delegate=self._delegate,
-                directive_cache=directive_cache if cache_enabled else None,
+            session = try_get_render_session()
+            if session is not None:
+                session.markdown_engine = self
+                session.page_context = page_context or session.page_context
+                session.site = site or session.site
+                session.xref_index = xref_index or session.xref_index
+                session.links_collector = links_collector or session.links_collector
+                renderer = HtmlRenderer(
+                    source,
+                    delegate=self._delegate,
+                    directive_cache=directive_cache if cache_enabled else None,
+                    page_context=page_context,
+                    xref_index=xref_index,
+                    site=site,
+                    links_collector=links_collector,
+                )
+                return renderer.render(ast)
+
+            with page_render_session(
+                markdown_engine=self,
                 page_context=page_context,
-                xref_index=xref_index,
                 site=site,
+                xref_index=xref_index,
                 links_collector=links_collector,
-            )
-            return renderer.render(ast)
+            ):
+                renderer = HtmlRenderer(
+                    source,
+                    delegate=self._delegate,
+                    directive_cache=directive_cache if cache_enabled else None,
+                    page_context=page_context,
+                    xref_index=xref_index,
+                    site=site,
+                    links_collector=links_collector,
+                )
+                return renderer.render(ast)
         finally:
             reset_render_config(render_token)
 
@@ -738,6 +767,10 @@ class Markdown:
             Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
         """
         from bengal.cache.directive_cache import get_cache
+        from bengal.parsing.backends.patitas.render_session import (
+            page_render_session,
+            try_get_render_session,
+        )
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         # Use global directive cache if enabled
@@ -747,24 +780,57 @@ class Markdown:
         config = self._get_render_config(text_transformer)
         render_token = set_render_config(config)
         try:
-            renderer = HtmlRenderer(
-                source,
-                delegate=self._delegate,
-                directive_cache=directive_cache if cache_enabled else None,
+            session = try_get_render_session()
+            if session is not None:
+                session.markdown_engine = self
+                session.page_context = page_context or session.page_context
+                session.site = site or session.site
+                session.xref_index = xref_index or session.xref_index
+                session.links_collector = links_collector or session.links_collector
+                renderer = HtmlRenderer(
+                    source,
+                    delegate=self._delegate,
+                    directive_cache=directive_cache if cache_enabled else None,
+                    page_context=page_context,
+                    xref_index=xref_index,
+                    site=site,
+                    links_collector=links_collector,
+                )
+
+                # Render HTML - headings collected during this walk
+                html = renderer.render(ast)
+
+                # Get TOC data from renderer (no extra pass!)
+                toc_html = renderer.get_toc_html()
+                toc_items = renderer.get_toc_items()
+
+                return html, toc_html, toc_items
+
+            with page_render_session(
+                markdown_engine=self,
                 page_context=page_context,
-                xref_index=xref_index,
                 site=site,
+                xref_index=xref_index,
                 links_collector=links_collector,
-            )
+            ):
+                renderer = HtmlRenderer(
+                    source,
+                    delegate=self._delegate,
+                    directive_cache=directive_cache if cache_enabled else None,
+                    page_context=page_context,
+                    xref_index=xref_index,
+                    site=site,
+                    links_collector=links_collector,
+                )
 
-            # Render HTML - headings collected during this walk
-            html = renderer.render(ast)
+                # Render HTML - headings collected during this walk
+                html = renderer.render(ast)
 
-            # Get TOC data from renderer (no extra pass!)
-            toc_html = renderer.get_toc_html()
-            toc_items = renderer.get_toc_items()
+                # Get TOC data from renderer (no extra pass!)
+                toc_html = renderer.get_toc_html()
+                toc_items = renderer.get_toc_items()
 
-            return html, toc_html, toc_items
+                return html, toc_html, toc_items
         finally:
             reset_render_config(render_token)
 

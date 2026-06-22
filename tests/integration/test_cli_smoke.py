@@ -89,6 +89,7 @@ CLI_SMOKE_CASES = [
     CLISmokeCase(("debug", "incremental")),
     CLISmokeCase(("debug", "delta")),
     CLISmokeCase(("debug", "deps")),
+    CLISmokeCase(("debug", "includes", "--page-path", "index"), acceptable_exit_codes=(0, 1)),
     CLISmokeCase(("debug", "migrate")),
     CLISmokeCase(("debug", "sandbox", "--list-directives")),
     CLISmokeCase(("cache", "inputs")),

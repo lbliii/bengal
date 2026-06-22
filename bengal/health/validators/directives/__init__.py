@@ -29,6 +29,7 @@ from .checkers import (
     check_directive_completeness,
     check_directive_performance,
     check_directive_syntax,
+    check_include_targets,
 )
 from .constants import (
     ADMONITION_TYPES,
@@ -134,7 +135,12 @@ class DirectiveValidator(BaseValidator):
         t3 = time.time()
         results.extend(check_directive_performance(directive_data))
         sub_timings["performance"] = (time.time() - t3) * 1000
-        self.last_file_results = _file_results_by_source(directive_data)
+
+        # Check 4: Include/literalinclude target resolution
+        t4 = time.time()
+        results.extend(check_include_targets(site, directive_data))
+        sub_timings["includes"] = (time.time() - t4) * 1000
+        self.last_file_results = _file_results_by_source(site, directive_data)
 
         # Note: Rendering validation (H207) was removed - it parsed all HTML output
         # files which took ~1.2s and never caught any issues. Syntax validation (H201)
@@ -164,7 +170,10 @@ class DirectiveValidator(BaseValidator):
         return results
 
 
-def _file_results_by_source(directive_data: dict[str, Any]) -> dict[Path, list[CheckResult]]:
+def _file_results_by_source(
+    site: SiteLike,
+    directive_data: dict[str, Any],
+) -> dict[Path, list[CheckResult]]:
     """Build per-source directive results for incremental health caching."""
     results_by_source: dict[Path, list[CheckResult]] = {}
     for source_path in directive_data.get("_analyzed_paths", []):
@@ -175,6 +184,7 @@ def _file_results_by_source(directive_data: dict[str, Any]) -> dict[Path, list[C
         results.extend(check_directive_syntax(file_data))
         results.extend(check_directive_completeness(file_data))
         results.extend(check_directive_performance(file_data))
+        results.extend(check_include_targets(site, file_data))
         results_by_source[source_path] = results
     return results_by_source
 

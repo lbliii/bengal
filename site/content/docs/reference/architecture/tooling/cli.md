@@ -132,6 +132,7 @@ content.schemas
 content.sources
 debug.delta
 debug.deps
+debug.includes
 debug.incremental
 debug.migrate
 debug.sandbox
