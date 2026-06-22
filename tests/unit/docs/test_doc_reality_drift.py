@@ -188,3 +188,20 @@ def test_deploy_production_snippet_is_tracked_in_git() -> None:
         "Deploy production-build snippet is not tracked by git "
         "(check site/.gitignore for overly broad rules)"
     )
+
+
+def test_no_phantom_health_linkcheck_subcommand_in_docs() -> None:
+    """``bengal health`` is a legacy ``check`` alias; link checks use ``inspect links``."""
+    versions = _CONTENT / "_versions"
+    offenders: dict[str, list[int]] = {}
+    for path in _markdown_files(_DOCS):
+        if path.is_relative_to(versions):
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if "health linkcheck" in line:
+                offenders.setdefault(str(path.relative_to(_REPO_ROOT)), []).append(lineno)
+
+    assert not offenders, (
+        "Docs reference phantom `bengal health linkcheck`; use `bengal inspect links` or `bengal check`:\n"
+        + "\n".join(f"  {p}: lines {ls}" for p, ls in sorted(offenders.items()))
+    )

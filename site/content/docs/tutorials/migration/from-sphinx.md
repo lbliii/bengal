@@ -390,7 +390,7 @@ This generates virtual pages during the build process, unlike Sphinx's runtime i
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check links: `bengal health linkcheck`
+- [ ] Check links: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 
@@ -408,7 +408,7 @@ This generates virtual pages during the build process, unlike Sphinx's runtime i
 | Link to doc | `:doc:\`path\`` | Standard markdown links |
 | Build | `make html` | `bengal build` |
 | Serve | `sphinx-autobuild` | `bengal serve` |
-| Check | `sphinx-build -W` | `bengal health linkcheck` |
+| Check | `sphinx-build -W` | `bengal inspect links` |
 
 ---
 

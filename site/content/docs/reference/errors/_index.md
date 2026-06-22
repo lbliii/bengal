@@ -1527,8 +1527,8 @@ External link check timed out.
 - Too many external links
 
 **How to Fix**
-1. Increase timeout: `bengal health linkcheck --timeout 60`
-2. Skip external checks: `bengal health linkcheck --internal-only`
+1. Increase timeout: `bengal inspect links --timeout 60`
+2. Skip external checks: `bengal inspect links --internal-only`
 3. Check network connectivity
 
 ---

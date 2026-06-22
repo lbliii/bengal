@@ -654,7 +654,7 @@ Use variables directly in markdown without JSX. Frontmatter keys are available d
 ::::{tab} Build-time Validation
 ```bash
 # Validate all links work
-bengal health linkcheck
+bengal inspect links
 
 # Check for broken references  
 bengal health
@@ -757,7 +757,7 @@ cp /path/to/mintlify/openapi.yaml .
 :::{step} Test
 ```bash
 bengal build
-bengal health linkcheck
+bengal inspect links
 bengal serve
 ```
 :::{/step}
@@ -798,7 +798,7 @@ bengal serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 

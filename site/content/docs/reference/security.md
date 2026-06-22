@@ -244,7 +244,7 @@ Run validation before deploying:
 bengal check
 
 # Check for broken links
-bengal health linkcheck
+bengal inspect links
 
 # Verify no drafts in production
 grep -r "draft: true" content/ && echo "DRAFTS FOUND" || echo "No drafts in content"
@@ -491,7 +491,7 @@ Before deploying to production:
 - [ ] No API keys or secrets in content
 - [ ] Drafts marked in frontmatter (auto-excluded from output)
 - [ ] Validation passes (`bengal check`)
-- [ ] Links checked (`bengal health linkcheck`)
+- [ ] Links checked (`bengal inspect links`)
 
 ### Dependencies
 - [ ] Dependencies audited for vulnerabilities

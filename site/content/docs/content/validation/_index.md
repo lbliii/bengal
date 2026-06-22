@@ -18,7 +18,9 @@ Catch broken links, bad directives, and config drift before they reach productio
 **Do I need this?** Yes when you want automated quality checks in CI or before
 deploy. Skip if you are still prototyping locally and fixing issues by hand.
 For the full validate-and-fix workflow, see
-[[docs/content/validation/validate-and-fix|Validate and Fix]].
+[[docs/content/validation/validate-and-fix|Validate and Fix]]. For auto-fix,
+custom validators, and health configuration, see
+[[docs/content/validation/validate-and-fix-reference|Validation Reference]].
 :::
 
 :::{child-cards}

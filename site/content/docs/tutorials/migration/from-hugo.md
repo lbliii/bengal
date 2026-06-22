@@ -595,7 +595,7 @@ Update the format using the [Configuration Mapping](#configuration-mapping) sect
 :::{step} Test
 ```bash
 bengal build
-bengal health linkcheck
+bengal inspect links
 bengal serve
 ```
 :::{/step}
@@ -631,7 +631,7 @@ bengal serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 
@@ -645,7 +645,7 @@ bengal serve
 | Build | `hugo` | `bengal build` |
 | Serve | `hugo server` | `bengal serve` |
 | New content | `hugo new docs/page.md` | Create file directly |
-| Check links | External tool | `bengal health linkcheck` |
+| Check links | External tool | `bengal inspect links` |
 | Note callout | `{{</* notice note */>}}` | `:::{note}` |
 | Warning | `{{</* notice warning */>}}` | `:::{warning}` |
 | Tabs | `{{</* tabs */>}}` | `:::{tab-set}` |

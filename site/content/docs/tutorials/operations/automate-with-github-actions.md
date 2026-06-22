@@ -224,7 +224,7 @@ jobs:
         run: bengal config doctor
 
       - name: Check for broken links
-        run: bengal health linkcheck
+        run: bengal inspect links
 
       - name: Build with strict mode
         run: bengal build --strict --verbose
@@ -413,7 +413,7 @@ Create `vercel.json`:
 **Solutions:**
 
 - Check configuration: `bengal config doctor`
-- Fix broken links: `bengal health linkcheck`
+- Fix broken links: `bengal inspect links`
 - Fix template errors: Check build logs for specific errors
 - Temporarily remove `--strict` to identify issues: `bengal build --verbose`
 

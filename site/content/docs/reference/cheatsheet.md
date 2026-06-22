@@ -74,9 +74,9 @@ bengal check --changed              # Only changed files
 bengal check --watch                # Watch mode (continuous)
 bengal check --verbose              # Show all checks
 bengal check --suggestions          # Show quality suggestions
-bengal health linkcheck                # Check all links
-bengal health linkcheck --external-only # External links only
-bengal health linkcheck --internal-only # Internal links only
+bengal inspect links                # Check all links
+bengal inspect links --external-only # External links only
+bengal inspect links --internal-only # Internal links only
 bengal health --dashboard              # Interactive health dashboard
 ```
 
@@ -375,7 +375,7 @@ weight = 2
 | Dev server | `bengal serve` |
 | New page | `bengal new page <name>` |
 | Validate | `bengal check` |
-| Link check | `bengal health linkcheck` |
+| Link check | `bengal inspect links` |
 | Show config | `bengal config show` |
 | Analyze site | `bengal graph analyze` |
 | Help | `bengal --help` |
