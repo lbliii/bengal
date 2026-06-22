@@ -3,12 +3,19 @@ title: Content
 description: Author, organize, and validate your documentation
 weight: 20
 icon: file-text
+tags:
+- persona-writer
 ---
+
 # The Content System
 
-Bengal transforms Markdown files into structured, validated documentation sites with rich directives, cross-references, and automated validation.
+**Writing content?** Start with [[docs/content/authoring|Authoring]] and
+[[docs/content/organization|Organization]]. **Pulling from GitHub or APIs?**
+See [[docs/content/sources|Remote Sources]]. **Maintaining multiple doc
+versions?** Read [[docs/content/versioning|Versioned Documentation]].
 
-## What Do You Need?
+Bengal transforms Markdown files into structured, validated documentation sites
+with rich directives, cross-references, and automated validation.
 
 :::{child-cards}
 :columns: 2

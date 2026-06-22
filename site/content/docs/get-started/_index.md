@@ -7,6 +7,9 @@ lang: en
 tags:
 - onboarding
 - quickstart
+- persona-writer
+- persona-themer
+- persona-contributor
 keywords:
 - getting started
 - installation
@@ -16,6 +19,15 @@ icon: arrow-clockwise
 ---
 
 # Get Started
+
+New to Bengal? Start here. This section takes you from install to a running site
+in minutes — no theming or Python required for the writer path.
+
+**Sizing it up?** Skim [[docs/about|About]] first. **Already building?** Jump to
+[[docs/building/configuration|Configure]] or [[docs/content/authoring|Author
+content]]. **Shipping to production?** See [[docs/building/deployment|Deploy]].
+
+Read the cards below: pick a quickstart path that matches your role, or follow the install steps first.
 
 ## Install
 
@@ -27,15 +39,10 @@ Requires Python 3.14 or later. See [[docs/get-started/installation|installation 
 
 ## Create a Site
 
-```bash
-bengal new site mysite
-cd mysite
-bengal serve
+```{include} _snippets/scaffold/new-site.md
 ```
 
-Your site runs at `http://localhost:5173`. The dev server rebuilds automatically when you save changes.
-
-## Pick a Path
+## Pick a Path {#pick-a-path}
 
 :::{cards}
 :columns: 1-2-3
@@ -69,4 +76,4 @@ Set up your development environment and start contributing.
 - [[docs/tutorials|Tutorials]] — Step-by-step guides
 - [[docs/content|Content]] — Writing and organizing content
 - [[docs/theming|Theming]] — Templates and styling
-- [[cli|CLI Reference]] — All commands
+- [[docs/reference/architecture/tooling/cli|CLI Reference]] — All commands

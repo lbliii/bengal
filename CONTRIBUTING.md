@@ -26,7 +26,7 @@ uv run bengal --version
 | `make setup` | Create virtual environment with Python 3.14t |
 | `make install` | Install dependencies (dev group included) |
 | `make test` | Run test suite (excludes slow/performance tests) |
-| `make typecheck` | Run mypy type checking |
+| `make ty` | Run ty type checker (Astral, Rust-based) |
 | `make build` | Build the documentation site |
 | `make serve` | Start development server |
 | `make clean` | Remove build artifacts and caches |
@@ -43,7 +43,7 @@ uv run ruff format bengal/ tests/
 uv run ruff check bengal/ tests/ --fix
 
 # Type check
-make typecheck
+make ty
 ```
 
 All code must pass linting and type checking. Type hints are required for all functions.
@@ -255,6 +255,6 @@ See **[Thread Safety Guide](THREAD_SAFETY.md)** for full patterns and lock order
 
 - **[B-Stack changelog strategy](docs/b-stack-changelog-strategy.md)** — Towncrier fragments and shared release-note conventions
 - **[UV Quick Reference](UV_QUICK_REFERENCE.md)** — uv commands and troubleshooting
-- **[Type Checking Guide](TYPE_CHECKING_GUIDE.md)** — mypy patterns for Bengal
+- **[Type Checking Guide](TYPE_CHECKING_GUIDE.md)** — ty patterns for Bengal
 - **[Thread Safety Guide](THREAD_SAFETY.md)** — Concurrency patterns and lock ordering
 - **[Contributor Quickstart](site/content/docs/get-started/quickstart-contributor.md)** — Detailed setup guide

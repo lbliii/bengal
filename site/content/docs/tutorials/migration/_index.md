@@ -17,12 +17,8 @@ All migrations follow similar patterns, regardless of your source platform:
 
 ### Common Migration Steps
 
-1. **Install Bengal**: `pip install bengal` or `uv add bengal`
-2. **Create new site**: `bengal new site mysite`
-3. **Copy content**: Transfer your markdown files to `content/`
-4. **Convert syntax**: Replace platform-specific syntax with Bengal directives
-5. **Update configuration**: Convert config files to `bengal.toml`
-6. **Test and verify**: Run `bengal build` and `bengal health linkcheck`
+```{include} _snippets/migration/common-steps.md
+```
 
 ### Universal Conversions
 
@@ -44,7 +40,7 @@ Most platforms use similar concepts that map to Bengal directives:
 
 ### What Changes
 
-- **Template syntax**: Each platform's template language → Jinja2
+- **Template syntax**: Each platform's template language → Kida
 - **Component syntax**: Platform-specific components → Bengal directives
 - **Configuration**: Platform config → `bengal.toml`
 - **Build process**: Platform CLI → `bengal build`

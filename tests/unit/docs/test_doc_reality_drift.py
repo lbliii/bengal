@@ -22,6 +22,7 @@ the drift were re-introduced.
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 # tests/unit/docs/ -> repo root is three parents up.
@@ -110,4 +111,61 @@ def test_object_model_lists_only_real_core_page_modules() -> None:
     assert not (cited & phantom), (
         f"object-model.md cites phantom core/page modules {sorted(cited & phantom)}; "
         f"real modules are {sorted(real_modules)}"
+    )
+
+
+def test_no_bengal_ssg_package_name_in_docs() -> None:
+    """The PyPI package is ``bengal``, not the retired ``bengal-ssg`` name."""
+    offenders: dict[str, list[int]] = {}
+    for path in _markdown_files(_DOCS):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if "bengal-ssg" in line:
+                offenders.setdefault(str(path.relative_to(_REPO_ROOT)), []).append(lineno)
+
+    assert not offenders, (
+        "Docs reference the wrong PyPI package `bengal-ssg` (use `bengal`):\n"
+        + "\n".join(f"  {p}: lines {ls}" for p, ls in sorted(offenders.items()))
+    )
+
+
+def test_architecture_cli_doc_matches_shipped_version() -> None:
+    """The architecture CLI help snapshot must match ``pyproject.toml`` version."""
+    version = tomllib.load((_REPO_ROOT / "pyproject.toml").open("rb"))["project"]["version"]
+    doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
+    text = doc.read_text(encoding="utf-8")
+    assert f"bengal {version}" in text, (
+        f"cli.md help snapshot missing shipped version `bengal {version}`"
+    )
+    known_stale = ("0.3.3", "0.3.2", "0.3.1", "0.3.0")
+    embedded = re.findall(r"^bengal (\d+\.\d+\.\d+)", text, flags=re.MULTILINE)
+    stale_hits = [v for v in embedded if v in known_stale]
+    assert not stale_hits, f"cli.md still embeds stale CLI version(s): {stale_hits}"
+
+
+_HUB_PAGES = (
+    _DOCS / "_index.md",
+    _DOCS / "about" / "_index.md",
+    _DOCS / "get-started" / "_index.md",
+    _DOCS / "content" / "_index.md",
+    _DOCS / "theming" / "_index.md",
+    _DOCS / "extending" / "_index.md",
+    _DOCS / "building" / "_index.md",
+    _DOCS / "tutorials" / "_index.md",
+    _DOCS / "reference" / "_index.md",
+)
+
+
+def test_hub_pages_do_not_reference_phantom_cli_section() -> None:
+    """Hub pages must not link to a non-existent top-level ``/cli/`` section."""
+    offenders: dict[str, list[int]] = {}
+    for path in _HUB_PAGES:
+        if not path.exists():
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r"\[\[cli[\]|/cli/]", line):
+                offenders.setdefault(str(path.relative_to(_REPO_ROOT)), []).append(lineno)
+
+    assert not offenders, (
+        "Hub pages link to phantom `/cli/` section; use docs/reference/architecture/tooling/cli:\n"
+        + "\n".join(f"  {p}: lines {ls}" for p, ls in sorted(offenders.items()))
     )

@@ -12,6 +12,10 @@ keywords: [directives, markdown, syntax, reference, admonitions, tabs, cards, yo
 
 Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name} ` syntax. Directives provide rich components like callouts, tabs, cards, and more.
 
+:::{tip}
+**See everything live:** [[docs/reference/directives/kitchen-sink|Directive Kitchen Sink]] — a gallery of all directive types with working examples.
+:::
+
 ## Key Terms
 
 :::{glossary}
@@ -232,7 +236,7 @@ This is a note with **markdown** support.
 
 :::{card} Card 1
 :icon: book
-:link: docs/getting-started
+:link: docs/get-started/
 
 Content here
 :::

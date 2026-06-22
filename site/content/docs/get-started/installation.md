@@ -8,6 +8,7 @@ lang: en
 tags:
 - onboarding
 - installation
+- persona-writer
 keywords:
 - installation
 - setup
@@ -18,6 +19,13 @@ category: onboarding
 ---
 
 # Install Bengal
+
+Install Bengal on your machine before scaffolding a site or contributing to the project.
+
+:::{note}
+**Do I need this?** Yes if `bengal --version` fails or you are setting up a new
+machine. Skip if Bengal is already installed and up to date.
+:::
 
 ## Requirements
 
@@ -30,14 +38,7 @@ Bengal requires **Python 3.14 or later**. For best performance, use the free-thr
 :icon: rocket
 :badge: Recommended
 
-```bash
-uv pip install bengal
-```
-
-Or for a one-time run without installation:
-
-```bash
-uvx bengal --version
+```{include} _snippets/install/uv.md
 ```
 
 :::{/tab-item}
@@ -45,8 +46,7 @@ uvx bengal --version
 :::{tab-item} pip
 :icon: package
 
-```bash
-pip install bengal
+```{include} _snippets/install/pip.md
 ```
 
 :::{/tab-item}
@@ -54,8 +54,7 @@ pip install bengal
 :::{tab-item} pipx
 :icon: terminal
 
-```bash
-pipx install bengal
+```{include} _snippets/install/pipx.md
 ```
 
 This installs Bengal in an isolated environment while making the `bengal` command available globally.
@@ -65,11 +64,7 @@ This installs Bengal in an isolated environment while making the `bengal` comman
 :icon: code
 :badge: Development
 
-```bash
-git clone https://github.com/lbliii/bengal.git
-cd bengal
-make setup
-make install
+```{include} _snippets/install/from-source.md
 ```
 
 This installs Bengal in editable mode with development dependencies.
@@ -82,7 +77,7 @@ This installs Bengal in editable mode with development dependencies.
 bengal --version
 ```
 
-You should see output like: `Bengal SSG, version 0.4.1`
+You should see output like: `bengal 0.5.1` (version matches your installed release).
 
 ## Upgrade Bengal
 

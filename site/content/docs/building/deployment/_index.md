@@ -24,10 +24,9 @@ Bengal generates static HTML, CSS, and JavaScript files. This means you can host
 
 ## The Production Build
 
-When you are ready to ship, run the build command:
+When you are ready to ship, run the production build:
 
-```bash
-bengal build --environment production
+```{include} _snippets/deploy/production-build.md
 ```
 
 This command:
@@ -46,10 +45,7 @@ This command:
 | `--fast` | Maximum performance (quiet output, full parallelism). | Fast CI builds. |
 | `--verbose` | Shows detailed build output (phase timing, stats). | Useful for debugging CI failures. |
 
-Example full command for CI:
-```bash
-bengal build --environment production --strict --clean-output
-```
+Example full command for CI matches the snippet above — add `--fast` when you want maximum CI throughput with quiet output.
 
 ## GitHub Pages
 

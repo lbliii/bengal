@@ -9,6 +9,7 @@ tags:
 - onboarding
 - contributing
 - development
+- persona-contributor
 keywords:
 - contributing
 - development
@@ -20,7 +21,12 @@ icon: code
 
 # Contributor Quickstart
 
-Set up Bengal for development and start contributing.
+Set up Bengal for development and start contributing to the core project.
+
+:::{note}
+**Do I need this?** Yes if you plan to submit PRs to Bengal itself. For site
+building only, see [[docs/get-started/quickstart-writer|Writer Quickstart]].
+:::
 
 ## Prerequisites
 

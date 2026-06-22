@@ -10,7 +10,7 @@ This guide covers common use cases for Bengal, with patterns and examples for ea
 
 **When to use this guide**: Choose a scenario that matches your site type, then follow the step-by-step instructions to scaffold and configure your site. Each scenario includes complete examples you can copy and adapt.
 
-**Prerequisites**: Bengal installed (`pip install bengal-ssg`). See [[docs/get-started/installation|Installation]] if needed.
+**Prerequisites**: Bengal installed (`pip install bengal`). See [[docs/get-started/installation|Installation]] if needed.
 
 ## Blog Author Workflow
 
@@ -79,8 +79,6 @@ bengal serve
 ## Documentation Site
 
 Build technical documentation with search, versioning, and navigation.
-
-**What you'll get**: A documentation site with search functionality, hierarchical navigation, and organized content structure.
 
 **What you'll get**: A documentation site with hierarchical navigation, search functionality, and structured content organization.
 
@@ -157,8 +155,6 @@ menu:
 
 Showcase projects with a portfolio layout.
 
-**What you'll get**: A portfolio site with project showcases, featured project highlighting, and organized project pages.
-
 **What you'll get**: A portfolio site with project pages, featured project highlighting, and tag-based organization.
 
 ### 1. Scaffold Portfolio
@@ -208,8 +204,6 @@ Use the `featured: true` frontmatter field to highlight projects on the homepage
 ## Mixed Content Site
 
 Combine documentation, blog, and portfolio on a single site.
-
-**What you'll get**: A single site with multiple content types, each with appropriate sorting and display logic using cascade configuration.
 
 **What you'll get**: A multi-purpose site with separate sections for different content types, each with appropriate templates and navigation.
 

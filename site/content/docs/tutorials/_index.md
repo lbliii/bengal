@@ -5,55 +5,28 @@ description: Step-by-step guides for building with Bengal
 weight: 20
 draft: false
 icon: graduation-cap
+tags:
+- persona-writer
+- persona-migrator
+- persona-operator
 ---
 
 # Tutorials
 
-Hands-on guides that walk you through complete workflows. Start with [[docs/get-started|Get Started]] if you're new to Bengal.
+Hands-on guides that walk you through complete workflows — from your first blog
+to migrating from another SSG to wiring CI/CD.
 
-**Choose your path**: Each tutorial category focuses on a specific aspect of building with Bengal. Follow tutorials in any order based on your needs.
+**Brand new?** Start with [[docs/get-started|Get Started]] before diving in here.
+**Migrating?** Jump straight to [[docs/tutorials/migration|Migration Guides]].
+**Deploying?** See [[docs/tutorials/operations|Operations tutorials]].
 
-:::{cards}
-:columns: 1-2
-:gap: medium
+:::{child-cards}
+:columns: 2
+:include: sections
+:fields: title, description, icon
+:::
 
-:::{card} Build Sites
-:icon: globe
-:link: ./sites
-:description: End-to-end site builds
-Create blogs, portfolios, and documentation sites from scratch.
-:::{/card}
-
-:::{card} Theming
-:icon: palette
-:link: ./theming
-:description: Templates and customization
-Learn Kida templating and customize the default theme.
-:::{/card}
-
-:::{card} Content Patterns
-:icon: tree-structure
-:link: ./content
-:description: Advanced content organization
-Build tutorial series, multi-part guides, and structured content.
-:::{/card}
-
-:::{card} Operations
-:icon: settings
-:link: ./operations
-:description: CI/CD and analysis
-Automate builds, deployments, and site quality checks.
-:::{/card}
-
-:::{card} Migration
-:icon: arrow-right
-:link: ./migration
-:description: Migrate from other SSGs
-Step-by-step guides from Hugo, Jekyll, MkDocs, Sphinx, and more.
-:::{/card}
-:::{/cards}
-
-## All Tutorials
+## Featured Tutorials
 
 ### Sites
 - [[docs/tutorials/sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes (Beginner, 15 min)

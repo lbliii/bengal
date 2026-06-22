@@ -375,18 +375,37 @@ annotated command signatures.
 
 ```bash
 $ bengal --help
-bengal 0.3.3
+bengal 0.5.1
 Static site generator for Python teams — every layer pure Python, scales with your cores
 
 Core workflow
   build (b)               Build your site
   serve (s, dev)          Start dev server with hot reload
-  preview                  Build and serve completed output
+  preview                 Build and serve completed output
   check (v)               Validate your site
+  audit                   Audit generated artifacts
+  fix                     Auto-fix issues
+  clean (c)               Clean output directory and cache
+
+Create
+  new (n)                 Create new site, theme, or content [group]
 
 Site systems
   config                  Configuration management [group]
   theme                   Theme development, directives, and assets [group]
+  content                 Content sources and collections [group]
+  version                 Documentation versioning [group]
+  i18n                    Internationalization (PO/MO) [group]
+  plugin (plugins)        Plugin discovery and readiness [group]
+
+Inspect and debug
+  inspect                 Analyze and inspect your site [group]
+  debug                   Debug builds and dependencies [group]
+
+Infrastructure
+  cache                   CI cache management [group]
+  upgrade                 Check for and install Bengal updates
+  codemod                 Run automated code migrations
 ```
 
 ## Command Output Templates
