@@ -154,8 +154,8 @@ DYNAMIC_CLASS_PATTERNS = [
     r"^sepia-",  # sepia utilities
     r"^drop-",  # drop shadow utilities
     # BEM modifiers with dynamic suffixes (template variables)
-    r"^api-hub-tile--",
-    r"^api-hub-tile__type-badge--",
+    r"^hub-card--",
+    r"^hub-badge--",
     r"^api-method--",
     r"^api-schema-viewer--depth-",
     r"^api-playground-bar--",

@@ -61,6 +61,14 @@
   width: 100%;
 }
 
+@supports (grid-template-rows: subgrid) {
+  .docs-sidebar,
+  .docs-main,
+  .docs-toc {
+    grid-row: 1;
+  }
+}
+
 /* Container becomes full-width when it holds docs-layout (avoids 100vw scrollbar issue) */
 .container:has(> .docs-layout) {
   max-width: 100%;

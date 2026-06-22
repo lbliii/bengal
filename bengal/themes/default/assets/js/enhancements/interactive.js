@@ -88,217 +88,155 @@
    * Shows a floating button when user scrolls down
    */
   function setupBackToTop() {
-    // Find existing button from template (static HTML is more reliable)
     const button = document.querySelector('.back-to-top');
     if (!button) {
       log('Back-to-top button not found in template');
       return;
     }
 
-    // Show/hide based on scroll position
+    button.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    const sentinel = document.querySelector('.back-to-top-sentinel');
+    if (sentinel && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(([entry]) => {
+        button.classList.toggle('visible', !entry.isIntersecting);
+      }, { threshold: 0 });
+      observer.observe(sentinel);
+      cleanupHandlers.scroll.push(() => observer.disconnect());
+      return;
+    }
+
+    // Fallback for browsers without IntersectionObserver
     let isVisible = false;
     const toggleVisibility = () => {
       const scrolled = window.pageYOffset || document.documentElement.scrollTop;
-      const shouldShow = scrolled > 300; // Show after 300px
-
+      const shouldShow = scrolled > 300;
       if (shouldShow !== isVisible) {
         isVisible = shouldShow;
         button.classList.toggle('visible', shouldShow);
       }
     };
-
-    // Throttle scroll events for performance
     const throttledToggle = throttleScroll(toggleVisibility);
     window.addEventListener('scroll', throttledToggle, { passive: true });
-    cleanupHandlers.scroll.push(() => {
-      window.removeEventListener('scroll', throttledToggle);
-    });
-
-    // Scroll to top on click
-    button.addEventListener('click', () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-
-    // Initial check
+    cleanupHandlers.scroll.push(() => window.removeEventListener('scroll', throttledToggle));
     toggleVisibility();
   }
 
   /**
    * Reading Progress Indicator
-   * Shows a bar at the top indicating reading progress
-   *
-   * Performance: Caches document dimensions and uses transform
-   * instead of width for GPU-accelerated updates.
+   * Static bar from template; fill driven by CSS scroll timeline when supported.
    */
   function setupReadingProgress() {
-    // Create progress bar
-    const progressBar = document.createElement('div');
-    progressBar.className = 'reading-progress';
-    progressBar.setAttribute('role', 'progressbar');
-    progressBar.setAttribute('aria-label', 'Reading progress');
-    progressBar.setAttribute('aria-valuemin', '0');
-    progressBar.setAttribute('aria-valuemax', '100');
+    const progressBar = document.querySelector('.reading-progress');
+    const progressFill = progressBar?.querySelector('.reading-progress__fill');
+    if (!progressBar || !progressFill) {
+      return;
+    }
 
-    const progressFill = document.createElement('div');
-    progressFill.className = 'reading-progress__fill';
-    // Use transform for GPU-accelerated updates (avoids reflow)
-    progressFill.style.width = '100%';
-    progressFill.style.transformOrigin = 'left';
-    progressBar.appendChild(progressFill);
+    if (CSS.supports('animation-timeline', 'scroll()')) {
+      return;
+    }
 
-    // Add to document (at top)
-    document.body.insertBefore(progressBar, document.body.firstChild);
-
-    // Cache document dimensions (avoid reading on every scroll)
     let cachedDocHeight = document.documentElement.scrollHeight;
     let cachedWinHeight = window.innerHeight;
     let lastProgress = -1;
 
-    // Update cached dimensions on resize
     const updateDimensions = () => {
       cachedDocHeight = document.documentElement.scrollHeight;
       cachedWinHeight = window.innerHeight;
     };
 
-    // Update progress on scroll (uses cached dimensions)
     const updateProgress = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-      // Calculate progress (0-100) using cached dimensions
       const scrollableHeight = cachedDocHeight - cachedWinHeight;
       const progress = scrollableHeight > 0
         ? Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100))
         : 0;
-
-      // Only update DOM if progress changed significantly (avoid micro-updates)
       const roundedProgress = Math.round(progress);
       if (roundedProgress !== lastProgress) {
         lastProgress = roundedProgress;
-        // Use transform for GPU-accelerated animation (no reflow)
         progressFill.style.transform = `scaleX(${progress / 100})`;
-        progressBar.setAttribute('aria-valuenow', roundedProgress);
+        progressBar.setAttribute('aria-valuenow', String(roundedProgress));
       }
     };
 
-    // Throttle scroll events
     const throttledUpdate = throttleScroll(updateProgress);
     window.addEventListener('scroll', throttledUpdate, { passive: true });
-    cleanupHandlers.scroll.push(() => {
-      window.removeEventListener('scroll', throttledUpdate);
-    });
+    cleanupHandlers.scroll.push(() => window.removeEventListener('scroll', throttledUpdate));
 
-    // Update dimensions on resize (debounced)
     const debouncedDimUpdate = debounce(() => {
       updateDimensions();
       updateProgress();
     }, 100);
     window.addEventListener('resize', debouncedDimUpdate, { passive: true });
-    cleanupHandlers.resize.push(() => {
-      window.removeEventListener('resize', debouncedDimUpdate);
-    });
+    cleanupHandlers.resize.push(() => window.removeEventListener('resize', debouncedDimUpdate));
 
-    // Initial update
     updateProgress();
   }
 
   /**
-   * Enhanced Smooth Scroll
-   * NOTE: Removed - already handled by main.js
-   * Keeping function signature for backwards compatibility
-   */
-  function setupSmoothScroll() {
-    // Smooth scroll is now only handled in main.js to avoid duplicate event listeners
-    // This function is kept as a no-op for backwards compatibility
-  }
-
-  /**
    * Scroll Spy for Navigation
-   * Highlights current section in navigation as user scrolls
-   *
-   * Note: Only handles docs-nav links. TOC links are handled by toc.js
-   * which has more sophisticated collapse/expand behavior.
-   *
-   * Performance: Caches section offsets and batches DOM reads/writes
-   * to avoid forced reflows during scroll.
+   * Highlights current section in navigation via IntersectionObserver.
    */
   function setupScrollSpy(root, cleanupList) {
     root = root || document;
     cleanupList = cleanupList || cleanupHandlers.scroll;
-    // Article headings live outside the nav element, so stay document-scoped.
+
     const sections = document.querySelectorAll('h2[id], h3[id]');
     if (sections.length === 0) return;
 
-    // Only select docs-nav links, not TOC links (toc.js handles those)
     const navLinks = root.querySelectorAll('.docs-nav a');
     if (navLinks.length === 0) return;
 
+    if (!('IntersectionObserver' in window)) {
+      return;
+    }
+
     let currentSection = '';
+    const visibleSections = new Map();
 
-    // Cache section data to avoid reading offsetTop on every scroll
-    // Structure: { id: string, element: Element, offsetTop: number }
-    let sectionData = [];
-
-    // Build initial cache
-    const updateSectionCache = () => {
-      sectionData = Array.from(sections).map(section => ({
-        id: section.getAttribute('id'),
-        element: section,
-        offsetTop: section.offsetTop
-      }));
+    const highlightSection = (sectionId) => {
+      if (!sectionId || sectionId === currentSection) return;
+      currentSection = sectionId;
+      navLinks.forEach((link) => {
+        const href = link.getAttribute('href');
+        link.classList.toggle('active', href === `#${sectionId}`);
+      });
     };
 
-    // Initialize cache
-    updateSectionCache();
-
-    // Rebuild cache on resize (layout may change)
-    const debouncedCacheUpdate = debounce(updateSectionCache, 250);
-    window.addEventListener('resize', debouncedCacheUpdate, { passive: true });
-    cleanupList.push(() => {
-      window.removeEventListener('resize', debouncedCacheUpdate);
-    });
-
-    const highlightNavigation = () => {
-      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      const headerOffset = 80; // Matches header height + buffer
-
-      // Find current section using cached offsets (no DOM reads)
-      let foundSection = '';
-      for (let i = 0; i < sectionData.length; i++) {
-        if (scrollPosition >= sectionData[i].offsetTop - headerOffset) {
-          foundSection = sectionData[i].id;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const id = entry.target.getAttribute('id');
+        if (!id) return;
+        if (entry.isIntersecting) {
+          visibleSections.set(id, entry.intersectionRatio);
+        } else {
+          visibleSections.delete(id);
         }
-      }
+      });
 
-      // Only update DOM if changed
-      if (foundSection !== currentSection) {
-        currentSection = foundSection;
+      if (visibleSections.size === 0) return;
 
-        // Batch all class changes
-        navLinks.forEach(link => {
-          const href = link.getAttribute('href');
-          const shouldBeActive = currentSection && href === `#${currentSection}`;
+      let bestId = '';
+      let bestRatio = -1;
+      visibleSections.forEach((ratio, id) => {
+        if (ratio >= bestRatio) {
+          bestRatio = ratio;
+          bestId = id;
+        }
+      });
 
-          if (shouldBeActive) {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
-        });
-      }
-    };
-
-    // Throttle scroll events
-    const throttledHighlight = throttleScroll(highlightNavigation);
-    window.addEventListener('scroll', throttledHighlight, { passive: true });
-    cleanupList.push(() => {
-      window.removeEventListener('scroll', throttledHighlight);
+      highlightSection(bestId);
+    }, {
+      root: null,
+      rootMargin: '-80px 0px -55% 0px',
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1]
     });
 
-    // Initial highlight
-    highlightNavigation();
+    sections.forEach((section) => observer.observe(section));
+    cleanupList.push(() => observer.disconnect());
   }
 
   /**
@@ -474,7 +412,6 @@
     // element-scoped and run from the <bengal-docs-nav> custom element instead.
     setupBackToTop();
     setupReadingProgress();
-    setupSmoothScroll();
     setupMobileSidebar();
     setupChangelogFilter();
 

@@ -632,8 +632,14 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {% block site_dialogs %}
-    {% if 'navigation.back_to_top' in theme.features %}<button class="back-to-top" aria-label="Scroll to top">{{
-        icon("arrow-up", size=24) }}</button>{% end %}
+    <div class="reading-progress" role="progressbar" aria-label="Reading progress" aria-valuemin="0"
+        aria-valuemax="100" aria-valuenow="0">
+        <div class="reading-progress__fill"></div>
+    </div>
+    {% if 'navigation.back_to_top' in theme.features %}
+    <div class="back-to-top-sentinel" aria-hidden="true"></div>
+    <button class="back-to-top" aria-label="Scroll to top">{{ icon("arrow-up", size=24) }}</button>
+    {% end %}
     {% if 'content.lightbox' in theme.features %}
     <dialog id="lightbox-dialog" class="lightbox-dialog" aria-label="Image lightbox">
         <img class="lightbox-dialog__image" alt="">

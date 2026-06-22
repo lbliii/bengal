@@ -1,0 +1,39 @@
+/**
+ * Scoped prose content inside component slots (#540)
+ *
+ * Replaces per-component descendant-selector list resets with one @scope
+ * contract. Apply .has-prose-content to any slot that may contain markdown.
+ */
+
+@scope (.has-prose-content) {
+  :scope ul,
+  :scope ol {
+    padding-inline-start: var(--space-6);
+    margin: var(--space-3) 0;
+  }
+
+  :scope ul {
+    list-style-type: disc;
+  }
+
+  :scope ol {
+    list-style-type: decimal;
+  }
+
+  :scope li {
+    margin: var(--space-1) 0;
+  }
+
+  :scope p {
+    border-inline-start: none;
+    padding-inline-start: 0;
+    background: transparent;
+  }
+
+  :scope strong,
+  :scope b {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+}

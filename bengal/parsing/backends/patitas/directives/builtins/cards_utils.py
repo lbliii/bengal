@@ -373,7 +373,7 @@ def render_child_card(
         parts.append("  </div>")
 
     if description:
-        parts.append('  <div class="card-content">')
+        parts.append('  <div class="card-content has-prose-content">')
         parts.append(f"    {_render_description_html(description)}")
         parts.append("  </div>")
 

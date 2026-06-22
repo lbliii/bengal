@@ -202,44 +202,13 @@ details.dropdown.info .dropdown-icon .bengal-icon {
   }
 }
 
-.dropdown-content>*:first-child {
+/* Prose list styling — delegated to @scope (.has-prose-content) in base/prose-content.css */
+.dropdown-content.has-prose-content > *:first-child {
   margin-top: 0;
 }
 
-.dropdown-content>*:last-child {
+.dropdown-content.has-prose-content > *:last-child {
   margin-bottom: 0;
-}
-
-/* Fix list styling inside dropdowns */
-.dropdown-content ul,
-.dropdown-content ol {
-  padding-inline-start: var(--space-6);
-  margin: var(--space-3) 0;
-}
-
-.dropdown-content ul {
-  list-style-type: disc;
-}
-
-.dropdown-content ol {
-  list-style-type: decimal;
-}
-
-.dropdown-content li {
-  margin: var(--space-1) 0;
-}
-
-.dropdown-content p {
-  border-inline-start: none;
-  padding-inline-start: 0;
-  background: transparent;
-}
-
-.dropdown-content strong,
-.dropdown-content b {
-  border: none;
-  background: transparent;
-  padding: 0;
 }
 
 /* ============================================

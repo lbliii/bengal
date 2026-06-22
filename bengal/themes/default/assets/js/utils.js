@@ -177,40 +177,6 @@
   };
 
   /**
-   * Focus trap utility for modals/dropdowns
-   * @param {HTMLElement} container - Container element
-   * @returns {Function} Keydown handler
-   */
-  function createFocusTrap(container) {
-    const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
-
-    return function handleKeydown(e) {
-      if (e.key !== 'Tab') return;
-
-      const focusables = Array.from(container.querySelectorAll(FOCUSABLE));
-      if (focusables.length === 0) return;
-
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement;
-
-      if (e.shiftKey) {
-        // Shift+Tab
-        if (active === first || !container.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        // Tab
-        if (active === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-  }
-
-  /**
    * Load icon SVG content (for use in JavaScript)
    * @param {string} iconName - Icon name (e.g., "close", "enlarge")
    * @returns {Promise<string>} SVG HTML string
@@ -249,7 +215,6 @@
     isExternalUrl,
     escapeRegex,
     scrollManager,
-    createFocusTrap,
     loadIcon
   };
 

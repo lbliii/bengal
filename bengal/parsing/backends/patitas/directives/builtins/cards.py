@@ -525,7 +525,7 @@ class CardDirective:
 
         # Card content
         if rendered_children.strip():
-            sb.append('  <div class="card-content">\n')
+            sb.append('  <div class="card-content has-prose-content">\n')
             sb.append(f"    {rendered_children}")
             sb.append("  </div>\n")
 

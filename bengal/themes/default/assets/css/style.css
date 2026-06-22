@@ -71,6 +71,10 @@
 }
 
 @layer base {
+  @import url('base/prose-content.css');
+}
+
+@layer base {
   @import url('base/print.css');
 }
 

@@ -43,6 +43,7 @@ CSS_CORE: list[str] = [
     "base/utilities.css",
     "base/interactive-patterns.css",
     "base/accessibility.css",
+    "base/prose-content.css",
     "base/print.css",
     # Composition layouts
     "composition/layouts.css",
