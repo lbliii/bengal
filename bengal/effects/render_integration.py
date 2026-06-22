@@ -122,6 +122,8 @@ class RenderEffectRecorder:
         tracer: EffectTracer,
         page: PageLike,
         template_name: str,
+        *,
+        parse_dependencies: frozenset[Path] = frozenset(),
     ) -> None:
         """
         Initialize recorder.
@@ -130,10 +132,12 @@ class RenderEffectRecorder:
             tracer: EffectTracer to record to
             page: Page being rendered
             template_name: Template used for rendering
+            parse_dependencies: Files read during markdown parse (includes, etc.)
         """
         self._tracer = tracer
         self._page = page
         self._template_name = template_name
+        self._parse_dependencies = parse_dependencies
         self._context: EffectContext | None = None
         self._token: Any = None
 
@@ -165,14 +169,28 @@ class RenderEffectRecorder:
                 data_files=frozenset(self._context.data_files),
             )
 
-            # Add extra deps
-            if self._context.extra_deps:
+            # Add extra deps from render-time and parse-time discovery
+            extra_deps = set(self._context.extra_deps) | set(self._parse_dependencies)
+            metadata = dict(effect.metadata)
+            if self._parse_dependencies:
+                metadata["include_dependencies"] = sorted(
+                    str(path) for path in self._parse_dependencies
+                )
+            if extra_deps:
                 effect = Effect(
                     outputs=effect.outputs,
-                    depends_on=effect.depends_on | frozenset(self._context.extra_deps),
+                    depends_on=effect.depends_on | frozenset(extra_deps),
                     invalidates=effect.invalidates,
                     operation=effect.operation,
-                    metadata=effect.metadata,
+                    metadata=metadata,
+                )
+            elif metadata != effect.metadata:
+                effect = Effect(
+                    outputs=effect.outputs,
+                    depends_on=effect.depends_on,
+                    invalidates=effect.invalidates,
+                    operation=effect.operation,
+                    metadata=metadata,
                 )
 
             self._tracer.record(effect)
@@ -267,20 +285,32 @@ class BuildEffectTracer:
         """Disable effect tracing."""
         self._enabled = False
 
-    def record_page_render(self, page: PageLike, template_name: str) -> RenderEffectRecorder | None:
+    def record_page_render(
+        self,
+        page: PageLike,
+        template_name: str,
+        *,
+        parse_dependencies: frozenset[Path] = frozenset(),
+    ) -> RenderEffectRecorder | None:
         """
         Get recorder for page rendering (if enabled).
 
         Args:
             page: Page being rendered
             template_name: Template name
+            parse_dependencies: Files read during markdown parse (includes, etc.)
 
         Returns:
             RenderEffectRecorder if enabled, None otherwise
         """
         if not self._enabled:
             return None
-        return RenderEffectRecorder(self._tracer, page, template_name)
+        return RenderEffectRecorder(
+            self._tracer,
+            page,
+            template_name,
+            parse_dependencies=parse_dependencies,
+        )
 
     def get_effects(self) -> list[Effect]:
         """Get all recorded effects."""

@@ -68,7 +68,7 @@ class BengalCLI(CLI):
         {"title": "Create", "commands": ("new",)},
         {
             "title": "Site systems",
-            "commands": ("config", "theme", "content", "version", "i18n", "plugin"),
+            "commands": ("config", "theme", "content", "version", "i18n", "plugin", "capability"),
         },
         {"title": "Inspect and debug", "commands": ("inspect", "debug")},
         {"title": "Infrastructure", "commands": ("cache", "upgrade", "codemod")},
@@ -1073,6 +1073,26 @@ for name, desc in [
         display_result=False,
     )
 
+# --- capability ---
+capability = cli.group(
+    "capability",
+    description="Runtime capability registry inspection",
+    aliases=("capabilities",),
+)
+
+for name, desc in [
+    ("list", "List registered runtime capabilities"),
+    ("info", "Show capability spec and wiring details"),
+    ("validate", "Validate site capability configuration"),
+]:
+    capability.lazy_command(
+        name,
+        import_path=f"bengal.cli.milo_commands.capability:capability_{name}",
+        description=desc,
+        annotations={"readOnlyHint": True},
+        display_result=False,
+    )
+
 # ---------------------------------------------------------------------------
 # Tier 3 — Analysis & debugging (power users)
 # ---------------------------------------------------------------------------
@@ -1101,6 +1121,7 @@ for name, desc in [
     ("incremental", "Debug incremental rebuild decisions"),
     ("delta", "Compare builds and identify changes"),
     ("deps", "Visualize dependency graph"),
+    ("includes", "Inspect include targets for a page"),
     ("migrate", "Preview or execute content migrations"),
     ("sandbox", "Test directives in isolation"),
 ]:
@@ -1109,7 +1130,7 @@ for name, desc in [
         import_path=f"bengal.cli.milo_commands.debug:debug_{name}",
         description=desc,
         annotations={
-            "readOnlyHint": name in {"incremental", "delta", "deps", "sandbox"},
+            "readOnlyHint": name in {"incremental", "delta", "deps", "includes", "sandbox"},
             "destructiveHint": name == "migrate",
         },
         display_result=False,

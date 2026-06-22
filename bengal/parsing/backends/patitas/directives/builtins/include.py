@@ -12,8 +12,8 @@ Security:
 - Path containment within site root
 
 Context Requirements:
-These directives require a FileResolver to be provided by the renderer.
-The resolver handles path resolution and file loading with security checks.
+These directives resolve include paths at render time using site and page
+context from the active RenderSession.
 
 Thread Safety:
 Stateless handlers. Safe for concurrent use across threads.
@@ -34,7 +34,7 @@ from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from patitas.location import SourceLocation
     from patitas.nodes import Block
@@ -50,6 +50,7 @@ __all__ = [
 ]
 
 _MAX_INCLUDE_BYTES = 1_048_576  # 1 MiB
+_MAX_INCLUDE_DEPTH = 10
 
 
 # =============================================================================
@@ -180,6 +181,20 @@ def load_include_file(
     return "".join(lines[start_idx:end_idx]), ""
 
 
+def _record_include_dependency(resolved_path: Path) -> None:
+    """Record included file for incremental rebuild dependency tracking."""
+    from bengal.parsing.backends.patitas.render_session import append_content_dependency
+
+    append_content_dependency(resolved_path)
+
+    try:
+        from bengal.effects.render_integration import record_extra_dependency
+
+        record_extra_dependency(resolved_path.resolve())
+    except ImportError:
+        return
+
+
 def _site_root_from_context(page_context: Any | None, site: Any | None) -> Path | None:
     if site is not None and hasattr(site, "root_path"):
         return Path(site.root_path)
@@ -189,10 +204,99 @@ def _site_root_from_context(page_context: Any | None, site: Any | None) -> Path 
 
 
 def _source_file_from_context(page_context: Any | None) -> str | None:
+    from bengal.parsing.backends.patitas.render_session import included_source_file
+
+    active = included_source_file()
+    if active:
+        return active
     if page_context is None:
         return None
     source_path = getattr(page_context, "source_path", None)
     return str(source_path) if source_path else None
+
+
+def _render_included_content(
+    content: str,
+    resolved_path: Path,
+    *,
+    start_line: int | None,
+    end_line: int | None,
+    render_markdown_fragment: Callable[[str], str] | None,
+) -> tuple[str, str]:
+    """Parse and render included markdown content."""
+    if render_markdown_fragment is None:
+        return "", "Include requires render context to parse files"
+
+    from bengal.parsing.backends.patitas.include_cache import (
+        cache_key_for,
+        get_cached_include_ast,
+        get_cached_include_html,
+        store_cached_include_ast,
+        store_cached_include_html,
+    )
+    from bengal.parsing.backends.patitas.render_config import get_render_config
+    from bengal.parsing.backends.patitas.render_session import (
+        get_markdown_engine,
+        push_include_path,
+        try_get_render_session,
+    )
+
+    resolved_key = str(resolved_path.resolve())
+    session = try_get_render_session()
+    stack = session.include_stack if session is not None else []
+    if resolved_key in stack:
+        return "", f"Circular include detected: {resolved_path.name}"
+    if len(stack) >= _MAX_INCLUDE_DEPTH:
+        return "", f"Maximum include depth ({_MAX_INCLUDE_DEPTH}) exceeded"
+
+    cache_key = cache_key_for(resolved_path, start_line=start_line, end_line=end_line)
+    config = get_render_config()
+    cacheable = config.text_transformer is None
+    engine = get_markdown_engine()
+
+    if cacheable:
+        cached_html = get_cached_include_html(cache_key)
+        if cached_html is not None:
+            return cached_html, ""
+
+    render_kwargs: dict[str, Any] = {}
+    if session is not None:
+        render_kwargs = {
+            "page_context": session.page_context,
+            "site": session.site,
+            "xref_index": session.xref_index,
+            "links_collector": session.links_collector,
+        }
+
+    with push_include_path(resolved_path):
+        if cacheable and engine is not None:
+            cached_ast = get_cached_include_ast(cache_key)
+            if cached_ast is not None:
+                source, blocks = cached_ast
+                html = engine.render_ast(
+                    blocks,
+                    source,
+                    text_transformer=config.text_transformer,
+                    **render_kwargs,
+                )
+                store_cached_include_html(cache_key, html)
+                return html, ""
+
+            ast = engine.parse_to_ast(content)
+            html = engine.render_ast(
+                ast,
+                content,
+                text_transformer=config.text_transformer,
+                **render_kwargs,
+            )
+            store_cached_include_ast(cache_key, content, ast)
+            store_cached_include_html(cache_key, html)
+            return html, ""
+
+        html = render_markdown_fragment(content)
+        if cacheable:
+            store_cached_include_html(cache_key, html)
+        return html, ""
 
 
 # =============================================================================
@@ -225,7 +329,7 @@ class IncludeDirective:
         :::
 
     Requires:
-        FileResolver for path resolution and file loading.
+        Site and page context from the active render session.
 
     Security:
         - Maximum include depth of 10 (stack overflow protection)
@@ -245,9 +349,6 @@ class IncludeDirective:
     options_class: ClassVar[type[IncludeOptions]] = IncludeOptions
     preserves_raw_content: ClassVar[bool] = True  # Need raw content for parsing
 
-    # File resolver - set by renderer/parser during registration
-    file_resolver: FileResolver | None = None
-
     def parse(
         self,
         name: str,
@@ -259,9 +360,9 @@ class IncludeDirective:
     ) -> Directive:
         """Build include AST node.
 
-        Note: For include, the actual file loading and recursive parsing
-        happens in a separate integration step, not during parse.
-        The parse method just captures the configuration.
+        Note: Included files are loaded and parsed during render (not parse),
+        because path resolution requires site/page context. Nested includes
+        reuse the active Markdown engine via RenderSession.
         """
         file_path = (title.strip() if title else "") or options.file.strip()
 
@@ -288,13 +389,18 @@ class IncludeDirective:
         *,
         page_context: Any | None = None,
         site: Any | None = None,
+        render_markdown_fragment: Callable[[str], str] | None = None,
     ) -> None:
         """Render include directive."""
         opts = node.options
 
         error = opts.error
         file_path = opts.file_path
-        if not error and not rendered_children.strip():
+        if not error and rendered_children.strip():
+            sb.append(rendered_children)
+            return
+
+        if not error:
             site_root = _site_root_from_context(page_context, site)
             if site_root is None:
                 error = "Include requires site context to load files"
@@ -307,6 +413,7 @@ class IncludeDirective:
                 if resolved is None:
                     error = f"File not found: {file_path}"
                 else:
+                    _record_include_dependency(resolved)
                     content, load_error = load_include_file(
                         resolved,
                         start_line=opts.start_line,
@@ -315,8 +422,18 @@ class IncludeDirective:
                     if load_error:
                         error = load_error
                     else:
-                        sb.append(content)
-                        return
+                        html, render_error = _render_included_content(
+                            content,
+                            resolved,
+                            start_line=opts.start_line,
+                            end_line=opts.end_line,
+                            render_markdown_fragment=render_markdown_fragment,
+                        )
+                        if render_error:
+                            error = render_error
+                        else:
+                            sb.append(html)
+                            return
 
         if error:
             import warnings
@@ -333,9 +450,6 @@ class IncludeDirective:
                 f"</div>\n"
             )
             return
-
-        # rendered_children contains the rendered included markdown content
-        sb.append(rendered_children)
 
 
 # =============================================================================
@@ -427,7 +541,7 @@ class LiteralIncludeDirective:
         :::
 
     Requires:
-        FileResolver for path resolution and file loading.
+        Site and page context from the active render session.
 
     Thread Safety:
         Stateless handler. Safe for concurrent use.
@@ -438,9 +552,6 @@ class LiteralIncludeDirective:
     token_type: ClassVar[str] = "literalinclude"
     contract: ClassVar[DirectiveContract | None] = None
     options_class: ClassVar[type[LiteralIncludeOptions]] = LiteralIncludeOptions
-
-    # File resolver - set by renderer/parser during registration
-    file_resolver: FileResolver | None = None
 
     def parse(
         self,
@@ -503,6 +614,7 @@ class LiteralIncludeDirective:
                 if resolved is None:
                     error = f"File not found: {file_path}"
                 else:
+                    _record_include_dependency(resolved)
                     code, load_error = load_include_file(
                         resolved,
                         start_line=opts.start_line,

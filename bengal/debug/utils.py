@@ -165,6 +165,7 @@ FILE_TYPE_ICONS: dict[str, str] = {
     "page": "📄",
     "template": "🎨",
     "partial": "🧩",
+    "snippet": "📎",
     "data": "📊",
     "config": "⚙️",
     "style": "🎭",
@@ -198,6 +199,9 @@ def classify_file(path: str) -> str:
 
     """
     path_lower = path.lower()
+
+    if "_snippets" in path_lower or "/snippets/" in path_lower:
+        return "snippet"
 
     # Check for partials/includes first (path-based classification)
     if "partial" in path_lower or "include" in path_lower:

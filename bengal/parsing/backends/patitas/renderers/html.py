@@ -273,6 +273,41 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
 
         return sb.build()
 
+    def render_markdown_fragment(self, source: str) -> str:
+        """Parse and render a markdown fragment with the current render context."""
+        if not source.strip():
+            return ""
+
+        from bengal.parsing.backends.patitas.render_session import get_markdown_engine
+
+        engine = get_markdown_engine()
+        if engine is not None:
+            return engine(
+                source,
+                text_transformer=self._text_transformer,
+                page_context=self._page_context,
+                xref_index=self._xref_index,
+                site=self._site,
+                links_collector=self._links_collector,
+            )
+
+        # Standalone render paths (tests, one-shot parse()) without a bound engine.
+        from bengal.parsing.backends.patitas import create_markdown
+
+        md = create_markdown(
+            highlight=self._highlight,
+            highlight_style=self._highlight_style,
+            delegate=self._delegate,
+        )
+        return md(
+            source,
+            text_transformer=self._text_transformer,
+            page_context=self._page_context,
+            xref_index=self._xref_index,
+            site=self._site,
+            links_collector=self._links_collector,
+        )
+
     # =========================================================================
     # Inline rendering (uses dispatch table from inline.py)
     # =========================================================================

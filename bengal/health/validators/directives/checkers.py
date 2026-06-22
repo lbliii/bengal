@@ -6,6 +6,7 @@ Provides validation methods for syntax, completeness, and performance.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.health.report import CheckResult
@@ -14,7 +15,7 @@ from bengal.utils.observability.logger import get_logger
 from .constants import MAX_TABS_PER_BLOCK
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -246,6 +247,55 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
             )
 
     # No stats message - directive usage stats are noise during debugging
+
+    return results
+
+
+def check_include_targets(site: SiteLike, data: dict[str, Any]) -> list[CheckResult]:
+    """Validate include and literalinclude targets resolve to existing files."""
+    from bengal.parsing.backends.patitas.directives.builtins.include import resolve_include_path
+
+    results: list[CheckResult] = []
+    site_root = Path(site.root_path)
+    missing: list[str] = []
+
+    for page_path_str, directives in data.get("by_page", {}).items():
+        page_path = Path(page_path_str)
+        for directive in directives:
+            if directive.get("type") not in {"include", "literalinclude"}:
+                continue
+            target = str(directive.get("title", "")).strip()
+            if not target:
+                missing.append(
+                    f"{_get_relative_content_path(page_path)}:{directive.get('line_number', '?')} "
+                    f"- empty {directive['type']} path"
+                )
+                continue
+            resolved = resolve_include_path(
+                target,
+                source_file=page_path,
+                site_root=site_root,
+            )
+            if resolved is None:
+                missing.append(
+                    f"{_get_relative_content_path(page_path)}:{directive.get('line_number', '?')} "
+                    f"- {directive['type']} target not found: {target}"
+                )
+
+    if missing:
+        results.append(
+            CheckResult.error(
+                f"{len(missing)} include target(s) not found",
+                code="H208",
+                recommendation=(
+                    "Fix broken :::{include} or :::{literalinclude} paths. "
+                    "Targets resolve relative to the page directory, then content/."
+                ),
+                details=missing[:10],
+                validator="Directives: includes",
+                metadata={"category": "includes", "section": "Directives: includes"},
+            )
+        )
 
     return results
 

@@ -154,6 +154,28 @@ class TestRenderEffectRecorder:
         # Note: data_files and cascade_sources are converted to frozenset_or_none
         # which returns None if empty after the context manager processes them
 
+    def test_parse_dependencies_merge_into_effect(self) -> None:
+        """Parse-phase include dependencies are merged into page effects."""
+        tracer = EffectTracer()
+        page = MockPage(
+            source_path=Path("content/page.md"),
+            output_path=Path("public/page/index.html"),
+            href="/page/",
+            title="Test",
+        )
+        snippet = Path("content/_snippets/hello.md").resolve()
+
+        with RenderEffectRecorder(
+            tracer,
+            page,  # type: ignore[arg-type]
+            "page.html",
+            parse_dependencies=frozenset({snippet}),
+        ):
+            pass
+
+        effect = tracer.effects[0]
+        assert snippet in {Path(dep).resolve() for dep in effect.depends_on}
+
     def test_exception_does_not_record_effect(self) -> None:
         """Exception during rendering prevents effect recording."""
         tracer = EffectTracer()

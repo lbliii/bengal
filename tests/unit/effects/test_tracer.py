@@ -152,6 +152,22 @@ class TestEffectTracer:
         assert "content/page.md" in deps
         assert "page.html" in deps
 
+    def test_to_dependency_graph_tags_include_dependencies(self) -> None:
+        """Include/snippet deps are labeled in exported dependency graphs."""
+        tracer = EffectTracer()
+        snippet = Path("content/_snippets/note.md")
+        tracer.record(
+            Effect(
+                outputs=frozenset({Path("public/page.html")}),
+                depends_on=frozenset({Path("content/page.md"), snippet}),
+                metadata={"include_dependencies": [str(snippet)]},
+            )
+        )
+
+        deps = tracer.to_dependency_graph()["public/page.html"]
+        assert "content/page.md" in deps
+        assert f"include:{snippet}" in deps
+
 
 class TestEffectTracerThreadSafety:
     """Thread-safety tests for EffectTracer."""

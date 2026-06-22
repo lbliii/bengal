@@ -423,3 +423,37 @@ def debug_sandbox(
         "parse_time_ms": result.parse_time_ms,
         "render_time_ms": result.render_time_ms,
     }
+
+
+def debug_includes(
+    page_path: Annotated[str, Description("Page path to inspect include targets for")],
+    source: Annotated[str, Description("Source directory path")] = "",
+    output_format: Annotated[str, Description(format_description("console", "json"))] = "console",
+) -> dict:
+    """List :::{include} and :::{literalinclude} targets for a page."""
+    import json
+
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.debug.include_inspector import (
+        format_include_inspection,
+        inspect_page_includes,
+        inspection_to_dict,
+    )
+    from bengal.output import get_cli_output
+
+    source = source or "."
+    cli = get_cli_output()
+    cli.header("Include Inspector")
+
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+    inspection = inspect_page_includes(site, page_path)
+
+    if output_format == "json":
+        cli.render_write(
+            "json_output.kida", data=json.dumps(inspection_to_dict(inspection), indent=2)
+        )
+    else:
+        cli.blank()
+        cli.info(format_include_inspection(inspection))
+
+    return inspection_to_dict(inspection)

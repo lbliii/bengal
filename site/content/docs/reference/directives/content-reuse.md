@@ -213,7 +213,7 @@ Both directives include security measures and robustness limits to prevent commo
 | Limit | Value | Purpose |
 |-------|-------|---------|
 | Maximum include depth | 10 | Prevents stack overflow from deeply nested includes |
-| Maximum file size | 10 MB | Prevents memory exhaustion from large files |
+| Maximum file size | 1 MiB | Prevents memory exhaustion from large files |
 | Cycle detection | Automatic | Prevents infinite loops (a.md → b.md → a.md)
 
 If an include exceeds these limits, an error message is rendered inline with context about the issue.
