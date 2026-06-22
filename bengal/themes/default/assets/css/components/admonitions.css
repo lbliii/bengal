@@ -590,3 +590,27 @@
     transition: none !important;
   }
 }
+
+/* ============================================
+   BANNER VARIANT (site alerts, version notices)
+   Composes on .admonition.warning/.danger (#539)
+   ============================================ */
+
+.admonition.admonition--banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block: 0 1rem;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border-inline-start-width: 3px;
+}
+
+.admonition.admonition--banner .admonition-title {
+  display: none;
+}
+
+.admonition.admonition--banner::before {
+  opacity: 0.25;
+}

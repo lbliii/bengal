@@ -19,7 +19,7 @@
 #}
 
 {% if versioning_enabled and current_version and not is_latest_version %}
-<div class="version-banner version-banner--{{ current_version.deprecated and 'danger' or 'warning' }}" role="alert">
+<div class="admonition {{ 'danger' if current_version.deprecated else 'warning' }} admonition--banner version-banner version-banner--{{ current_version.deprecated and 'danger' or 'warning' }}" role="alert">
   <div class="version-banner__content">
     {# Icon - uses Bengal icon() helper #}
     {% if current_version.deprecated %}

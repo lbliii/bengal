@@ -1,11 +1,26 @@
 /**
- * Bengal SSG - Search Page Styles
+ * Bengal SSG - Unified Search Styles (#539)
  *
- * Full-page search experience matching the modal design language.
+ * Shared search UI for page, inline widget, and command-palette modal.
  * Frosted glass, neumorphic elements, and consistent theming.
- *
- * Unified search UI (modal + inline results).
  */
+
+/* ============================================
+   SHARED SEARCH CORE
+   ============================================ */
+
+:root {
+  --search-glass-bg: rgba(255, 255, 255, 0.85);
+  --search-glass-border: rgba(255, 255, 255, 0.3);
+  --search-input-shadow: var(--neumorphic-inset);
+  --search-result-hover-bg: var(--color-bg-hover);
+  --search-mark-bg: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
+[data-theme="dark"] {
+  --search-glass-bg: rgba(26, 26, 26, 0.85);
+  --search-glass-border: rgba(255, 255, 255, 0.08);
+}
 
 /* ============================================
    SEARCH PAGE LAYOUT
@@ -1405,8 +1420,12 @@
     transform: none;
   }
 }
- * Bengal SSG - Search Modal Styles
- *
+
+/* ============================================
+   SEARCH MODAL (command palette)
+   ============================================ */
+
+/**
  * Command-palette style search modal (Cmd/Ctrl+K)
  *
  * Design inspired by:

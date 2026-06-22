@@ -6,12 +6,7 @@ API Hub Landing Page Template (Kida-Native)
 Premium landing page for API documentation, displaying all available API types
 (Python, REST, CLI) in a beautiful tile layout with a hero banner.
 
-KIDA FEATURES USED:
-- {% let %} for template-scoped variables
-- Optional chaining (?.) for null-safe access
-- Null coalescing (??) for smart defaults
-- {% def %} for reusable tile component
-- {% match %} for type-based rendering
+Uses shared hub-card primitives from hub-cards.css (#539).
 
 USAGE:
 Auto-selected for api-hub sections or set template: api-hub/home.html
@@ -39,10 +34,18 @@ API TILE COMPONENT
 {% let preview_items = sorted_subsections[:preview_limit] if sorted_subsections | length > 0 else
 sorted_pages[:preview_limit] %}
 
-<article class="api-hub-tile api-hub-tile--{{ sub_type }} gradient-border fluid-combined">
-  {# Type Badge #}
-  <div class="api-hub-tile__badge-row">
-    <span class="api-hub-tile__type-badge api-hub-tile__type-badge--{{ sub_type }}">
+{% let badge_class = 'hub-badge' %}
+{% if 'python' in sub_type %}
+  {% let badge_class = 'hub-badge hub-badge--success' %}
+{% elif 'openapi' in sub_type %}
+  {% let badge_class = 'hub-badge hub-badge--info' %}
+{% elif 'cli' in sub_type %}
+  {% let badge_class = 'hub-badge hub-badge--warning' %}
+{% end %}
+
+<article class="hub-card hub-card--{{ sub_type }} gradient-border fluid-combined">
+  <div class="hub-card__badge-row">
+    <span class="{{ badge_class }}">
       {% match sub_type %}
       {% case _ if 'python' in sub_type %}
       {{ icon("code", size=12) }} Python
@@ -56,9 +59,8 @@ sorted_pages[:preview_limit] %}
     </span>
   </div>
 
-  {# Tile Header with Icon #}
-  <div class="api-hub-tile__header">
-    <div class="api-hub-tile__icon">
+  <div class="hub-card__header">
+    <div class="hub-card__icon">
       {% match sub_type %}
       {% case _ if 'python' in sub_type %}
       {{ icon("code", size=32, css_class="icon-python") }}
@@ -70,14 +72,13 @@ sorted_pages[:preview_limit] %}
       {{ icon("book", size=32, css_class="icon-default") }}
       {% end %}
     </div>
-    <h2 class="api-hub-tile__title">
+    <h2 class="hub-card__title">
       <a href="{{ sub_href }}">{{ sub_title }}</a>
     </h2>
   </div>
 
-  {# Tile Content #}
-  <div class="api-hub-tile__content">
-    <p class="api-hub-tile__description">
+  <div class="hub-card__content">
+    <p class="hub-card__description">
       {% if sub_desc %}
       {{ sub_desc }}
       {% else %}
@@ -94,23 +95,22 @@ sorted_pages[:preview_limit] %}
       {% end %}
     </p>
 
-    {# Preview Items #}
     {% if preview_items | length > 0 %}
-    <div class="api-hub-tile__preview">
-      <div class="api-hub-tile__preview-label">Includes:</div>
-      <ul class="api-hub-tile__preview-list">
+    <div class="hub-preview">
+      <div class="hub-preview__label">Includes:</div>
+      <ul class="hub-preview__list">
         {% for item in preview_items %}
         {% let item_title = item?.title ?? item?.name ?? 'Item' %}
-        <li class="api-hub-tile__preview-item">
-          <span class="api-hub-tile__preview-bullet"></span>
-          <span class="api-hub-tile__preview-title">{{ item_title }}</span>
+        <li class="hub-preview__item">
+          <span class="hub-preview__bullet"></span>
+          <span class="hub-preview__title">{{ item_title }}</span>
         </li>
         {% export last_preview_item = item %}
         {% end %}
         {% let remaining = child_count - preview_limit %}
         {% if remaining > 0 %}
-        <li class="api-hub-tile__preview-item api-hub-tile__preview-more">
-          <span class="api-hub-tile__preview-more-text">+{{ remaining }} more</span>
+        <li class="hub-preview__item hub-preview__more hub-preview__more--bulleted">
+          <span class="hub-preview__more-text">+{{ remaining }} more</span>
         </li>
         {% end %}
       </ul>
@@ -118,9 +118,8 @@ sorted_pages[:preview_limit] %}
     {% end %}
   </div>
 
-  {# Tile Footer #}
-  <div class="api-hub-tile__footer">
-    <span class="api-hub-tile__meta">
+  <div class="hub-card__footer">
+    <span class="hub-card__footer-meta">
       {% match sub_type %}
       {% case _ if 'python' in sub_type %}
       {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
@@ -132,7 +131,7 @@ sorted_pages[:preview_limit] %}
       {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
       {% end %}
     </span>
-    <a href="{{ sub_href }}" class="api-hub-tile__button">
+    <a href="{{ sub_href }}" class="hub-button hub-button--small">
       Explore {{ icon('arrow-right', size=16) }}
     </a>
   </div>
@@ -144,13 +143,11 @@ MAIN TEMPLATE
 ============================================================================= #}
 
 {% block content %}
-{# Template-scoped variables #}
 {% let hub_section = section %}
 {% let hub_title = section?.title ?? page?.title ?? 'API Documentation' %}
 {% let hub_desc = section?.params?.description ?? params?.description ?? '' %}
 {% let subsections = section?.sorted_subsections ?? [] %}
 
-{# Count API types #}
 {% let python_count = 0 %}
 {% let rest_count = 0 %}
 {% let cli_count = 0 %}
@@ -161,52 +158,50 @@ MAIN TEMPLATE
   {% if 'cli' in sub_type %}{% let cli_count = cli_count + 1 %}{% end %}
 {% end %}
 
-<div class="api-hub-home">
-  {# Hero Section #}
-  <header class="api-hub-hero">
-    <div class="api-hub-hero__container">
-      <span class="api-hub-hero__badge">API Reference</span>
+<div class="hub-page">
+  <header class="hub-hero">
+    <div class="hub-hero__container">
+      <span class="hub-hero__badge">API Reference</span>
 
-      <h1 class="api-hub-hero__title">
+      <h1 class="hub-hero__title">
         <span class="fluid-text">{{ hub_title }}</span>
       </h1>
 
       {% if hub_desc %}
-      <p class="api-hub-hero__subtitle">{{ hub_desc }}</p>
+      <p class="hub-hero__subtitle">{{ hub_desc }}</p>
       {% else %}
-      <p class="api-hub-hero__subtitle">Explore comprehensive API documentation for Python modules, REST endpoints, and
+      <p class="hub-hero__subtitle">Explore comprehensive API documentation for Python modules, REST endpoints, and
         CLI commands.</p>
       {% end %}
 
-      {# Stats Bar #}
       {% if subsections | length > 0 %}
-      <div class="api-hub-hero__stats">
-        <div class="api-hub-stat">
-          <span class="api-hub-stat__value">{{ subsections | length }}</span>
-          <span class="api-hub-stat__label">API{{ 's' if subsections | length != 1 else '' }}</span>
+      <div class="hub-hero__stats">
+        <div class="hub-stat">
+          <span class="hub-stat__value">{{ subsections | length }}</span>
+          <span class="hub-stat__label">API{{ 's' if subsections | length != 1 else '' }}</span>
         </div>
 
         {% if python_count > 0 %}
-        <div class="api-hub-stat api-hub-stat--python">
-          <span class="api-hub-stat__icon">{{ icon("code", size=16) }}</span>
-          <span class="api-hub-stat__value">{{ python_count }}</span>
-          <span class="api-hub-stat__label">Python</span>
+        <div class="hub-stat hub-stat--python">
+          <span class="hub-stat__icon">{{ icon("code", size=16) }}</span>
+          <span class="hub-stat__value">{{ python_count }}</span>
+          <span class="hub-stat__label">Python</span>
         </div>
         {% end %}
 
         {% if rest_count > 0 %}
-        <div class="api-hub-stat api-hub-stat--rest">
-          <span class="api-hub-stat__icon">{{ icon("globe", size=16) }}</span>
-          <span class="api-hub-stat__value">{{ rest_count }}</span>
-          <span class="api-hub-stat__label">REST</span>
+        <div class="hub-stat hub-stat--rest">
+          <span class="hub-stat__icon">{{ icon("globe", size=16) }}</span>
+          <span class="hub-stat__value">{{ rest_count }}</span>
+          <span class="hub-stat__label">REST</span>
         </div>
         {% end %}
 
         {% if cli_count > 0 %}
-        <div class="api-hub-stat api-hub-stat--cli">
-          <span class="api-hub-stat__icon">{{ icon("terminal", size=16) }}</span>
-          <span class="api-hub-stat__value">{{ cli_count }}</span>
-          <span class="api-hub-stat__label">CLI</span>
+        <div class="hub-stat hub-stat--cli">
+          <span class="hub-stat__icon">{{ icon("terminal", size=16) }}</span>
+          <span class="hub-stat__value">{{ cli_count }}</span>
+          <span class="hub-stat__label">CLI</span>
         </div>
         {% end %}
       </div>
@@ -214,30 +209,27 @@ MAIN TEMPLATE
     </div>
   </header>
 
-  {# Custom Content from _index.md #}
   {% if content and content.strip() %}
-  <div class="api-hub-content prose">
+  <div class="hub-content prose">
     {{ content | safe }}
   </div>
   {% end %}
 
-  {# API Tiles Grid #}
   {% if subsections | length > 0 %}
-  <section class="api-hub-apis" aria-label="Available APIs">
-    <div class="api-hub-grid">
+  <section class="hub-section" aria-label="Available APIs">
+    <div class="hub-grid">
       {% for subsection in subsections %}
       {{ api_tile(subsection) }}
       {% end %}
     </div>
   </section>
   {% else %}
-  {# Empty State #}
-  <div class="api-hub-empty">
-    <div class="api-hub-empty__icon">
+  <div class="hub-empty">
+    <div class="hub-empty__icon">
       {{ icon('book-open', size=64) }}
     </div>
-    <h3 class="api-hub-empty__title">No API Documentation Yet</h3>
-    <p class="api-hub-empty__text">
+    <h3 class="hub-empty__title">No API Documentation Yet</h3>
+    <p class="hub-empty__text">
       Enable Python, OpenAPI, or CLI autodoc in your <code>autodoc.yaml</code> configuration to generate API
       documentation.
     </p>

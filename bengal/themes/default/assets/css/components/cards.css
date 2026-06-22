@@ -216,30 +216,12 @@ a.card:hover {
   margin-top: var(--space-2);
 }
 
-/* List styling in card content */
-.card-content ul,
-.card-content ol {
-  padding-inline-start: var(--space-8);
-  margin: var(--space-3) 0;
-}
-
-.card-content ul {
-  list-style-type: disc;
-}
-
-.card-content ol {
-  list-style-type: decimal;
-}
-
-.card-content li {
-  margin: var(--space-1) 0;
-}
-
-.card-content>*:first-child {
+/* List styling delegated to @scope (.has-prose-content) */
+.card-content.has-prose-content > *:first-child {
   margin-top: 0;
 }
 
-.card-content>*:last-child {
+.card-content.has-prose-content > *:last-child {
   margin-bottom: 0;
 }
 

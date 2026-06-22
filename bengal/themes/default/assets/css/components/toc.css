@@ -209,6 +209,23 @@
     opacity: 0.5;
     transition: height 0.1s linear, opacity 0.2s ease;
     border-radius: 1px;
+    transform-origin: top;
+}
+
+.toc-progress-bar--scroll-driven {
+    height: 100%;
+    transform: scaleY(0);
+    animation: toc-progress-fill linear;
+    animation-timeline: scroll();
+    transition: opacity 0.2s ease;
+}
+
+@supports (animation-timeline: scroll()) {
+    @keyframes toc-progress-fill {
+        to {
+            transform: scaleY(1);
+        }
+    }
 }
 
 .toc-progress:hover .toc-progress-bar {

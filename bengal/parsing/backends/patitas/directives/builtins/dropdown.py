@@ -240,7 +240,7 @@ class DropdownDirective:
         # Output HTML (matching Bengal's exact structure)
         sb.append(f'<details class="{html_escape(class_str)}"{open_attr}>\n')
         sb.append(f"  <summary>{summary_content}</summary>\n")
-        sb.append('  <div class="dropdown-content">\n')
+        sb.append('  <div class="dropdown-content has-prose-content">\n')
         sb.append(rendered_children)
         sb.append("  </div>\n")
         sb.append("</details>\n")

@@ -61,6 +61,16 @@
   visibility: visible;
 }
 
+.back-to-top-sentinel {
+  position: absolute;
+  top: 300px;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .back-to-top:hover {
   background: linear-gradient(180deg,
       var(--color-surface, var(--color-bg-elevated)),
@@ -188,11 +198,27 @@
 
 .reading-progress__fill {
   height: 100%;
+  width: 100%;
   background: linear-gradient(90deg,
       var(--color-primary) 0%,
       var(--color-accent) 100%);
-  transition: width 150ms ease-out;
   transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 150ms ease-out;
+}
+
+@supports (animation-timeline: scroll()) {
+  .reading-progress__fill {
+    animation: reading-progress-fill linear;
+    animation-timeline: scroll();
+    transition: none;
+  }
+
+  @keyframes reading-progress-fill {
+    to {
+      transform: scaleX(1);
+    }
+  }
 }
 
 /* Hide on very small screens */

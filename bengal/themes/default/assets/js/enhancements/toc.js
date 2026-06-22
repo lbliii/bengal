@@ -518,10 +518,13 @@
     initKeyboardNavigation();
     initHeadingObserver();
 
-    progressScrollHandler = throttleScroll(updateOnScroll);
-    window.addEventListener('scroll', progressScrollHandler, { passive: true });
-
-    updateProgress();
+    if (!CSS.supports('animation-timeline', 'scroll()')) {
+      progressScrollHandler = throttleScroll(updateOnScroll);
+      window.addEventListener('scroll', progressScrollHandler, { passive: true });
+      updateProgress();
+    } else if (progressBar) {
+      progressBar.classList.add('toc-progress-bar--scroll-driven');
+    }
 
     hashChangeHandler = () => {
       const hash = window.location.hash.slice(1);
