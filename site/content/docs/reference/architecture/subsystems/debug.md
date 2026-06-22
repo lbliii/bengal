@@ -284,6 +284,9 @@ bengal debug deps --export dot --output dependencies.dot
 # Show blast radius of a file change
 bengal debug deps --blast-radius templates/base.html
 
+# Inspect include and literalinclude targets for a page
+bengal debug includes docs/get-started/installation.md
+
 # Preview content migration
 bengal debug migrate --move docs/old.md guides/new.md
 ```

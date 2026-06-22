@@ -161,6 +161,9 @@ i18n.status
 plugin.list
 plugin.info
 plugin.validate
+capability.list
+capability.info
+capability.validate
 inspect.page
 inspect.links
 inspect.graph
@@ -168,6 +171,7 @@ inspect.perf
 debug.incremental
 debug.delta
 debug.deps
+debug.includes
 debug.migrate
 debug.sandbox
 cache.inputs
@@ -176,7 +180,7 @@ cache.hash
 
 Root aliases are part of the contract: `b` for `build`, `s` and `dev` for
 `serve`, `c` for `clean`, and `v` for `check`. Group aliases are `n` for `new`
-and `plugins` for `plugin`.
+and `plugins` for `plugin`. Group aliases are `capabilities` for `capability`.
 
 `health` remains a top-level legacy alias for `check`. It is kept for existing
 automation, but new docs and examples should use `check`.

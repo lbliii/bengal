@@ -112,6 +112,9 @@ bengal inspect graph
 
 # Visualize dependency relationships
 bengal debug deps
+
+# Inspect include/literalinclude targets for a page
+bengal debug includes docs/get-started/installation.md
 ```
 
 :::{example-label} bengal inspect graph Output
