@@ -9,13 +9,19 @@ tags:
 
 # The Content System
 
+Bengal transforms Markdown files into structured, validated documentation sites
+with rich directives, cross-references, and automated validation.
+
+:::{note}
+**Do I need this?** Yes when authoring or organizing site content. Evaluators
+can skim [[docs/about|About]] instead. Operators shipping builds should start
+at [[docs/building|Building]].
+:::
+
 **Writing content?** Start with [[docs/content/authoring|Authoring]] and
 [[docs/content/organization|Organization]]. **Pulling from GitHub or APIs?**
 See [[docs/content/sources|Remote Sources]]. **Maintaining multiple doc
 versions?** Read [[docs/content/versioning|Versioned Documentation]].
-
-Bengal transforms Markdown files into structured, validated documentation sites
-with rich directives, cross-references, and automated validation.
 
 :::{glossary}
 :tags: persona-writer

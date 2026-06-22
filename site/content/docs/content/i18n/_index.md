@@ -95,28 +95,9 @@ bengal build
 
 ## Guides
 
-:::{cards}
+:::{child-cards}
 :columns: 2
-
-:::{card} Quickstart
-:icon: rocket
-:link: ./quickstart/
-
-PO file setup, locale config, and translation workflow.
-:::{/card}
-
-:::{card} RTL Layout
-:icon: arrows
-:link: ./rtl/
-
-CSS authoring for Arabic, Hebrew, and bidirectional sites.
-:::{/card}
-
-:::{card} Translator Guide
-:icon: users
-:link: ./translator-guide/
-
-How to contribute translations and PO file conventions.
-:::{/card}
-
-:::{/cards}
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::

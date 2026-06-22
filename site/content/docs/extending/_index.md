@@ -16,6 +16,12 @@ Bengal's extension points. **Most sites never need this** — start with
 **Plugin authors** should read [[docs/get-started/quickstart-contributor|Contributor
 Quickstart]] for dev setup, then pick an extension type below.
 
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:::
+
 ## Extension Points
 
 Bengal supports several extension mechanisms:

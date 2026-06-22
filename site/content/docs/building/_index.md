@@ -10,13 +10,13 @@ tags:
 # Build & Deploy
 
 You have a site working — now configure builds, validate quality, optimize
-performance, and ship to production. This section is for **operators** and
-**site owners** mid-project.
+performance, and ship to production.
 
-**New here?** Start with [[docs/get-started/quickstart-writer|Writer Quickstart]]
-first if you have not scaffolded a site yet. **Writing content?** See
-[[docs/content|Content]]. **Looking up a config key?** Use
-[[docs/reference/architecture/tooling/config|Configuration Reference]].
+:::{note}
+**Do I need this?** Yes for operators and site owners tuning production builds,
+SEO, deployment, or troubleshooting. New to Bengal? Start with
+[[docs/get-started|Get Started]]. Writing content? See [[docs/content|Content]].
+:::
 
 :::{glossary}
 :tags: persona-operator
