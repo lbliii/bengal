@@ -8,6 +8,7 @@ tags:
 - deployment
 - hosting
 - ci-cd
+- persona-operator
 keywords:
 - deployment
 - hosting
@@ -18,9 +19,21 @@ category: guide
 icon: rocket
 card_color: orange
 ---
+
 # Deploy Your Site
 
-Bengal generates static HTML, CSS, and JavaScript files. This means you can host your site anywhere that serves static files (e.g., GitHub Pages, Netlify, Vercel, AWS S3, Nginx).
+Ship static HTML from Bengal to GitHub Pages, Netlify, Vercel, or any host that
+serves files from a directory.
+
+:::{note}
+**Do I need this?** Yes when you are ready to publish beyond `bengal serve`.
+Skip until you have content to ship — local preview does not need deployment
+config. For CI wiring, also see
+[[docs/tutorials/operations/automate-with-github-actions|GitHub Actions tutorial]].
+:::
+
+Bengal generates static HTML, CSS, and JavaScript. Run a production build, upload
+the `public/` directory, and point your host at it.
 
 ## The Production Build
 
@@ -150,7 +163,8 @@ site:
 ```
 
 :::{seealso}
-- [Configuration](../configuration/) — Environment-specific settings
-- [Multi-Variant Builds](../configuration/variants) — OSS vs Enterprise, brand variants
-- [Performance](../performance/) — Optimize build times
+- [[docs/building/configuration|Configuration]] — environment-specific settings
+- [[docs/building/configuration/variants|Multi-Variant Builds]] — OSS vs Enterprise, brand variants
+- [[docs/building/performance|Performance]] — optimize build times
+- [[docs/content/validation|Validation]] — health checks before you ship
 :::

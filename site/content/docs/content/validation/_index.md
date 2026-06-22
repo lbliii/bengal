@@ -5,16 +5,26 @@ weight: 60
 category: guide
 icon: check-circle
 card_color: purple
+tags:
+- persona-operator
+- persona-writer
 ---
+
 # Content Validation
 
-Ensure content quality with health checks and automatic fixes.
-
-## Do I Need This?
+Catch broken links, bad directives, and config drift before they reach production.
 
 :::{note}
-**Skip this if**: You manually check all links and content.  
-**Read this if**: You want automated quality assurance and CI/CD integration.
+**Do I need this?** Yes when you want automated quality checks in CI or before
+deploy. Skip if you are still prototyping locally and fixing issues by hand.
+For the full validate-and-fix workflow, see
+[[docs/content/validation/validate-and-fix|Validate and Fix]].
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
 :::
 
 ## Validation Flow

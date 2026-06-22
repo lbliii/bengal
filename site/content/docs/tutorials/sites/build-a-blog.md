@@ -25,8 +25,10 @@ category: tutorial
 In this tutorial, you will build a fully functional personal blog with Bengal. We will go from an empty folder to a running website with custom content, configuration, and theming.
 
 :::{note}
-**Who is this for?**
-This guide is for developers who want to see the full end-to-end workflow of Bengal. No prior experience with Bengal is required, but basic familiarity with the terminal is assumed.
+**Do I need this?** Choose based on depth. For a 5-minute content-only start, use
+[[docs/get-started/quickstart-writer|Writer Quickstart]]. Use this tutorial when
+you want the full end-to-end blog workflow — posts, navigation, theme tweaks,
+and a production build.
 :::
 
 ## Goal
