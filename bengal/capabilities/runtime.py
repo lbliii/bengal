@@ -6,6 +6,9 @@ self-hosted vendor files under ``assets/vendor/`` (provisioned at build time
 when enabled). Per-page asset emission is further gated by content detectors
 (#571): a capability must be enabled, provisioned, AND needed on the page.
 
+Registered capabilities are discovered from the ``bengal.capabilities`` entry-point
+group (#572). Built-in diagram/math vendors ship as first-party registrations.
+
 Note: the knowledge graph (minimap + /graph/ explorer) used to depend on D3 and
 was gated here. It is now a dependency-free, first-party renderer with build-time
 baked layout, so it is no longer a capability and ships by default.
@@ -14,20 +17,31 @@ baked layout, so it is no longer a capability and ships by default.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-CAPABILITY_NAMES = frozenset({"mermaid", "katex", "iconify"})
+if TYPE_CHECKING:
+    from bengal.capabilities.registry import CapabilityRegistry
 
-# Vendor files written by CapabilityVendorHelper (relative to assets/vendor/).
-VENDOR_FILES: dict[str, tuple[str, ...]] = {
-    "mermaid": ("mermaid.min.js",),
-    "katex": ("katex.min.js", "katex.min.css"),
-    "iconify": (
-        "iconify/fa.json",
-        "iconify/mdi.json",
-        "iconify/logos.json",
-    ),
-}
+
+def _registry() -> CapabilityRegistry:
+    from bengal.capabilities.registry import get_capability_registry
+
+    return get_capability_registry()
+
+
+def capability_names() -> frozenset[str]:
+    """Names of all registered vendor capabilities."""
+    return _registry().names
+
+
+def __getattr__(name: str) -> Any:
+    if name == "CAPABILITY_NAMES":
+        return capability_names()
+    if name == "VENDOR_FILES":
+        registry = _registry()
+        return {spec.name: spec.vendor_files for spec in registry}
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
 
 
 def _capabilities_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -38,8 +52,8 @@ def _capabilities_config(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def is_capability_requested(config: dict[str, Any], name: str) -> bool:
-    """True when the site config explicitly enables a capability."""
-    if name not in CAPABILITY_NAMES:
+    """True when the site config explicitly enables a registered capability."""
+    if name not in _registry().names:
         return False
     return bool(_capabilities_config(config).get(name, False))
 
@@ -50,7 +64,7 @@ def vendor_dir_for_site(site_root: Path) -> Path:
 
 def vendors_present(vendor_dir: Path, name: str) -> bool:
     """True when all required vendor files exist on disk."""
-    files = VENDOR_FILES.get(name)
+    files = _registry().vendor_files(name)
     if not files:
         return False
     return all((vendor_dir / rel).is_file() for rel in files)
@@ -63,20 +77,25 @@ def resolve_runtime_capabilities(
     """
     Resolve effective runtime capabilities: config flag AND vendor files present.
 
-    Default build: all False (zero external network requests at runtime).
+    Default build: all registered vendor capabilities False (zero external
+    network requests at runtime). ``depends_on`` specs (e.g. iconify → mermaid)
+    require their dependencies to also be active.
     """
     caps_cfg = _capabilities_config(config)
     vdir = vendor_dir or Path("assets/vendor")
+    registry = _registry()
 
-    def _active(name: str) -> bool:
-        if not caps_cfg.get(name, False):
-            return False
-        return vendors_present(vdir, name)
+    active: dict[str, bool] = {}
+    for spec in registry:
+        if not caps_cfg.get(spec.name, False):
+            active[spec.name] = False
+            continue
+        if not vendors_present(vdir, spec.name):
+            active[spec.name] = False
+            continue
+        if any(not active.get(dep, False) for dep in spec.depends_on):
+            active[spec.name] = False
+            continue
+        active[spec.name] = True
 
-    mermaid = _active("mermaid")
-    return {
-        "mermaid": mermaid,
-        "katex": _active("katex"),
-        # Iconify packs are only meaningful alongside Mermaid diagram icons.
-        "iconify": mermaid and _active("iconify"),
-    }
+    return active

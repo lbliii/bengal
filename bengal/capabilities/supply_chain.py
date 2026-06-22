@@ -21,12 +21,20 @@ if TYPE_CHECKING:
 
 SourceMode = Literal["cdn", "local"]
 
-# Default upstream pins (author-owned; overridable by site owner).
-DEFAULT_PINS: dict[str, str] = {
-    "mermaid": "10",
-    "katex": "0.16.11",
-    "iconify": "1",
-}
+
+def _default_pin(capability: str) -> str:
+    from bengal.capabilities.registry import get_capability_registry
+
+    spec = get_capability_registry().get(capability)
+    return spec.default_pin if spec else ""
+
+
+# Backward-compatible alias; prefer registry.default_pins().
+def default_pins() -> dict[str, str]:
+    from bengal.capabilities.registry import get_capability_registry
+
+    return get_capability_registry().default_pins()
+
 
 # Pinned SRI for known vendor files (sha384). Verified on CDN download when enabled.
 # Local copies skip remote verification but still emit integrity when bytes are known.
@@ -133,7 +141,7 @@ def resolve_vendor_asset(
 ) -> ResolvedVendorAsset:
     """Resolve how to provision one vendor file (CDN download or local copy)."""
     override = parse_capability_override(config, capability)
-    pin = override.pin or DEFAULT_PINS.get(capability, "")
+    pin = override.pin or _default_pin(capability)
     url = _apply_pin_to_url(default_url, pin) if pin else default_url
 
     expected_sri = override.sri or VENDOR_SRI.get(capability, {}).get(rel_path)

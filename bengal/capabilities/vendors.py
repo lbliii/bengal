@@ -7,6 +7,8 @@ uses self-hosted same-origin URLs.
 
 Supply-chain controls (#573): SRI verification, CDN/local source override,
 and version pin override via ``[capabilities.sources.<name>]``.
+
+Vendor specs are loaded from the ``bengal.capabilities`` entry-point registry (#572).
 """
 
 from __future__ import annotations
@@ -17,11 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
-from bengal.capabilities.runtime import (
-    VENDOR_FILES,
-    is_capability_requested,
-    vendor_dir_for_site,
-)
+from bengal.capabilities.runtime import is_capability_requested, vendor_dir_for_site
 from bengal.capabilities.supply_chain import (
     record_vendor_integrity,
     resolve_vendor_asset,
@@ -37,23 +35,6 @@ logger = get_logger(__name__)
 
 _VENDOR_USER_AGENT = f"Bengal/{BENGAL_VERSION} (capability-vendor-provisioning)"
 _INTEGRITY_MANIFEST = ".capability-integrity.json"
-
-# Pinned upstream URL templates — fetched at build time only, never referenced in HTML output.
-# ``{pin}`` is substituted from DEFAULT_PINS or owner override.
-VENDOR_SOURCES: dict[str, dict[str, str]] = {
-    "mermaid": {
-        "mermaid.min.js": "https://cdn.jsdelivr.net/npm/mermaid@{pin}/dist/mermaid.min.js",
-    },
-    "katex": {
-        "katex.min.js": "https://cdn.jsdelivr.net/npm/katex@{pin}/dist/katex.min.js",
-        "katex.min.css": "https://cdn.jsdelivr.net/npm/katex@{pin}/dist/katex.min.css",
-    },
-    "iconify": {
-        "iconify/fa.json": "https://unpkg.com/@iconify-json/fa@{pin}/icons.json",
-        "iconify/mdi.json": "https://unpkg.com/@iconify-json/mdi@{pin}/icons.json",
-        "iconify/logos.json": "https://unpkg.com/@iconify-json/logos@{pin}/icons.json",
-    },
-}
 
 
 @dataclass
@@ -74,14 +55,17 @@ class CapabilityVendorHelper:
         self.integrity: dict[str, str] = {}
 
     def process(self) -> VendorProvisionResult:
+        from bengal.capabilities.registry import get_capability_registry
+
         downloaded: list[str] = []
         skipped: list[str] = []
         errors: list[str] = []
 
-        for name, sources in VENDOR_SOURCES.items():
-            if not is_capability_requested(self.config, name):
+        registry = get_capability_registry()
+        for spec in registry:
+            if not is_capability_requested(self.config, spec.name):
                 continue
-            for rel_path, default_url in sources.items():
+            for rel_path, default_url in spec.vendor_urls.items():
                 dest = self.vendor_dir / rel_path
                 if dest.is_file() and dest.stat().st_size > 0:
                     try:
@@ -99,7 +83,7 @@ class CapabilityVendorHelper:
                 try:
                     resolved = resolve_vendor_asset(
                         self.config,
-                        name,
+                        spec.name,
                         rel_path,
                         default_url,
                         site_root=self.site_root,
@@ -131,7 +115,7 @@ class CapabilityVendorHelper:
                     logger.info(
                         "capability_vendor_provisioned",
                         file=rel_path,
-                        capability=name,
+                        capability=spec.name,
                         source=resolved.source_mode,
                     )
                 except Exception as exc:
@@ -188,8 +172,11 @@ def vendor_integrity_for_path(vendor_dir: Path, rel_path: str) -> str | None:
 
 def required_vendor_paths(config: Mapping[str, Any]) -> list[str]:
     """Relative paths under assets/vendor/ for all requested capabilities."""
+    from bengal.capabilities.registry import get_capability_registry
+
     paths: list[str] = []
-    for name in VENDOR_SOURCES:
-        if is_capability_requested(config, name):
-            paths.extend(VENDOR_FILES.get(name, ()))
+    registry = get_capability_registry()
+    for spec in registry:
+        if is_capability_requested(config, spec.name):
+            paths.extend(spec.vendor_files)
     return paths
