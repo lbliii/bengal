@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-import tomllib
 from pathlib import Path
 
 # tests/unit/docs/ -> repo root is three parents up.
@@ -130,12 +129,12 @@ def test_no_bengal_ssg_package_name_in_docs() -> None:
 
 
 def test_architecture_cli_doc_matches_shipped_version() -> None:
-    """The architecture CLI help snapshot must match ``pyproject.toml`` version."""
-    version = tomllib.load((_REPO_ROOT / "pyproject.toml").open("rb"))["project"]["version"]
+    """The architecture CLI help snapshot is version-agnostic; stale versions must not linger."""
     doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
     text = doc.read_text(encoding="utf-8")
-    assert f"bengal {version}" in text, (
-        f"cli.md help snapshot missing shipped version `bengal {version}`"
+    assert "# bengal VERSION" in text, (
+        "cli.md root help snapshot should use the normalized `# bengal VERSION` placeholder. "
+        "Regenerate with: python scripts/update_cli_help_snapshot.py"
     )
     known_stale = ("0.3.3", "0.3.2", "0.3.1", "0.3.0")
     embedded = re.findall(r"^bengal (\d+\.\d+\.\d+)", text, flags=re.MULTILINE)
@@ -204,4 +203,76 @@ def test_no_phantom_health_linkcheck_subcommand_in_docs() -> None:
     assert not offenders, (
         "Docs reference phantom `bengal health linkcheck`; use `bengal inspect links` or `bengal check`:\n"
         + "\n".join(f"  {p}: lines {ls}" for p, ls in sorted(offenders.items()))
+    )
+
+
+def test_cli_command_inventory_matches_registry() -> None:
+    """Committed cli.md inventory must match the live Milo command registry."""
+    from tests._testing.cli_help_snapshot import (
+        parse_cli_doc_inventory,
+        registered_command_inventory,
+    )
+
+    doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
+    doc_inventory = parse_cli_doc_inventory(doc.read_text(encoding="utf-8"))
+    registered = registered_command_inventory()
+    assert doc_inventory == registered, (
+        "cli.md command inventory drifted from Milo registry.\n"
+        "Regenerate with: python scripts/update_cli_help_snapshot.py\n"
+        f"  doc-only: {sorted(set(doc_inventory) - set(registered))}\n"
+        f"  registry-only: {sorted(set(registered) - set(doc_inventory))}"
+    )
+
+
+def test_cli_root_help_snapshot_matches_live_output() -> None:
+    """Committed CLI help snapshot must match live root help command sections."""
+    from tests._testing.cli_help_snapshot import (
+        capture_root_help_command_sections,
+        snapshot_path,
+    )
+
+    snapshot = snapshot_path()
+    assert snapshot.is_file(), (
+        f"Missing CLI help snapshot at {snapshot.relative_to(_REPO_ROOT)}. "
+        "Generate with: python scripts/update_cli_help_snapshot.py"
+    )
+    expected = snapshot.read_text(encoding="utf-8")
+    live = capture_root_help_command_sections()
+    assert live == expected, (
+        "CLI root help snapshot drifted from live Milo output.\n"
+        "Regenerate with: python scripts/update_cli_help_snapshot.py"
+    )
+
+
+def test_architecture_cli_doc_root_help_matches_snapshot() -> None:
+    """Embedded cli.md help block must match the committed CLI help snapshot."""
+    from tests._testing.cli_help_snapshot import parse_cli_doc_root_help, snapshot_path
+
+    doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
+    doc_help = parse_cli_doc_root_help(doc.read_text(encoding="utf-8"))
+    expected = snapshot_path().read_text(encoding="utf-8")
+    assert doc_help == expected, (
+        "cli.md root help block drifted from committed snapshot.\n"
+        "Regenerate with: python scripts/update_cli_help_snapshot.py"
+    )
+
+
+def test_directive_option_tables_match_registry() -> None:
+    """Committed directive option snapshot must match create_default_registry()."""
+    from tests._testing.directive_options_snapshot import (
+        load_snapshot,
+        registry_option_tables,
+        snapshot_path,
+    )
+
+    snapshot = snapshot_path()
+    assert snapshot.is_file(), (
+        f"Missing directive options snapshot at {snapshot.relative_to(_REPO_ROOT)}. "
+        "Generate with: python scripts/update_directive_options_snapshot.py"
+    )
+    expected = load_snapshot()
+    live = registry_option_tables()
+    assert live == expected, (
+        "Directive option tables drifted from registry.\n"
+        "Regenerate with: python scripts/update_directive_options_snapshot.py"
     )

@@ -21,9 +21,10 @@ keywords:
 Command examples and flags for day-to-day Bengal workflows.
 
 :::{note}
-**Do I need this?** Use when you need a specific command or flag. For CLI
-architecture and registration internals, see
-[[docs/reference/architecture/tooling/cli|CLI Architecture]].
+**Do I need this?** Use when you need a specific command or flag. Exhaustive
+command and flag lookup lives in the autodoc [[/cli/|Bengal CLI Reference]]
+(generated from Milo at build time). For CLI architecture and registration
+internals, see [[docs/reference/architecture/tooling/cli|CLI Architecture]].
 :::
 
 ## Core Commands {#commands}

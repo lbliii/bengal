@@ -11,7 +11,7 @@ Developer interfaces for working with Bengal.
 
 | Component | Purpose | Key Features |
 |-----------|---------|--------------|
-| **CLI** | Command interface | Click-based, auto-generated help |
+| **CLI** | Command interface | Milo registry, autodoc `/cli/` reference |
 | **Dev Server** | Local development | Live reload, SSE hot updates |
 | **Config** | Settings loader | TOML/YAML, environment merging |
 | **Utils** | Shared utilities | Progress reporting, file handling |
@@ -30,5 +30,6 @@ bengal
 ```
 
 :::{tip}
-See [CLI Reference](cli/) for complete command documentation.
+See [[/cli/|Bengal CLI Reference]] (autodoc, generated from Milo) for complete
+command and flag lookup. This page covers architecture and contributor internals.
 :::
