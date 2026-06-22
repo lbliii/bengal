@@ -22,6 +22,7 @@ the drift were re-introduced.
 from __future__ import annotations
 
 import re
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -168,4 +169,22 @@ def test_hub_pages_do_not_reference_phantom_cli_section() -> None:
     assert not offenders, (
         "Hub pages link to phantom `/cli/` section; use docs/reference/architecture/tooling/cli:\n"
         + "\n".join(f"  {p}: lines {ls}" for p, ls in sorted(offenders.items()))
+    )
+
+
+def test_deploy_production_snippet_is_tracked_in_git() -> None:
+    """Production build snippet must not live under a gitignored ``build/`` path."""
+    snippet = _REPO_ROOT / "site" / "content" / "_snippets" / "deploy" / "production-build.md"
+    assert snippet.is_file(), f"Missing deploy snippet at {snippet.relative_to(_REPO_ROOT)}"
+    # git ls-files returns empty when ignored or untracked
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", str(snippet.relative_to(_REPO_ROOT))],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert tracked.returncode == 0, (
+        "Deploy production-build snippet is not tracked by git "
+        "(check site/.gitignore for overly broad rules)"
     )

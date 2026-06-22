@@ -16,6 +16,12 @@ theming entirely — the default theme works out of the box.
 **Theme developers** should start with [[docs/get-started/quickstart-themer|Themer
 Quickstart]], then [[docs/theming/themes/customize|Customize the Default Theme]].
 
+:::{glossary}
+:tags: persona-themer
+:limit: 4
+:collapsed: true
+:::
+
 :::{child-cards}
 :columns: 2
 :include: sections

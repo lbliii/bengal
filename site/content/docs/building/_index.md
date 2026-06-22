@@ -18,6 +18,12 @@ first if you have not scaffolded a site yet. **Writing content?** See
 [[docs/content|Content]]. **Looking up a config key?** Use
 [[docs/reference/architecture/tooling/config|Configuration Reference]].
 
+:::{glossary}
+:tags: persona-operator
+:limit: 4
+:collapsed: true
+:::
+
 :::{child-cards}
 :columns: 2
 :include: sections

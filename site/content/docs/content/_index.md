@@ -17,6 +17,12 @@ versions?** Read [[docs/content/versioning|Versioned Documentation]].
 Bengal transforms Markdown files into structured, validated documentation sites
 with rich directives, cross-references, and automated validation.
 
+:::{glossary}
+:tags: persona-writer
+:limit: 4
+:collapsed: true
+:::
+
 :::{child-cards}
 :columns: 2
 :include: sections
