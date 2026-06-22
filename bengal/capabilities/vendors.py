@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
@@ -31,7 +32,6 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -164,12 +164,17 @@ class CapabilityVendorHelper:
 
 def load_vendor_integrity(vendor_dir: Path) -> dict[str, str]:
     """Load SRI hashes written during vendor provisioning."""
+    if not isinstance(vendor_dir, Path):
+        return {}
     manifest_path = vendor_dir / _INTEGRITY_MANIFEST
     if not manifest_path.is_file():
         return {}
     try:
-        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except OSError, json.JSONDecodeError:
+        text = manifest_path.read_text(encoding="utf-8")
+        if not isinstance(text, str):
+            return {}
+        raw = json.loads(text)
+    except OSError, json.JSONDecodeError, TypeError, ValueError:
         return {}
     if not isinstance(raw, dict):
         return {}
