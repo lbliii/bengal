@@ -6,6 +6,7 @@ weight: 25
 draft: false
 lang: en
 tags:
+- persona-themer
 - tutorial
 - kida
 - templates
@@ -18,6 +19,12 @@ category: tutorial
 ---
 
 # Getting Started with Kida
+
+:::{note}
+**Do I need this?** Yes when learning Kida from scratch with a guided
+build. Skip for syntax lookup — use [[docs/reference/kida-syntax|Kida Syntax]]
+or [[docs/get-started/quickstart-themer|Themer Quickstart]] for a faster start.
+:::
 
 Learn Kida, Bengal's native template engine, from scratch. This tutorial teaches you Kida syntax through hands-on examples, building up to a complete blog template.
 

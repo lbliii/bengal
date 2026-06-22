@@ -4,6 +4,7 @@ nav_title: MkDocs
 description: Onboarding guide for MkDocs and Material for MkDocs users migrating to Bengal
 weight: 15
 tags:
+- persona-migrator
 - tutorial
 - migration
 - mkdocs
@@ -16,6 +17,12 @@ keywords:
 ---
 
 # Bengal for MkDocs Users
+
+
+:::{note}
+**Do I need this?** Yes when migrating from MkDocs. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
 
 You're in familiar territory. Both tools are Python-native and use Markdown. The main change: MkDocs extensions become Bengal directives.
 
@@ -558,7 +565,7 @@ theme = "bengal"
 :::{step} Test
 ```bash
 bengal build
-bengal health linkcheck
+bengal inspect links
 bengal serve
 ```
 :::{/step}
@@ -595,7 +602,7 @@ bengal serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 

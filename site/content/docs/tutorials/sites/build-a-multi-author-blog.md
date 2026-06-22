@@ -22,15 +22,11 @@ category: tutorial
 
 In this tutorial, you'll transform a single-author blog into a full multi-author publication with author profiles, individual author pages, and rich bylines.
 
-:::{tip}
-**Default Theme Has This Built-In!**
-
-Bengal's default theme includes complete multi-author support:
-- Author pages with social links and post listings
-- Author bylines in blog posts (enable `content.author` feature)
-- Author index page listing all contributors
-
-If you're using the default theme, you may only need to **add frontmatter** — no template work required! This tutorial shows both how to use the built-in features and how to customize them.
+:::{note}
+**Do I need this?** Yes when multiple writers share one blog and you need author
+pages or bylines. For a single-author blog, use
+[[docs/tutorials/sites/build-a-blog|Build a Blog]] instead. The default theme
+includes multi-author support — you may only need frontmatter changes.
 :::
 
 :::{note}

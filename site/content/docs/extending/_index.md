@@ -3,9 +3,24 @@ title: Extending Bengal
 description: Create custom directives, content sources, collections, and build hooks
 weight: 35
 icon: starburst
+tags:
+- persona-extender
 ---
 
-Bengal provides extension points for customizing content processing, adding new content sources, defining typed content schemas, and integrating external build tools.
+# Extending Bengal
+
+**Need a custom directive, remote source, or build hook?** This section covers
+Bengal's extension points. **Most sites never need this** — start with
+[[docs/content/authoring|Authoring]] and [[docs/theming|Theming]] first.
+
+**Plugin authors** should read [[docs/get-started/quickstart-contributor|Contributor
+Quickstart]] for dev setup, then pick an extension type below.
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:::
 
 ## Extension Points
 

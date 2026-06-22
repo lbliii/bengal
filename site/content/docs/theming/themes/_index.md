@@ -5,10 +5,25 @@ weight: 30
 category: guide
 icon: palette
 card_color: purple
+tags:
+- persona-themer
 ---
 # Working with Themes
 
 Themes are complete design packages. Use one as-is, customize it, or build your own.
+
+:::{note}
+**Do I need this?** Yes when switching, customizing, or authoring themes. For a
+first override, see [[docs/tutorials/theming/swizzle-default-theme|Swizzle tutorial]]
+or [[docs/theming/themes/customize|Customize the Default Theme]].
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::
 
 ## Theme Resolution
 

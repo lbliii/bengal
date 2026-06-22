@@ -4,6 +4,7 @@ nav_title: Jekyll
 description: Onboarding guide for Jekyll users migrating to Bengal
 weight: 25
 tags:
+- persona-migrator
 - tutorial
 - migration
 - jekyll
@@ -17,6 +18,12 @@ keywords:
 ---
 
 # Bengal for Jekyll Users
+
+
+:::{note}
+**Do I need this?** Yes when migrating from Jekyll. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
 
 Moving from Ruby to Python? Bengal simplifies your stack while keeping the content-first approach you know.
 
@@ -178,6 +185,7 @@ title: "My Blog Post"
 date: 2024-01-15 10:30:00 -0500
 categories: [python, tutorial]
 tags: [beginner, tips]
+- persona-migrator
 author: jane
 excerpt: "A brief introduction..."
 published: true
@@ -192,6 +200,7 @@ title: "My Blog Post"
 date: 2024-01-15
 category: python
 tags: [tutorial, beginner, tips]
+- persona-migrator
 author: jane
 description: "A brief introduction..."
 draft: false
@@ -562,7 +571,7 @@ theme = "bengal"
 :::{step} Test
 ```bash
 bengal build
-bengal health linkcheck
+bengal inspect links
 bengal serve
 ```
 :::{/step}
@@ -607,7 +616,7 @@ bengal serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 

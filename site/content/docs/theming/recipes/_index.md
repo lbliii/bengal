@@ -10,11 +10,13 @@ tags:
 - templates
 - kida
 - examples
+- persona-themer
 keywords:
 - cookbook
 - templates
 - kida
 - examples
+- persona-themer
 - bengal
 category: guide
 icon: book-open
@@ -23,6 +25,19 @@ card_color: orange
 # Template Cookbook
 
 Practical examples showing how to accomplish common tasks with Bengal's templating system.
+
+:::{note}
+**Do I need this?** Use when you know *what* you want (recent posts, TOC, series
+nav) and need a copy-paste Kida pattern. For syntax fundamentals, see
+[[docs/reference/kida-syntax|Kida Syntax]] or [[docs/theming/templating/kida|Kida How-Tos]].
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description
+:exclude: _index.md
+:::
 
 ## Content Queries
 

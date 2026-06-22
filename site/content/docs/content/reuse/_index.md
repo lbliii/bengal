@@ -6,10 +6,24 @@ weight: 50
 category: guide
 icon: recycle
 card_color: teal
+tags:
+- persona-writer
 ---
+
 # Reusing Content
 
 Write once, publish everywhere. Bengal provides multiple ways to avoid repeating yourself.
+
+:::{note}
+**Do I need this?** Yes when the same block appears on multiple pages or you
+pull shared data from YAML/JSON. Skip until you notice copy-paste across pages.
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:::
 
 ## Reuse Strategies
 

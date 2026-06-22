@@ -6,80 +6,27 @@ weight: 20
 category: guide
 icon: edit
 card_color: blue
+tags:
+- persona-writer
 ---
+
 # Writing Content
 
-Bengal uses CommonMark Markdown with MyST-style directive extensions for rich documentation. Write in standard Markdown and extend with 60+ built-in directives.
+Write in CommonMark Markdown and extend with 60+ MyST directives for tabs,
+callouts, code blocks, and interactive components.
 
-## What Do You Need?
+:::{note}
+**Do I need this?** Yes when authoring rich docs content. Start with
+[[docs/get-started/quickstart-writer|Writer Quickstart]] if you have not scaffolded
+a site yet. For directive syntax lookup, see
+[[docs/reference/directives/kitchen-sink|Directive Kitchen Sink]].
+:::
 
-:::{cards}
+:::{child-cards}
 :columns: 2
-
-:::{card} Links & Cross-References
-:icon: link
-:link: ./linking/
-
-Create internal links, cross-references, and anchor links.
-:::{/card}
-
-:::{card} External References
-:icon: external
-:link: ./external-references/
-
-Link to Python stdlib, NumPy, and other Bengal sites.
-:::{/card}
-
-:::{card} Code Blocks
-:icon: code
-:link: ./code-blocks/
-
-Syntax highlighting, line numbers, and file includes.
-:::{/card}
-
-:::{card} Notebooks
-:icon: book
-:link: ./notebooks/
-
-Drop Jupyter .ipynb into content—renders natively with download badge.
-:::{/card}
-
-:::{card} Math and LaTeX
-:icon: function
-:link: ./math/
-
-Inline and block equations with $...$ and $$...$$.
-:::{/card}
-
-:::{card} Images & Media
-:icon: image
-:link: ./images-media/
-
-Add images, figures, videos, and embeds.
-:::{/card}
-
-:::{card} Tables
-:icon: layers
-:link: ./tables/
-
-Simple pipe tables and complex list-tables.
-:::{/card}
-
-:::{card} Callouts & Admonitions
-:icon: info
-:link: ./callouts/
-
-Notes, warnings, tips, and collapsible sections.
-:::{/card}
-
-:::{card} Interactive Elements
-:icon: layers
-:link: ./interactive/
-
-Tabs, dropdowns, steps, and cards.
-:::{/card}
-
-:::{/cards}
+:include: pages
+:fields: title, description, icon
+:::
 
 ## Quick Reference
 

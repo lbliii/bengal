@@ -3,12 +3,30 @@ title: Theming
 description: Templates, assets, and visual customization
 weight: 25
 icon: palette
+tags:
+- persona-themer
 ---
+
 # Design & Theming
 
-Control how your site looks with [[ext:kida:|Kida]] templates, CSS/JS assets, and theme packages.
+Customize templates, CSS/JS assets, and theme packages — or skip entirely and
+use the default theme.
 
-## What Do You Need?
+:::{note}
+**Do I need this?** Yes when changing layout, appearance, or template logic.
+**Writers** can skip this section — the default theme works out of the box.
+Start with [[docs/get-started/quickstart-themer|Themer Quickstart]], then
+[[docs/theming/themes/customize|Customize the Default Theme]].
+:::
+
+**Customizing appearance?** This section covers [[ext:kida:|Kida]] templates,
+CSS/JS assets, and theme packages.
+
+:::{glossary}
+:tags: persona-themer
+:limit: 4
+:collapsed: true
+:::
 
 :::{child-cards}
 :columns: 2

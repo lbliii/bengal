@@ -133,7 +133,7 @@ Validates internal and external links
 - Supports trailing slash variations
 - Caches validation results for performance
 - Integrates with health check system
-- External link checking handled separately via `bengal health linkcheck` command
+- External link checking handled separately via `bengal inspect links` command
 
 ### Configuration
 
@@ -152,7 +152,7 @@ validate_links = true
 
 **External links** (separate command):
 ```bash
-bengal health linkcheck --external
+bengal inspect links --external
 ```
 
 **Automatically skipped**:
@@ -171,7 +171,7 @@ Found 2 broken internal links:
   content/index.md: /guide/old-section/
 ```
 
-External link checking (via `bengal health linkcheck`):
+External link checking (via `bengal inspect links`):
 
 ```text
 Checking 156 external links...

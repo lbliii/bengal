@@ -1,38 +1,26 @@
 ---
-title: Build Sites
+title: Site Tutorials
 nav_title: Sites
-description: End-to-end tutorials for building complete site types
+description: Build blogs, multi-author sites, and YAML-driven scaffolds
 weight: 10
 draft: false
-icon: globe
+icon: layout
+tags:
+- persona-writer
 ---
 
-# Build Sites
+# Site Tutorials
 
-Complete walkthroughs for building different types of sites from scratch.
+End-to-end site builds — blogs, multi-author setups, and skeleton YAML.
 
-:::{cards}
-:columns: 1-2
-:gap: medium
+:::{note}
+**Do I need this?** Pick the tutorial matching your site type. For the fastest
+path, use [[docs/get-started|Get Started]] quickstarts instead.
+:::
 
-:::{card} Build a Blog
-:icon: newspaper
-:link: ./build-a-blog
-:description: Create a personal blog in about 15 minutes
-From empty folder to running blog with posts, tags, and custom styling.
-:::{/card}
-
-:::{card} Multi-Author Blog
-:icon: users
-:link: ./build-a-multi-author-blog
-:description: Team blogs with author profiles and bylines
-Extend a blog to support multiple contributors with dedicated author pages.
-:::{/card}
-
-:::{card} Skeleton YAML
-:icon: file-text
-:link: ./skeleton-quickstart
-:description: Define your site in one YAML file
-Copy-paste a skeleton, apply it, done. The fastest way to scaffold.
-:::{/card}
-:::{/cards}
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::

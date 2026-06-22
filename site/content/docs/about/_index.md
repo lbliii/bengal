@@ -7,11 +7,24 @@ menu:
   main:
     weight: 40
 icon: info
+tags:
+- persona-evaluator
 ---
 
 # About
 
-Bengal is a static site generator where the entire stack is Python you can read, debug, and extend. Every library in the pipeline — [Patitas](https://github.com/lbliii/patitas) (markdown), [Rosettes](https://github.com/lbliii/rosettes) (syntax highlighting), [Kida](https://github.com/lbliii/kida) (templates), [Pounce](https://github.com/lbliii/pounce) (dev server) — is purpose-built for Python 3.14+ [free-threading](./free-threading). No JavaScript toolchains. No compiled C extensions in the critical path. `pip install bengal` and go.
+**Sizing up Bengal?** Start with **Philosophy** and **Benchmarks**. **Comparing
+SSGs?** Read how Bengal differs on free-threading and Python-native tooling.
+**Already convinced?** Jump to [[docs/get-started|Get Started]].
+
+Bengal is a static site generator where the entire stack is Python you can
+read, debug, and extend. Every library in the pipeline —
+[Patitas](https://github.com/lbliii/patitas) (markdown),
+[Rosettes](https://github.com/lbliii/rosettes) (syntax highlighting),
+[Kida](https://github.com/lbliii/kida) (templates),
+[Pounce](https://github.com/lbliii/pounce) (dev server) — is purpose-built for
+Python 3.14+ [free-threading](./free-threading). No JavaScript toolchains. No
+compiled C extensions in the critical path. `pip install bengal` and go.
 
 ## Why Bengal?
 

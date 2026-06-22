@@ -159,7 +159,7 @@ excerpt generation, and pagination so custom content behavior stays in Python.
 | **Image Processing** | Resize, crop, format conversion (WebP/AVIF), srcset generation | [Images →](https://lbliii.github.io/bengal/docs/theming/templating/image-processing/) |
 | **Content Collections** | Type-safe frontmatter with dataclass/Pydantic schemas | [Collections →](https://lbliii.github.io/bengal/docs/content/collections/) |
 | **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/theming/) |
-| **Validation** | Health checks, broken link detection, auto-fix | [Building →](https://lbliii.github.io/bengal/docs/building/) |
+| **Validation** | Health checks, broken link detection, auto-fix | [Validation →](https://lbliii.github.io/bengal/docs/content/validation/) |
 | **Performance** | Parallel builds, incremental rebuilds, streaming | [Large Sites →](https://lbliii.github.io/bengal/docs/building/performance/large-sites/) |
 | **Zero-Config Deploy** | Auto-detects GitHub Pages, Netlify, Vercel | [Deployment →](https://lbliii.github.io/bengal/docs/building/deployment/) |
 

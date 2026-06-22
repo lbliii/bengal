@@ -4,6 +4,8 @@ nav_title: Operations
 description: CI/CD, automation, and site analysis
 weight: 40
 draft: false
+tags:
+- persona-operator
 icon: settings
 ---
 
@@ -11,21 +13,14 @@ icon: settings
 
 Automate builds, deployments, and site quality checks.
 
-:::{cards}
-:columns: 1-2
-:gap: medium
+:::{note}
+**Do I need this?** Yes when wiring CI/CD or running graph analysis at scale.
+For deployment basics, start with [[docs/building/deployment|Deployment]].
+:::
 
-:::{card} GitHub Actions
-:icon: github
-:link: ./automate-with-github-actions
-:description: Automated builds, tests, and deployments
-Set up CI/CD pipelines for your Bengal site with GitHub Actions.
-:::{/card}
-
-:::{card} Analyze Site Connectivity
-:icon: network
-:link: ./analyze-site-connectivity
-:description: Find orphan pages and improve internal linking
-Use graph analysis to discover and fix connectivity issues.
-:::{/card}
-:::{/cards}
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::

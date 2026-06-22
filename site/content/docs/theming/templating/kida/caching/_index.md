@@ -2,10 +2,17 @@
 title: Caching
 description: Automatic and manual template caching
 weight: 20
+tags:
+- persona-themer
 icon: zap
 ---
 
 # Caching
+
+:::{note}
+**Do I need this?** Read when optimizing template render time or using
+`{% cache %}` fragments. Automatic site-scoped caching needs no config.
+:::
 
 Kida provides two levels of template caching: automatic block caching for site-wide content and manual fragment caching for expensive operations.
 

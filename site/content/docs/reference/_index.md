@@ -6,12 +6,18 @@ menu:
   main:
     weight: 30
 icon: bookmark
+tags:
+- persona-contributor
 ---
+
 # Reference
 
-Complete technical documentation for Bengal's APIs, syntax, and internals.
+**Looking something up?** You are in the right place. Reference pages document
+*what* is available — directive syntax, CLI commands, config keys, template
+functions, and architecture internals.
 
-## What Do You Need?
+**Trying to accomplish a task?** Use guides instead: [[docs/content|Content]],
+[[docs/theming|Theming]], or [[docs/building|Building]].
 
 :::{child-cards}
 :columns: 2

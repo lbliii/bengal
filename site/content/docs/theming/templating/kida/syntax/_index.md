@@ -3,9 +3,16 @@ title: Syntax
 description: Kida template syntax reference
 weight: 10
 icon: code
+tags:
+- persona-themer
 ---
 
 Kida extends Jinja2 with pattern matching, pipeline operators, and unified block endings. Your existing Jinja2 templates work without changes—Kida parses both syntaxes.
+
+:::{note}
+**Do I need this?** Use for Kida-specific syntax topics (operators, variables,
+control flow). For a single-page overview, see [[docs/reference/kida-syntax|Kida Syntax]].
+:::
 
 ## Quick Reference
 

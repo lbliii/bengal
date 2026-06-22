@@ -2,11 +2,20 @@
 title: Versioned Documentation
 description: Serve multiple versions of your documentation from a single site
 weight: 50
+tags:
+- persona-operator
 ---
 
 # Versioned Documentation
 
 Bengal supports **versioned documentation**, allowing you to maintain multiple versions of your docs (e.g., v1, v2, v3) and let users switch between them.
+
+## Do I Need This?
+
+:::{note}
+**Skip this if**: You publish a single docs version and never maintain older releases.
+**Read this if**: You ship library/API docs where users stay on older semver lines, or you need side-by-side migration guides between versions.
+:::
 
 ## Why Version Your Docs?
 
@@ -100,7 +109,7 @@ version directories it previously managed so old docs do not linger after
 ### 1. Enable Versioning
 
 ```yaml
-# bengal.yaml
+# config/_default/versioning.yaml (or bengal.toml [versioning] section)
 versioning:
   enabled: true
   versions:

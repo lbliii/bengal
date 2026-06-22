@@ -23,7 +23,7 @@ category: reference
 
 Bengal provides powerful template filters for querying, filtering, and transforming content collections. Many filters are inspired by Hugo for easy migration.
 
-:::{important}
+:::{note}
 **Implementation Maturity**: Bengal currently ships with over **80+ native template functions** and filters. While our documentation is being expanded to provide exhaustive examples for every edge case, the core implementation for Math, Strings, Collections, SEO, and Autodoc is fully production-ready and registered in the engine.
 :::
 

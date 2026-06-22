@@ -4,6 +4,7 @@ nav_title: Sphinx
 description: Onboarding guide for Sphinx and reStructuredText users migrating to Bengal
 weight: 10
 tags:
+- persona-migrator
 - tutorial
 - migration
 - sphinx
@@ -19,6 +20,12 @@ keywords:
 ---
 
 # Bengal for Sphinx/RST Users
+
+
+:::{note}
+**Do I need this?** Yes when migrating from Sphinx/RST. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
 
 You're 80% there. Bengal uses MyST-compatible syntax that mirrors what you already know.
 
@@ -389,7 +396,7 @@ This generates virtual pages during the build process, unlike Sphinx's runtime i
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check links: `bengal health linkcheck`
+- [ ] Check links: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 
@@ -407,7 +414,7 @@ This generates virtual pages during the build process, unlike Sphinx's runtime i
 | Link to doc | `:doc:\`path\`` | Standard markdown links |
 | Build | `make html` | `bengal build` |
 | Serve | `sphinx-autobuild` | `bengal serve` |
-| Check | `sphinx-build -W` | `bengal health linkcheck` |
+| Check | `sphinx-build -W` | `bengal inspect links` |
 
 ---
 

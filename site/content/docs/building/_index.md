@@ -3,12 +3,26 @@ title: Building
 description: Build configuration, SEO/discovery, output formats, and deployment
 weight: 30
 icon: settings
+tags:
+- persona-operator
 ---
+
 # Build & Deploy
 
-Configure, build, optimize, improve SEO/discovery, and deploy your Bengal site.
+You have a site working — now configure builds, validate quality, optimize
+performance, and ship to production.
 
-## What Do You Need?
+:::{note}
+**Do I need this?** Yes for operators and site owners tuning production builds,
+SEO, deployment, or troubleshooting. New to Bengal? Start with
+[[docs/get-started|Get Started]]. Writing content? See [[docs/content|Content]].
+:::
+
+:::{glossary}
+:tags: persona-operator
+:limit: 4
+:collapsed: true
+:::
 
 :::{child-cards}
 :columns: 2
@@ -60,6 +74,7 @@ flowchart LR
 | Understand DX hints (Docker, WSL, K8s) | [DX Hints](./dx-hints.md) |
 | Deploy my site | [Deployment](./deployment/) |
 | Fix build errors | [Troubleshooting](./troubleshooting/) |
+| Validate links and content | [Validation](../content/validation/) |
 
 ## Essential Commands
 

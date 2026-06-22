@@ -4,6 +4,7 @@ nav_title: Docusaurus
 description: Onboarding guide for Docusaurus and MDX users migrating to Bengal
 weight: 30
 tags:
+- persona-migrator
 - tutorial
 - migration
 - docusaurus
@@ -19,6 +20,12 @@ keywords:
 ---
 
 # Bengal for Docusaurus/MDX Users
+
+
+:::{note}
+**Do I need this?** Yes when migrating from Docusaurus. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
 
 Great news: You get the same rich components without React, JSX, or npm. Bengal's directives provide similar functionality in pure Markdown.
 
@@ -612,7 +619,7 @@ terms:
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 

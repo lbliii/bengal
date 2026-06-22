@@ -5,10 +5,20 @@ weight: 25
 category: guide
 icon: languages
 card_color: green
+tags:
+- persona-operator
 ---
+
 # Internationalization
 
 Bengal supports multi-language sites with directory-based content, gettext PO/MO translation files, plural-aware translations via `nt()`, and full RTL (right-to-left) layout support for Arabic, Hebrew, and other bidirectional languages.
+
+## Do I Need This?
+
+:::{note}
+**Skip this if**: Your site is single-language only.
+**Read this if**: You need translated content, hreflang SEO, RTL layouts, or a translator workflow.
+:::
 
 ## Quick Start
 
@@ -85,28 +95,9 @@ bengal build
 
 ## Guides
 
-:::{cards}
+:::{child-cards}
 :columns: 2
-
-:::{card} Quickstart
-:icon: rocket
-:link: ./quickstart/
-
-PO file setup, locale config, and translation workflow.
-:::{/card}
-
-:::{card} RTL Layout
-:icon: arrows
-:link: ./rtl/
-
-CSS authoring for Arabic, Hebrew, and bidirectional sites.
-:::{/card}
-
-:::{card} Translator Guide
-:icon: users
-:link: ./translator-guide/
-
-How to contribute translations and PO file conventions.
-:::{/card}
-
-:::{/cards}
+:include: pages
+:fields: title, description, icon
+:exclude: _index.md
+:::

@@ -5,16 +5,23 @@ weight: 30
 category: guide
 icon: zap
 card_color: purple
+tags:
+- persona-operator
 ---
+
 # Optimize Build Performance
 
 Speed up Bengal with incremental builds, parallel processing, and smart caching.
 
-## Do I Need This?
-
 :::{note}
-**Skip this if**: Your site builds in under 10 seconds.  
-**Read this if**: You have 500+ pages or builds feel slow.
+**Do I need this?** Skip if your site builds in under 10 seconds. Read when you
+have 500+ pages, slow CI, or template edits that rebuild too much.
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
 :::
 
 ## Quick Wins

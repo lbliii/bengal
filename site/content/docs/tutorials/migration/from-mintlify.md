@@ -4,6 +4,7 @@ nav_title: Mintlify
 description: Onboarding guide for Mintlify users migrating to Bengal
 weight: 35
 tags:
+- persona-migrator
 - tutorial
 - migration
 - mintlify
@@ -18,6 +19,12 @@ keywords:
 ---
 
 # Bengal for Mintlify Users
+
+
+:::{note}
+**Do I need this?** Yes when migrating from Mintlify. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
 
 Great news: You get the same polished API documentation experience—without the hosted platform lock-in. Bengal's directives provide equivalent components in pure Markdown, and you control your own infrastructure.
 
@@ -653,7 +660,7 @@ Use variables directly in markdown without JSX. Frontmatter keys are available d
 ::::{tab} Build-time Validation
 ```bash
 # Validate all links work
-bengal health linkcheck
+bengal inspect links
 
 # Check for broken references  
 bengal health
@@ -756,7 +763,7 @@ cp /path/to/mintlify/openapi.yaml .
 :::{step} Test
 ```bash
 bengal build
-bengal health linkcheck
+bengal inspect links
 bengal serve
 ```
 :::{/step}
@@ -797,7 +804,7 @@ bengal serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 

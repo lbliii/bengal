@@ -9,6 +9,7 @@ tags:
 - onboarding
 - writing
 - quickstart
+- persona-writer
 keywords:
 - writing
 - content
@@ -23,6 +24,12 @@ icon: pencil
 
 Create your first Bengal site and publish content in 5 minutes. No theming or code required.
 
+:::{note}
+**Do I need this?** Yes if you are new to Bengal and want to write Markdown content
+with the default theme. Skip if you are customizing templates — see
+[[docs/get-started/quickstart-themer|Themer Quickstart]] instead.
+:::
+
 ## Prerequisites
 
 :::{checklist} Before You Start
@@ -34,12 +41,8 @@ Create your first Bengal site and publish content in 5 minutes. No theming or co
 
 ## Create Your Site
 
-```bash
-bengal new site myblog --template blog
-cd myblog
+```{include} _snippets/scaffold/blog-site.md
 ```
-
-The `--template blog` flag scaffolds a complete blog structure with sample posts. Other templates: `default`, `docs`, `portfolio`, `product`, `resume`.
 
 :::{dropdown} Or use a custom skeleton YAML
 :icon: file-text
@@ -81,11 +84,8 @@ See [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]] for mo
 :::{target} hot-reload
 :::
 
-```bash
-bengal serve
+```{include} _snippets/scaffold/serve.md
 ```
-
-Your browser opens automatically at `http://localhost:5173/`. The server rebuilds on save—CSS changes apply instantly without page refresh.
 
 ## Create Your First Post
 
@@ -144,11 +144,10 @@ See [[docs/building/configuration|Configuration Reference]] for details.
 
 ## Build and Deploy
 
-```bash
-bengal build
+```{include} _snippets/deploy/production-build.md
 ```
 
-Output goes to `public/`. Deploy to any static host:
+Deploy to any static host:
 
 | Platform | Build Command | Output |
 |----------|---------------|--------|

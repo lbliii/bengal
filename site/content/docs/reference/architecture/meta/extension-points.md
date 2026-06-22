@@ -460,7 +460,7 @@ Most extensions should use the plugin system. For simpler cases:
 
 ## Community Extensions (Future)
 
-Planned extension registry at `bengal-ssg.org/extensions/`:
+Planned extension registry (URL TBD):
 - Themes
 - Plugins
 - Template function packs

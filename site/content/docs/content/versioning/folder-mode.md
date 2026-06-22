@@ -12,7 +12,10 @@ Folder mode is the simplest way to version your documentation. Each version live
 
 ```tree
 your-site/
-├── bengal.yaml
+├── bengal.toml
+├── config/
+│   └── _default/
+│       └── versioning.yaml
 ├── content/
 │   ├── docs/                    # Latest version (v3)
 │   │   ├── _index.md
@@ -34,7 +37,7 @@ your-site/
 :::{steps}
 :::{step} Enable Versioning
 
-Add to your `bengal.yaml`:
+Add to your `bengal.toml` (under `config/_default/versioning.yaml` or inline):
 
 ```yaml
 versioning:
@@ -233,7 +236,7 @@ versions:
 :::{dropdown} Check version is listed
 :icon: check
 
-Verify the version is listed in `bengal.yaml` under `versions`.
+Verify the version is listed in your versioning config under `versions`.
 :::
 
 :::{dropdown} Verify directory exists

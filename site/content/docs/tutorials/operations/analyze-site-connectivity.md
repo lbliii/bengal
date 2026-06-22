@@ -6,6 +6,7 @@ weight: 50
 draft: false
 lang: en
 tags:
+- persona-operator
 - tutorial
 - analysis
 - graph
@@ -22,20 +23,16 @@ category: tutorial
 
 # Analyze and Improve Site Connectivity
 
-In this tutorial, you'll learn to use Bengal's graph analysis tools to discover connectivity issues, interpret the results, and take action to improve your site's internal linking structure.
+Use Bengal's graph analysis tools to find orphan pages and improve internal linking.
 
-**What you'll learn:**
-- Run a connectivity analysis on your site
-- Interpret the output and understand what it means
-- Prioritize which pages need attention
-- Fix connectivity issues
-- Set up CI gates to prevent regression
+:::{note}
+**Do I need this?** Yes for sites with 50+ pages or connectivity issues in CI.
+Skip for small sites — [[docs/content/analysis|Site Analysis]] covers the commands.
+:::
 
 **Time:** 15-20 minutes
 
-**Prerequisites:**
-- A Bengal site with content
-- Basic familiarity with the command line
+**Prerequisites:** A Bengal site with content; basic command-line familiarity.
 
 ---
 

@@ -9,6 +9,7 @@ tags:
 - onboarding
 - theming
 - quickstart
+- persona-themer
 keywords:
 - theming
 - templates
@@ -21,7 +22,12 @@ icon: palette
 
 # Themer Quickstart
 
-Learn to customize Bengal themes and create your own designs.
+Customize Bengal themes and create your own designs in 30 minutes.
+
+:::{note}
+**Do I need this?** Yes if you want to change layouts, CSS, or template structure.
+Skip if you only write Markdown — the default theme works without theming.
+:::
 
 ## Prerequisites
 
@@ -44,7 +50,9 @@ Bengal looks for templates in this order:
 
 You only need to override what you want to change.
 
-## Create a Custom Theme
+:::{steps}
+
+:::{step} Create a custom theme
 
 ```bash
 bengal theme new --slug my-theme
@@ -66,7 +74,9 @@ themes/my-theme/
         └── style.css
 ```
 
-## Configure Your Theme
+:::
+
+:::{step} Configure your theme
 
 Update `bengal.toml`:
 
@@ -82,7 +92,9 @@ build:
   theme: "my-theme"
 ```
 
-## Override Templates Selectively
+:::
+
+:::{step} Override templates selectively
 
 You do not need to copy all templates. Extend the default:
 
@@ -102,7 +114,9 @@ You do not need to copy all templates. Extend the default:
 
 Everything not overridden inherits from the default theme or parent theme.
 
-## Add Custom CSS
+:::
+
+:::{step} Add custom CSS
 
 Create `themes/my-theme/assets/css/custom.css`:
 
@@ -125,6 +139,10 @@ Include in your template:
 <link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
 {% end %}
 ```
+
+:::
+
+:::{/steps}
 
 ## Template Variables
 

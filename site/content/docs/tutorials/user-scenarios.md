@@ -2,17 +2,67 @@
 title: "User Scenarios"
 description: "Common use cases and patterns for different types of Bengal sites"
 weight: 100
+tags:
+- persona-writer
+- persona-operator
 ---
 
 # User Scenarios
 
-This guide covers common use cases for Bengal, with patterns and examples for each scenario.
+Pick the scenario that matches your site type, then follow the steps below.
 
-**When to use this guide**: Choose a scenario that matches your site type, then follow the step-by-step instructions to scaffold and configure your site. Each scenario includes complete examples you can copy and adapt.
+:::{note}
+**Do I need this?** Use this guide when you know *what* you are building (blog,
+docs site, portfolio, etc.) and want scaffold + config patterns. For a faster
+first run, start with [[docs/get-started/quickstart-writer|Writer Quickstart]]
+or a focused [[docs/tutorials|Tutorial]] instead.
+:::
 
-**Prerequisites**: Bengal installed (`pip install bengal-ssg`). See [[docs/get-started/installation|Installation]] if needed.
+**Prerequisites**: Bengal installed (`pip install bengal`). See [[docs/get-started/installation|Installation]] if needed.
 
-## Blog Author Workflow
+:::{cards}
+:columns: 2
+:gap: small
+
+:::{card} Blog
+:link: "#blog-author-workflow"
+:icon: edit
+Date-sorted posts, categories, RSS, pagination.
+:::
+
+:::{card} Documentation
+:link: "#documentation-site"
+:icon: book-open
+Search, versioning, hierarchical nav.
+:::
+
+:::{card} Portfolio
+:link: "#portfolio-site"
+:icon: image
+Project showcases and featured work.
+:::
+
+:::{card} Mixed Content
+:link: "#mixed-content-site"
+:icon: layers
+Blog, docs, and portfolio on one site.
+:::
+
+:::{card} Multi-Variant
+:link: "#multi-variant-site"
+:icon: git-branch
+One repo, multiple deployed editions.
+:::
+
+:::{card} More Scenarios
+:link: [[docs/tutorials/user-scenarios-specialized|Specialized Scenarios]]
+:icon: ellipsis
+i18n, landing pages, resume, changelog.
+:::
+
+:::{/cards}
+
+## Blog Author Workflow {#blog-author-workflow}
 
 Build a personal or team blog with posts, categories, and RSS feeds.
 
@@ -70,17 +120,14 @@ features:
 
 ### 5. Build and Preview
 
-```bash
-bengal serve
+```{include} _snippets/scaffold/serve.md
 ```
 
 ---
 
-## Documentation Site
+## Documentation Site {#documentation-site}
 
 Build technical documentation with search, versioning, and navigation.
-
-**What you'll get**: A documentation site with search functionality, hierarchical navigation, and organized content structure.
 
 **What you'll get**: A documentation site with hierarchical navigation, search functionality, and structured content organization.
 
@@ -153,11 +200,9 @@ menu:
 
 ---
 
-## Portfolio Site
+## Portfolio Site {#portfolio-site}
 
 Showcase projects with a portfolio layout.
-
-**What you'll get**: A portfolio site with project showcases, featured project highlighting, and organized project pages.
 
 **What you'll get**: A portfolio site with project pages, featured project highlighting, and tag-based organization.
 
@@ -205,11 +250,9 @@ Use the `featured: true` frontmatter field to highlight projects on the homepage
 
 ---
 
-## Mixed Content Site
+## Mixed Content Site {#mixed-content-site}
 
 Combine documentation, blog, and portfolio on a single site.
-
-**What you'll get**: A single site with multiple content types, each with appropriate sorting and display logic using cascade configuration.
 
 **What you'll get**: A multi-purpose site with separate sections for different content types, each with appropriate templates and navigation.
 
@@ -279,7 +322,7 @@ menu:
 
 ---
 
-## Multi-Variant Documentation
+## Multi-Variant Documentation {#multi-variant-site}
 
 Build separate doc sites (OSS vs Enterprise, brand1 vs brand2) from one content tree. Common when you acquire a product or maintain paid vs free tiers.
 
@@ -354,7 +397,7 @@ Deploy each build to its own URL (e.g., `docs.example.com` and `enterprise.examp
 
 ---
 
-## Multi-Language Site
+## Multi-Language Site {#international-site}
 
 Create content in multiple languages using directory-based structure.
 
@@ -409,7 +452,7 @@ Use these in templates for language switching:
 
 ---
 
-## Landing Page
+## Landing Page {#landing-page}
 
 Build a marketing or product landing page.
 
@@ -458,7 +501,7 @@ Use shortcodes and directives for landing page sections:
 
 ---
 
-## Resume/CV Site
+## Resume/CV Site {#resume-site}
 
 Build a professional resume or CV site.
 
@@ -497,7 +540,7 @@ education:
 
 ---
 
-## Changelog Site
+## Changelog Site {#changelog-site}
 
 Maintain a project changelog with releases.
 

@@ -4,6 +4,7 @@ nav_title: Fern
 description: Onboarding guide for Fern Docs users migrating to Bengal
 weight: 40
 tags:
+- persona-migrator
 - tutorial
 - migration
 - fern
@@ -19,6 +20,12 @@ keywords:
 ---
 
 # Bengal for Fern Users
+
+
+:::{note}
+**Do I need this?** Yes when migrating from Fern. For shared steps across
+all platforms, start at [[docs/tutorials/migration|Migration hub]].
+:::
 
 Fern is powerful for API-first teams with SDK generation. Bengal focuses purely on documentation—giving you full control over your content without proprietary syntax. If you're migrating away from Fern's docs platform, this guide shows you how.
 
@@ -601,7 +608,7 @@ DRY principle for documentation.
 ::::{tab} Build Validation
 ```bash
 # Check all links
-bengal health linkcheck
+bengal inspect links
 
 # Full health check
 bengal health
@@ -722,7 +729,7 @@ autodoc:
 :::{step} Test
 ```bash
 bengal build
-bengal health linkcheck
+bengal inspect links
 bengal serve
 ```
 :::{/step}
@@ -764,7 +771,7 @@ bengal serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal build`
-- [ ] Check: `bengal health linkcheck`
+- [ ] Check: `bengal inspect links`
 - [ ] Preview: `bengal serve`
 :::
 

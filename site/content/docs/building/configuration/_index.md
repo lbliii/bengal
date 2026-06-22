@@ -5,10 +5,24 @@ weight: 10
 category: guide
 icon: settings
 card_color: blue
+tags:
+- persona-operator
 ---
+
 # Configuration
 
-Control Bengal's behavior through `bengal.toml` and environment-specific settings.
+Configure builds, environments, themes, and site metadata before you ship.
+
+:::{note}
+**Do I need this?** Yes when tuning production builds, multi-environment setups, or
+theme selection. Skip on day one — `bengal new site` scaffolds sensible defaults.
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:::
 
 ## Configuration Methods
 

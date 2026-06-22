@@ -6,10 +6,25 @@ weight: 10
 category: explanation
 icon: folder
 card_color: green
+tags:
+- persona-writer
 ---
+
 # How Content is Organized
 
 Your folder structure becomes your site structure. No configuration required.
+
+:::{note}
+**Do I need this?** Yes when planning site structure, menus, or content types.
+Skip if you only write single pages in an existing scaffold — see
+[[docs/get-started/quickstart-writer|Writer Quickstart]] instead.
+:::
+
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description, icon
+:::
 
 ## The Three Content Types
 

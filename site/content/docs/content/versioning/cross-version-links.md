@@ -143,7 +143,7 @@ Links to the latest version use clean URLs without version prefix:
 Cross-version links work automatically when versioning is enabled. No additional configuration needed.
 
 ```yaml
-# bengal.yaml
+# config/_default/versioning.yaml
 versioning:
   enabled: true
   versions:
