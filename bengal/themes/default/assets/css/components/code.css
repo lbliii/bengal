@@ -1328,7 +1328,7 @@ pre::-webkit-scrollbar-thumb:hover {
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-left: auto;
+  margin-inline-start: auto;
   flex-shrink: 0;
 }
 
