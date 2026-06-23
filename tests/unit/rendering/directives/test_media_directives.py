@@ -1209,8 +1209,8 @@ class TestMediaDirectivesEdgeCases:
         result = parser.parse(markdown, {})
         assert 'alt="Full Options Image"' in result
         assert "This is a detailed caption" in result
-        assert "width: 600px" in result
-        assert "height: 400px" in result
+        assert 'width="600"' in result
+        assert 'height="400"' in result
         assert "align-center" in result
         assert 'href="https://example.com"' in result
         assert 'target="_blank"' in result
