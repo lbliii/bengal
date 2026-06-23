@@ -31,7 +31,16 @@ FENCE_INFO_PATTERN = re.compile(
     r'(?:\s+title="(?P<title>[^"]*)")?'
     r"(?:\s*\{(?P<brace>[^}]*)\})?"
     r'(?:\s+title="(?P<title2>[^"]*)")?'
-    r"(?:\s+(?P<linenos>linenos))?$"
+    r"(?:\s+(?P<linenos>linenos))?"
+)
+
+FRAME_PATTERN = re.compile(r"\bframe=(terminal|editor)\b")
+COLLAPSE_PATTERN = re.compile(r"\bcollapse(?:=(open|closed))?\b")
+ANNOTATE_PATTERN = re.compile(r'annotate="([^"]+)"')
+
+# Shell-like languages get an implicit terminal frame unless frame= overrides.
+TERMINAL_FRAME_LANGUAGES = frozenset(
+    {"bash", "sh", "shell", "zsh", "console", "terminal", "powershell", "cmd", "pwsh"}
 )
 
 
@@ -44,6 +53,10 @@ class CodeFenceAttrs:
     title: str | None = None
     diff: bool = False
     show_linenos: bool = False
+    frame: str | None = None
+    collapsible: bool = False
+    collapsed: bool = False
+    annotations: tuple[tuple[int, str], ...] = ()
 
     @property
     def highlight_language(self) -> str:
@@ -138,6 +151,43 @@ def _parse_brace_content(brace: str | None) -> tuple[tuple[int, ...], bool]:
     return hl_lines, diff
 
 
+def parse_annotations(spec: str) -> tuple[tuple[int, str], ...]:
+    """Parse ``1:Setup,3:Run`` annotation pairs from a fence annotate attribute."""
+    if not spec.strip():
+        return ()
+
+    pairs: list[tuple[int, str]] = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part or ":" not in part:
+            continue
+        line_s, _, text = part.partition(":")
+        try:
+            line_no = int(line_s.strip())
+        except ValueError:
+            continue
+        note = text.strip()
+        if note:
+            pairs.append((line_no, note))
+    return tuple(pairs)
+
+
+def _parse_optional_fence_flags(
+    info: str,
+) -> tuple[str | None, bool, bool, tuple[tuple[int, str], ...]]:
+    frame_match = FRAME_PATTERN.search(info)
+    frame = frame_match.group(1) if frame_match else None
+
+    collapse_match = COLLAPSE_PATTERN.search(info)
+    collapsible = collapse_match is not None
+    collapsed = collapse_match is not None and collapse_match.group(1) == "closed"
+
+    annotate_match = ANNOTATE_PATTERN.search(info)
+    annotations = parse_annotations(annotate_match.group(1)) if annotate_match else ()
+
+    return frame, collapsible, collapsed, annotations
+
+
 def parse_fence_attrs(info: str) -> CodeFenceAttrs:
     """
     Parse a code fence info string into structured highlight attributes.
@@ -148,6 +198,8 @@ def parse_fence_attrs(info: str) -> CodeFenceAttrs:
     - ``python title="app.py" {2}`` -> title + highlights
     - ``python diff`` / ``diff`` -> unified diff rendering
     - ``python linenos`` -> line-number gutter (via rosettes)
+    - ``bash frame=terminal collapse`` -> terminal chrome + collapsible region
+    - ``python annotate="1:Setup,3:Run"`` -> inline per-line annotations
 
     Args:
         info: Code fence info string after the opening backticks.
@@ -159,23 +211,42 @@ def parse_fence_attrs(info: str) -> CodeFenceAttrs:
         return CodeFenceAttrs()
 
     info = info.strip()
+    frame, collapsible, collapsed, annotations = _parse_optional_fence_flags(info)
+    show_linenos = bool(re.search(r"\blinenos\b", info))
     match = FENCE_INFO_PATTERN.match(info)
     if match:
         lang = match.group("lang")
         diff = match.group("diff") is not None or lang.lower() == "diff"
         title = match.group("title") or match.group("title2")
-        show_linenos = match.group("linenos") is not None
+        if match.group("linenos") is not None:
+            show_linenos = True
         hl_lines, brace_diff = _parse_brace_content(match.group("brace"))
+        if frame is None and lang.lower() in TERMINAL_FRAME_LANGUAGES:
+            frame = "terminal"
         return CodeFenceAttrs(
             language=lang,
             hl_lines=hl_lines,
             title=title or None,
             diff=diff or brace_diff,
             show_linenos=show_linenos,
+            frame=frame,
+            collapsible=collapsible,
+            collapsed=collapsed,
+            annotations=annotations,
         )
 
     # Fallback: first token is language, remainder ignored
-    return CodeFenceAttrs(language=info.split()[0])
+    lang = info.split()[0]
+    if frame is None and lang.lower() in TERMINAL_FRAME_LANGUAGES:
+        frame = "terminal"
+    return CodeFenceAttrs(
+        language=lang,
+        show_linenos=show_linenos,
+        frame=frame,
+        collapsible=collapsible,
+        collapsed=collapsed,
+        annotations=annotations,
+    )
 
 
 def parse_code_info(info: str) -> tuple[str, list[int]]:

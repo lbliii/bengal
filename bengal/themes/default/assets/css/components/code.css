@@ -1269,3 +1269,170 @@ pre::-webkit-scrollbar-thumb:hover {
       0 1px 0 0 color-mix(in srgb, var(--color-primary) 4%, transparent);
   }
 }
+
+/* ============================================
+   PREMIUM CODE BLOCKS (#542)
+   Shipped set: copy + SR announce, language label, title bar, terminal/editor
+   frame, line/range highlight, diff markers, collapsible regions, word-wrap
+   toggle, line-number gutter, inline per-line annotations.
+   ============================================ */
+
+.code-block-frame-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent);
+}
+
+.code-block-frame-header--terminal .code-block-frame-dot:nth-child(1) {
+  background: #ff5f57;
+}
+
+.code-block-frame-header--terminal .code-block-frame-dot:nth-child(2) {
+  background: #febc2e;
+}
+
+.code-block-frame-header--terminal .code-block-frame-dot:nth-child(3) {
+  background: #28c840;
+}
+
+.code-block-frame-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  opacity: 0.95;
+}
+
+.code-block-frame-header--editor {
+  min-height: 1.25rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-bg-tertiary) 95%, transparent),
+    color-mix(in srgb, var(--color-bg-code) 95%, transparent)
+  );
+}
+
+.code-block-with-linenos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+}
+
+.code-linenos {
+  margin: 0;
+  padding: var(--space-6) var(--space-3) var(--space-6) var(--space-4);
+  border: none;
+  border-radius: 0;
+  box-shadow: inset -1px 0 0 var(--color-border-light);
+  background: color-mix(in srgb, var(--color-bg-code) 92%, var(--color-bg-tertiary));
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--line-height-relaxed);
+  text-align: end;
+  user-select: none;
+  animation: none;
+}
+
+.code-block-scroll {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.code-block-scroll pre {
+  margin: 0;
+}
+
+.code-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: baseline;
+}
+
+.code-line-annotation {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.code-block--diff .syntax-added,
+.rosettes.code-block--diff .syntax-added,
+.code-block-wrapper.code-block--diff .syntax-added {
+  background: color-mix(in srgb, var(--syntax-added, #2ea043) 14%, transparent);
+}
+
+.code-block--diff .syntax-removed,
+.rosettes.code-block--diff .syntax-removed,
+.code-block-wrapper.code-block--diff .syntax-removed {
+  background: color-mix(in srgb, var(--syntax-removed, #f85149) 14%, transparent);
+}
+
+.code-block-collapsible {
+  margin-block: 1.5rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-2xl);
+  background: var(--color-bg-code);
+  box-shadow: var(--elevation-card);
+}
+
+.code-block-collapsible__summary {
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  list-style: none;
+}
+
+.code-block-collapsible__summary::-webkit-details-marker {
+  display: none;
+}
+
+.code-block-collapsible[open] > .code-block-collapsible__summary {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.code-block-collapsible .rosettes,
+.code-block-collapsible .highlight,
+.code-block-collapsible .code-block-wrapper {
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.code-block-titled .code-block-wrapper {
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  animation: none;
+}
+
+@media (max-width: 639px) {
+  .code-block-with-linenos {
+    grid-template-columns: 1fr;
+  }
+
+  .code-linenos {
+    display: none;
+  }
+
+  .code-line {
+    grid-template-columns: 1fr;
+  }
+
+  .code-line-annotation {
+    display: block;
+    margin-block-start: 0.125rem;
+    white-space: normal;
+  }
+}
