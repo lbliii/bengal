@@ -89,7 +89,7 @@ html[data-palette="brown-bengal"] {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    margin-right: 0.5rem;
+    margin-inline-end: 0.5rem;
     background: linear-gradient(135deg, #C17817 0%, #D4954D 50%, #FBF8F3 100%);
     border: 1px solid rgba(193, 120, 23, 0.3);
     vertical-align: middle;

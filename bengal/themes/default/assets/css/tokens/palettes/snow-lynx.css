@@ -96,7 +96,7 @@ html[data-palette="snow-lynx"] {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    margin-right: 0.5rem;
+    margin-inline-end: 0.5rem;
     /* Clean white center fading to cream with teal accent */
     background: linear-gradient(135deg, #FFFFFF 0%, #F4F0EA 40%, #4FA8A0 100%);
     border: 1px solid rgba(79, 168, 160, 0.3);
@@ -110,7 +110,7 @@ html[data-palette="snow-lynx"] {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    margin-right: 0.5rem;
+    margin-inline-end: 0.5rem;
     background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
     border: 1px solid rgba(33, 150, 243, 0.3);
     vertical-align: middle;

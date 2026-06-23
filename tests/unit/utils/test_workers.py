@@ -561,6 +561,38 @@ class TestIntegration:
             assert workers == 12  # Ignores CI cap
 
 
+class TestFreeThreadingCpuBoundWorkers:
+    """Free-threaded CPU_BOUND profile lift (#381 finding 5)."""
+
+    def test_ft_cpu_bound_local_uses_more_workers_than_gil(self) -> None:
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False):
+            gil_workers = get_optimal_workers(
+                100,
+                workload_type=WorkloadType.CPU_BOUND,
+                environment=Environment.LOCAL,
+            )
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=True):
+            ft_workers = get_optimal_workers(
+                100,
+                workload_type=WorkloadType.CPU_BOUND,
+                environment=Environment.LOCAL,
+            )
+        assert ft_workers > gil_workers
+        assert ft_workers > 4
+
+    def test_ft_cpu_bound_profile_max_workers(self) -> None:
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=True):
+            profile = get_profile(WorkloadType.CPU_BOUND, Environment.LOCAL)
+        assert profile.max_workers == 8
+        assert profile.cpu_fraction == 0.75
+
+    def test_gil_cpu_bound_profile_unchanged(self) -> None:
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False):
+            profile = get_profile(WorkloadType.CPU_BOUND, Environment.LOCAL)
+        assert profile.max_workers == 4
+        assert profile.cpu_fraction == 0.5
+
+
 class TestGilDetectionConsolidation:
     """Guard: GIL detection lives only in bengal.utils.concurrency (issue #381)."""
 

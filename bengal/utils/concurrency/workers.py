@@ -30,6 +30,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from bengal.utils.concurrency.gil import is_gil_disabled
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -44,7 +46,8 @@ class WorkloadType(Enum):
 
     Attributes:
         CPU_BOUND: CPU-intensive work (parsing, rendering, similarity).
-            Limited by GIL in standard Python; benefits from few workers.
+            GIL builds cap workers conservatively; free-threaded builds use
+            the elevated ``_FT_PROFILES`` CPU_BOUND entries (#381).
         IO_BOUND: I/O-intensive work (file stats, asset copying).
             Can use more workers as threads wait on I/O.
         MIXED: Combined I/O and CPU work (template rendering).
@@ -100,7 +103,7 @@ class WorkloadProfile:
 # Based on benchmark data from rfc-benchmark-refresh-and-worker-optimization.md
 _PROFILES: dict[tuple[WorkloadType, Environment], WorkloadProfile] = {
     # CPU-bound workloads (parsing, similarity, graph building)
-    # Conservative because GIL limits parallelism
+    # GIL builds: conservative caps — threads do not parallelize CPU work.
     (WorkloadType.CPU_BOUND, Environment.CI): WorkloadProfile(5, 2, 2, 1.0),
     (WorkloadType.CPU_BOUND, Environment.LOCAL): WorkloadProfile(5, 2, 4, 0.5),
     (WorkloadType.CPU_BOUND, Environment.PRODUCTION): WorkloadProfile(5, 2, 8, 0.5),
@@ -116,6 +119,22 @@ _PROFILES: dict[tuple[WorkloadType, Environment], WorkloadProfile] = {
     (WorkloadType.MIXED, Environment.LOCAL): WorkloadProfile(5, 2, 12, 0.75),
     (WorkloadType.MIXED, Environment.PRODUCTION): WorkloadProfile(5, 2, 16, 0.75),
 }
+
+# Free-threaded CPU_BOUND overrides (#381 finding 5).
+# Magnitude aligned with the IO_BOUND profile ladder: autodoc extraction and the
+# analysis graph are embarrassingly-parallel CPU work on 3.14t+, unlike render.
+_FT_PROFILES: dict[tuple[WorkloadType, Environment], WorkloadProfile] = {
+    (WorkloadType.CPU_BOUND, Environment.CI): WorkloadProfile(5, 2, 2, 1.0),
+    (WorkloadType.CPU_BOUND, Environment.LOCAL): WorkloadProfile(5, 2, 8, 0.75),
+    (WorkloadType.CPU_BOUND, Environment.PRODUCTION): WorkloadProfile(5, 2, 10, 0.75),
+}
+
+
+def _profile_table() -> dict[tuple[WorkloadType, Environment], WorkloadProfile]:
+    """Return GIL or free-threaded profile table."""
+    if is_gil_disabled():
+        return {**_PROFILES, **_FT_PROFILES}
+    return _PROFILES
 
 
 def detect_environment() -> Environment:
@@ -223,7 +242,7 @@ def get_optimal_workers(
         environment = detect_environment()
 
     # Get profile for workload type + environment
-    profile = _PROFILES[(workload_type, environment)]
+    profile = _profile_table()[(workload_type, environment)]
 
     # Calculate CPU-based optimal
     cpu_count = os.cpu_count() or 2
@@ -273,7 +292,7 @@ def should_parallelize(
     if environment is None:
         environment = detect_environment()
 
-    profile = _PROFILES[(workload_type, environment)]
+    profile = _profile_table()[(workload_type, environment)]
 
     # Fast path: below task threshold
     if task_count < profile.parallel_threshold:
@@ -393,4 +412,4 @@ def get_profile(
     """
     if environment is None:
         environment = detect_environment()
-    return _PROFILES[(workload_type, environment)]
+    return _profile_table()[(workload_type, environment)]
