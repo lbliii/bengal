@@ -7,7 +7,7 @@ import shlex
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-CLI_DOCS = ROOT / "site" / "content" / "docs" / "reference" / "architecture" / "tooling" / "cli.md"
+CLI_DOCS = ROOT / "docs" / "architecture" / "tooling" / "cli.md"
 README = ROOT / "README.md"
 
 # A markdown line opens/closes a fenced code block.

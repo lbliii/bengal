@@ -1,6 +1,6 @@
 """CI guard: imports in extension-guide docs must resolve.
 
-The extension guides under ``site/content/docs/extending/`` teach third
+The extension guides under ``site/content/docs/build-sites/extend/`` teach third
 parties how to write against Bengal's public APIs. If a guide imports a
 module or symbol that does not exist, every example silently breaks for the
 reader (issue #388 — the custom-directives guide imported a nonexistent
@@ -29,7 +29,7 @@ import pytest
 
 # tests/unit/docs/ -> repo root is three parents up.
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_DOCS_DIR = _REPO_ROOT / "site" / "content" / "docs" / "extending"
+_DOCS_DIR = _REPO_ROOT / "site" / "content" / "docs" / "build-sites" / "extend"
 
 # Guides whose python snippets must import real symbols.
 _GUIDES = (
