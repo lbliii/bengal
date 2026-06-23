@@ -26,9 +26,23 @@ def test_mark_external_links_skips_internal_paths() -> None:
 def test_inject_code_copy_chrome_wraps_pre_code() -> None:
     html = '<pre><code class="language-python">print("hi")</code></pre>'
     out = inject_code_copy_chrome(html)
-    assert 'class="code-block-wrapper"' in out
+    assert "code-block-wrapper" in out
+    assert "code-block-frame--editor" in out
+    assert "code-block-chrome--editor" in out
     assert 'class="code-copy-button' in out
-    assert 'class="code-language">PYTHON' in out
+    assert 'class="code-block-tab__label">python</span>' in out
+
+
+def test_inject_code_copy_chrome_adds_editor_frame_for_highlighted_blocks() -> None:
+    html = (
+        '<div class="rosettes" data-language="html"><pre><code>'
+        '<span class="syntax-tag">div</span></code></pre></div>'
+    )
+    out = inject_code_copy_chrome(html)
+    assert "code-block-frame--editor" in out
+    assert "code-block-chrome--editor" in out
+    assert 'class="code-block-tab__label">html</span>' in out
+    assert "code-block-toolbar--overlay" not in out
 
 
 def test_inject_code_copy_chrome_uses_rosettes_data_language() -> None:
@@ -137,9 +151,21 @@ def test_parser_fence_metadata_reaches_premium_chrome() -> None:
     raw = parser.parse('```python linenos annotate="2:Run" collapse\na=1\nb=2\n```', {})
     out = enhance_theme_markup(raw)
     assert 'data-linenos="true"' in raw
+    assert 'data-frame="editor"' in raw
     assert 'class="code-linenos"' in out
     assert 'class="code-line-annotation"' in out
     assert "<details" in out
+
+
+def test_non_shell_blocks_get_editor_frame() -> None:
+    from bengal.parsing import PatitasParser
+
+    parser = PatitasParser(enable_highlighting=True)
+    for fence in ("```html\n<p></p>\n```", "```css\n:root {}\n```", "```toml\nkey = 1\n```"):
+        out = enhance_theme_markup(parser.parse(fence, {}))
+        assert "code-block-frame--editor" in out, fence
+        assert "code-block-chrome--editor" in out, fence
+        assert "code-block-frame--terminal" not in out, fence
 
 
 def test_bash_terminal_frame_has_single_wrapper_and_toolbar() -> None:

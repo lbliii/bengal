@@ -113,6 +113,7 @@ class TestParseFenceAttrs:
             title="app.py",
             diff=False,
             show_linenos=False,
+            frame="editor",
         )
         assert attrs.highlight_language == "python"
 
@@ -143,6 +144,14 @@ class TestParseFenceAttrs:
     def test_implicit_terminal_frame_for_shell(self):
         attrs = parse_fence_attrs("bash")
         assert attrs.frame == "terminal"
+
+    def test_implicit_editor_frame_for_code(self):
+        attrs = parse_fence_attrs("python")
+        assert attrs.frame == "editor"
+
+    def test_implicit_editor_frame_for_html(self):
+        attrs = parse_fence_attrs("html")
+        assert attrs.frame == "editor"
 
     def test_editor_frame(self):
         attrs = parse_fence_attrs('python frame=editor title="app.py"')

@@ -44,6 +44,16 @@ TERMINAL_FRAME_LANGUAGES = frozenset(
 )
 
 
+def default_frame_for_language(language: str) -> str | None:
+    """Return the implicit premium frame for a fenced code language."""
+    lang = language.lower()
+    if not lang:
+        return None
+    if lang in TERMINAL_FRAME_LANGUAGES:
+        return "terminal"
+    return "editor"
+
+
 @dataclass(frozen=True, slots=True)
 class CodeFenceAttrs:
     """Parsed attributes from a markdown code fence info string."""
@@ -200,6 +210,7 @@ def parse_fence_attrs(info: str) -> CodeFenceAttrs:
     - ``python linenos`` -> line-number gutter (via rosettes)
     - ``bash frame=terminal collapse`` -> terminal chrome + collapsible region
     - ``python annotate="1:Setup,3:Run"`` -> inline per-line annotations
+    - Non-shell languages get an implicit ``editor`` frame (shell gets ``terminal``)
 
     Args:
         info: Code fence info string after the opening backticks.
@@ -221,8 +232,8 @@ def parse_fence_attrs(info: str) -> CodeFenceAttrs:
         if match.group("linenos") is not None:
             show_linenos = True
         hl_lines, brace_diff = _parse_brace_content(match.group("brace"))
-        if frame is None and lang.lower() in TERMINAL_FRAME_LANGUAGES:
-            frame = "terminal"
+        if frame is None:
+            frame = default_frame_for_language(lang)
         return CodeFenceAttrs(
             language=lang,
             hl_lines=hl_lines,
@@ -237,8 +248,8 @@ def parse_fence_attrs(info: str) -> CodeFenceAttrs:
 
     # Fallback: first token is language, remainder ignored
     lang = info.split()[0]
-    if frame is None and lang.lower() in TERMINAL_FRAME_LANGUAGES:
-        frame = "terminal"
+    if frame is None:
+        frame = default_frame_for_language(lang)
     return CodeFenceAttrs(
         language=lang,
         show_linenos=show_linenos,
