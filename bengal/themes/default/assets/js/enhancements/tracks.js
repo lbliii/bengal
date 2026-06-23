@@ -254,7 +254,7 @@
       conn.classList.toggle('track-progress__connector--complete', index < sectionIndex);
     });
 
-    const navBar = document.getElementById('track-progress-bar');
+    const navBar = document.querySelector('[data-track-nav-progress]');
     if (navBar) {
       navBar.style.width = `${pct}%`;
       navBar.setAttribute('aria-valuenow', String(Math.round(pct)));

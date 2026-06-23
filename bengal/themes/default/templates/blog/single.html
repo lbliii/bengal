@@ -35,12 +35,9 @@ Set `type: blog` in frontmatter or use cascade from section
 {% from 'partials/navigation-components.html' import page_navigation, toc as toc_macro %}
 {% from 'partials/series-nav.html' import series_nav %}
 {% from 'partials/components/tags.html' import tag_list %}
-{% from 'partials/components/post-card.html' import post_card %}
 {% from 'partials/components/author-bio.html' import author_bio %}
-{% from 'partials/components/blog-share-dropdown.html' import blog_share_dropdown %}
 {% from 'partials/components/related-posts.html' import related_posts %}
 {% from 'partials/components/comments-section.html' import comments_section %}
-{% from 'partials/components/blog-post-meta.html' import blog_post_meta %}
 {% from 'partials/components/newsletter-cta.html' import newsletter_cta %}
 
 {# =============================================================================
@@ -84,31 +81,21 @@ MAIN TEMPLATE
 <div class="blog-post-layout{{ ' blog-with-toc' if show_toc else '' }}">
     <div class="blog-post-main">
         <article class="blog-post prose {{ css_class }}">
-            <header class="page-hero page-hero--editorial page-hero--blog">
-                {# Top row: Share in top right (like docs, no breadcrumbs) #}
-                <div class="page-hero__top">
-                    <div></div>
-                    {{ blog_share_dropdown(page, page_href) }}
-                </div>
-
-                {# Featured Image (blog-specific) #}
-                {% if post_image %}
-                <div class="page-hero__image page-hero__image--blog">
-                    <img src="{{ post_image }}" alt="{{ page_title }}">
-                </div>
-                {% end %}
-
-                <h1 class="page-hero__title">{{ page_title }}</h1>
-
-                {% if post_desc %}
-                <p class="page-hero__description">{{ post_desc }}</p>
-                {% end %}
-
-                {# Post Metadata: date, reading time, updated, views + mini author card #}
-                <div class="page-hero__meta">
-                    {{ blog_post_meta(post_author, post_author_avatar, post_author_title, page_date, page_read_time, post_views, 'content.author' in theme_features, page_word_count and 'content.reading_time' in theme_features, post_updated) }}
-                </div>
-            </header>
+            {% let hero_context = {
+                'page_href': page_href,
+                'post_image': post_image,
+                'post_desc': post_desc,
+                'post_author': post_author,
+                'post_author_avatar': post_author_avatar,
+                'post_author_title': post_author_title,
+                'page_date': page_date,
+                'page_read_time': page_read_time,
+                'page_word_count': page_word_count,
+                'post_views': post_views,
+                'post_updated': post_updated
+            } %}
+            {% let _list_hero_default = 'blog' %}
+            {% include 'partials/page-hero.html' %}
 
             {# Main Post Content #}
             <div class="blog-post-content">

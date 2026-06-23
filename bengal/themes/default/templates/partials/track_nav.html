@@ -1,28 +1,41 @@
-{% set current_slug = page.source_path | string | replace('.md', '') %}
+{#
+Inline track navigation for doc pages following a learning-track path.
+Progress is persisted via enhancements/track-nav.js (localStorage).
+#}
 
-{# Inline track navigation for doc pages following a learning-track path #}
-{% if site.data.tracks %}
+{% let current_slug = (page?.source_path ?? page?._path ?? '') | string | replace('.md', '') | replace('.html', '') %}
+
+{% if site?.data?.tracks %}
 {% for track_id, track in site.data.tracks | items %}
 {% if current_slug in track.items %}
 
-{% set current_index = track.items.index(current_slug) %}
-{% set prev_slug = track.items[current_index - 1] if current_index > 0 else None %}
-{% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %}
-{% set progress_pct = ((current_index + 1) / track.items|length) * 100 %}
+{% let track_items = track.items ?? [] %}
+{% let current_index = 0 %}
+{% for item_slug in track_items %}
+{% if item_slug == current_slug %}
+{% let current_index = loop.index0 %}
+{% end %}
+{% endfor %}
+{% let prev_slug = track_items[current_index - 1] if current_index > 0 else none %}
+{% let next_slug = track_items[current_index + 1] if current_index < (track_items | length - 1) else none %}
+{% let progress_pct = ((current_index + 1) / (track_items | length)) * 100 if track_items | length > 0 else 0 %}
 
-<div class="track-navigation">
+<bengal-doc-track-nav class="track-navigation"
+  data-track-id="{{ track_id }}"
+  data-track-index="{{ current_index }}"
+  data-track-total="{{ track_items | length }}">
   <div class="track-navigation__header cluster cluster-between">
     <div class="track-navigation__title-group cluster">
       <span class="badge badge-primary">{{ t('track.label', default='Track') }}</span>
       <strong class="track-navigation__title">{{ track.title }}</strong>
     </div>
-    <span class="track-navigation__step text-secondary">{{ current_index + 1 }} / {{ track.items|length }}</span>
+    <span class="track-navigation__step text-secondary">{{ current_index + 1 }} / {{ track_items | length }}</span>
   </div>
 
   <div class="track-navigation__body">
     <div class="track-navigation__nav cluster cluster-between">
       {% if prev_slug %}
-      {% set prev_page = get_page(prev_slug) %}
+      {% let prev_page = get_page(prev_slug) %}
       {% if prev_page %}
       <a href="{{ prev_page.href }}" class="button button-outline button-primary button-sm">
         &larr; {{ prev_page.title }}
@@ -35,7 +48,7 @@
       {% end %}
 
       {% if next_slug %}
-      {% set next_page = get_page(next_slug) %}
+      {% let next_page = get_page(next_slug) %}
       {% if next_page %}
       <a href="{{ next_page.href }}" class="button button-primary button-sm">
         {{ next_page.title }} &rarr;
@@ -53,11 +66,11 @@
     <div class="track-navigation__progress progress" role="progressbar"
       aria-valuenow="{{ progress_pct | round }}" aria-valuemin="0" aria-valuemax="100"
       aria-label="{{ t('track.progress', default='Track progress') }}">
-      <div class="track-navigation__progress-bar progress-bar" id="track-progress-bar"
+      <div class="track-navigation__progress-bar progress-bar" data-track-nav-progress
         style="width: {{ progress_pct }}%"></div>
     </div>
   </div>
-</div>
+</bengal-doc-track-nav>
 
 {% end %}
 {% end %}

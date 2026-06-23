@@ -32,7 +32,10 @@ RESOLUTION ORDER:
     hero_magazine,
     hero_overview,
     hero_element,
-    hero_section
+    hero_section,
+    hero_track,
+    hero_blog,
+    hero_author
 %}
 
 {# Ensure context variables are defined #}
@@ -63,6 +66,15 @@ RESOLUTION ORDER:
 
 {% case 'api', _, sec if sec %}
 {{ hero_section(sec, _page, _hero_context) }}
+
+{% case 'track', _, _ %}
+{{ hero_track(_page, _params, _theme, _hero_context) }}
+
+{% case 'blog', _, _ %}
+{{ hero_blog(_page, _params, _theme, _hero_context) }}
+
+{% case 'author', _, _ %}
+{{ hero_author(_page, _params, _hero_context) }}
 
 {% case _ %}
 {{ hero_editorial(_page, _params, _theme) }}

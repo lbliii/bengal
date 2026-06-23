@@ -11,8 +11,8 @@ Context:
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
-{% let title = section.title ?? 'API Section' %}
-{% let description = section.metadata.description ?? '' %}
+{% let title = section?.title ?? 'API Section' %}
+{% let description = params?.description ?? section?.params?.description ?? section?.metadata?.description ?? '' %}
 {# Get pages from the section - section.pages contains Page objects #}
 {% let child_pages = section.pages ?? [] %}
 {# Get subsections for navigation to child sections #}
@@ -54,12 +54,11 @@ Context:
       {% for child in child_sections %}
       <a href="{{ child.href }}" class="api-section-index__card card card--hoverable">
         <h3 class="api-section-index__card-title">{{ child.title }}</h3>
-        {% with child.metadata.description as desc %}
-        {% if desc %}
+        {% let child_desc = child?.params?.description ?? child?.metadata?.description ?? '' %}
+        {% if child_desc %}
         <p class="api-section-index__card-description text-muted">
-          {{ desc | truncate(120) }}
+          {{ child_desc | truncate(120) }}
         </p>
-        {% end %}
         {% end %}
       </a>
       {% end %}
@@ -131,12 +130,11 @@ Context:
       {% if child != section.index_page %}
       <a href="{{ child.href }}" class="api-section-index__card card card--hoverable">
         <h3 class="api-section-index__card-title">{{ child.title }}</h3>
-        {% with child.metadata.description as desc %}
-        {% if desc %}
+        {% let child_desc = child?.params?.description ?? child?.metadata?.description ?? '' %}
+        {% if child_desc %}
         <p class="api-section-index__card-description text-muted">
-          {{ desc | truncate(120) }}
+          {{ child_desc | truncate(120) }}
         </p>
-        {% end %}
         {% end %}
       </a>
       {% end %}

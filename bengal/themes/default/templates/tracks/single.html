@@ -25,43 +25,6 @@ Or set `type: track` to auto-select this template
 {% from 'partials/navigation-components.html' import toc %}
 
 {# =============================================================================
-   PROGRESS INDICATOR COMPONENT (uses {% while %} - Kida 2.0!)
-
-   Renders a visual step indicator for track progress.
-   Demonstrates: {% while %} with step-by-step rendering
-   ============================================================================= #}
-{% def track_progress_indicator(total_steps, current_step=1) %}
-<div class="track-progress" role="progressbar" aria-valuenow="{{ current_step }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}">
-  <div class="track-progress__steps">
-    {% let step = 1 %}
-    {% while step <= total_steps %}
-      {% let is_complete = step < current_step %}
-      {% let is_current = step == current_step %}
-      {% let step_class = 'track-progress__step' %}
-      {% if is_complete %}{% let step_class = step_class ~ ' track-progress__step--complete' %}{% end %}
-      {% if is_current %}{% let step_class = step_class ~ ' track-progress__step--current' %}{% end %}
-
-      <div class="{{ step_class }}" data-step="{{ step }}">
-        <span class="track-progress__number">
-          {% if is_complete %}✓{% else %}{{ step }}{% end %}
-        </span>
-      </div>
-
-      {# Connector line between steps (except after last) #}
-      {% if step < total_steps %}
-      <div class="track-progress__connector{{ ' track-progress__connector--complete' if is_complete else '' }}"></div>
-      {% end %}
-
-      {% let step = step + 1 %}
-    {% end %}
-  </div>
-  <div class="track-progress__label">
-    Step {{ current_step }} of {{ total_steps }}
-  </div>
-</div>
-{% end %}
-
-{# =============================================================================
    TRACK SECTION COMPONENT
    ============================================================================= #}
 {% def track_section_block(item_page, index, is_last) %}
@@ -150,21 +113,13 @@ Or set `type: track` to auto-select this template
   {# Main Content: Pillar Page Style #}
   <div class="docs-main track-main">
     <article class="prose track-article">
-      {# Track Header #}
-      <header class="page-header track-header">
-        <span class="badge badge-primary track-header__badge">Learning Track</span>
-        <h1>{{ track_title }}</h1>
-        {% if track_desc %}
-        <p class="lead track-header__lead">{{ track_desc }}</p>
-        {% end %}
-
-        {# Progress indicator — current step updated by tracks.js on scroll #}
-        {% if track_items | length > 0 %}
-        <div class="track-progress" id="track-header-progress" data-track-total="{{ track_items | length }}">
-          {{ track_progress_indicator(track_items | length, 1) }}
-        </div>
-        {% end %}
-      </header>
+      {% let hero_context = {
+        'track_title': track_title,
+        'track_desc': track_desc,
+        'track_total': track_items | length
+      } %}
+      {% let _list_hero_default = 'track' %}
+      {% include 'partials/page-hero.html' %}
 
       {# Main Page Content (Introduction) #}
       {% if content %}

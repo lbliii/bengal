@@ -125,19 +125,9 @@ Set `type: tutorial` in section _index.md
 {% let tutorial_subsections = subsections ?? [] %}
 
 <div class="container">
-  {# Action Bar: Breadcrumbs + Share #}
-  {% include 'partials/action-bar.html' %}
-
   <div class="tutorial-container">
-    <header class="page-header page-header--centered">
-      <h1>{{ section_title }}</h1>
-
-      {% if section_desc %}
-      <p class="tutorial-description">{{ section_desc }}</p>
-      {% else %}
-      <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
-      {% end %}
-    </header>
+    {% let _list_hero_default = 'overview' %}
+    {% include 'partials/page-hero.html' %}
 
     {# Tutorial Statistics #}
     {% if tutorial_posts | length > 0 %}

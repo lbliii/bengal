@@ -103,21 +103,14 @@ Set `type: tutorial` in frontmatter or use cascade from section
 {% let tutorial_id = page?.slug ?? page?._path ?? '' %}
 
 <div class="container">
-  {# Action Bar: Breadcrumbs + Share #}
-  {% include 'partials/action-bar.html' %}
-
   <div class="tutorial-page-layout{{ ' tutorial-with-toc' if toc else '' }}">
     <article class="tutorial-page prose {{ css_class }}">
-      <header class="page-header">
+      {% include 'partials/page-hero.html' %}
+
+      <div class="tutorial-page-extras">
         {# Tutorial Icon #}
         {% if tut_icon %}
         <div class="tutorial-page-icon">{{ tut_icon }}</div>
-        {% end %}
-
-        <h1>{{ page_title }}</h1>
-
-        {% if tut_desc %}
-        <p class="lead">{{ tut_desc }}</p>
         {% end %}
 
         {# Tutorial Metadata Bar #}
@@ -186,7 +179,7 @@ Set `type: tutorial` in frontmatter or use cascade from section
           </ul>
         </div>
         {% end %}
-      </header>
+      </div>
 
       {# Main Tutorial Content #}
       <div class="tutorial-content">

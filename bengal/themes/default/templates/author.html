@@ -50,81 +50,15 @@ Context variables:
 {% set section_filter = params.section_filter %}
 
 {% block content %}
-{{ breadcrumbs(page) }}
-
 <div class="author-page">
-  <header class="author-header">
-    {% if author_avatar %}
-    <img src="{{ author_avatar }}"
-         alt="{{ author_name }}"
-         class="author-avatar-large">
-    {% else %}
-    <div class="author-avatar-placeholder">
-      {{ author_name[0] | upper }}
-    </div>
-    {% end %}
-
-    <div class="author-header-content">
-      <h1 class="author-name">{{ author_name }}</h1>
-
-      {% if author_bio %}
-      <p class="author-bio">{{ author_bio }}</p>
-      {% end %}
-
-      {# Social links #}
-      {% if author_social %}
-      <div class="author-social">
-        {% set social = author_social %}
-
-        {% if social.twitter %}
-        <a href="https://twitter.com/{{ social.twitter.lstrip('@') }}"
-           class="social-link"
-           aria-label="Twitter">
-          {{ icon('twitter-logo', size=18) }}
-          <span class="sr-only">Twitter</span>
-        </a>
-        {% end %}
-
-        {% if social.github %}
-        <a href="https://github.com/{{ social.github }}"
-           class="social-link"
-           aria-label="GitHub">
-          {{ icon('github-logo', size=18) }}
-          <span class="sr-only">GitHub</span>
-        </a>
-        {% end %}
-
-        {% if social.linkedin %}
-        <a href="https://linkedin.com/in/{{ social.linkedin }}"
-           class="social-link"
-           aria-label="LinkedIn">
-          {{ icon('linkedin-logo', size=18) }}
-          <span class="sr-only">LinkedIn</span>
-        </a>
-        {% end %}
-
-        {% if social.website %}
-        <a href="{{ social.website }}"
-           class="social-link"
-           aria-label="Website">
-          {{ icon('globe', size=18) }}
-          <span class="sr-only">Website</span>
-        </a>
-        {% end %}
-
-        {% if social.email %}
-        <a href="mailto:{{ social.email }}"
-           class="social-link"
-           aria-label="Email">
-          {{ icon('envelope-simple', size=18) }}
-          <span class="sr-only">Email</span>
-        </a>
-        {% end %}
-      </div>
-      {% end %}
-    </div>
-  </header>
-
+{% let hero_context = {
+  'author_name': author_name,
+  'author_avatar': author_avatar,
+  'author_bio': author_bio,
+  'author_social': author_social
+} %}
+{% let _list_hero_default = 'author' %}
+{% include 'partials/page-hero.html' %}
   {# O(1) lookup of all posts by this author (index keyed by slug) #}
   {% set author_posts = site.indexes.author.get(author_key) | resolve_pages %}
 

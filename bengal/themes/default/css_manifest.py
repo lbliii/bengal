@@ -45,6 +45,7 @@ CSS_CORE: list[str] = [
     "base/accessibility.css",
     "base/prose-content.css",
     "base/print.css",
+    "base/transitions.css",
     # Composition layouts
     "composition/layouts.css",
     # Core layout components
