@@ -22,7 +22,6 @@ import pytest
 from bengal.orchestration.build.options import BuildOptions
 from bengal.orchestration.render.isolated.partition import discover_content_files
 from bengal.orchestration.render.isolated.shard_worker import parse_shard, render_shard
-from bengal.snapshots.render_plan import page_view_from_live_page
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -35,59 +34,132 @@ def _built(site_factory, root: str) -> Site:
     from bengal.cache import directive_cache
     from bengal.utils.cache_registry import clear_all_caches
 
-    # Start from clean process-global caches. The directive-cache is an id(site)-keyed
-    # singleton; a prior in-process test's site (or a recycled id()) can leave entries
-    # that poison this fixture's parse — e.g. child-cards on test-navigation's
-    # docs/_index.md rendering against a stale section, perturbing content_hash and
-    # flaking the parse-parity assertion under xdist ordering. The subprocess harnesses
-    # below already guard against this; the in-process oracle build must too.
     clear_all_caches()
     directive_cache.clear_cache()
+    directive_cache.reset_for_testing()
+    directive_cache.configure_cache(enabled=False)
 
     site = site_factory(root)
-    site.build(BuildOptions(quiet=True, force_sequential=True))
+    site.build(BuildOptions(quiet=True, force_sequential=True, incremental=False))
     return site
+
+
+# Parse-leg parity runs in its own subprocess (mirrors the render-parity harnesses below):
+# a real worker IS a separate process, and a fresh interpreter is the only contamination-
+# free way to assert PageView parity. In-process, sharing the interpreter with other
+# fixtures' builds poisons parse via id(site)-keyed global caches — child-cards on
+# test-navigation's docs/_index.md flaked under xdist when a prior test left directive
+# cache entries that perturbed content_hash.
+_PARSE_PARITY_CHILD = """
+import json, sys
+from pathlib import Path
+
+from bengal.cache import directive_cache
+from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
+from bengal.orchestration.render.isolated.partition import discover_content_files
+from bengal.orchestration.render.isolated.shard_worker import parse_shard
+from bengal.orchestration.render.tracking import clear_thread_local_pipelines
+from bengal.snapshots.render_plan import page_view_from_live_page
+from bengal.utils.cache_registry import clear_all_caches
+
+root = Path(sys.argv[1])
+
+clear_all_caches()
+directive_cache.clear_cache()
+directive_cache.reset_for_testing()
+directive_cache.configure_cache(enabled=False)
+
+site = Site.from_config(root)
+site.build(BuildOptions(quiet=True, force_sequential=True, incremental=False))
+content_dir = root / "content"
+files = discover_content_files(content_dir, site=site)
+
+clear_all_caches()
+directive_cache.reset_for_testing()
+clear_thread_local_pipelines()
+reparsed = parse_shard(files, site, content_dir=content_dir)
+in_proc = {p.source_path: p for p in site.pages}
+
+mismatches = []
+checked = 0
+for page in reparsed:
+    if page.source_path not in in_proc:
+        mismatches.append({"path": str(page.source_path), "error": "unknown reparsed file"})
+        continue
+    pv_reparsed = page_view_from_live_page(page, site)
+    pv_in_process = page_view_from_live_page(in_proc[page.source_path], site)
+    if pv_reparsed != pv_in_process:
+        mismatches.append(
+            {
+                "path": str(page.source_path),
+                "reparsed_hash": pv_reparsed.content_hash,
+                "in_process_hash": pv_in_process.content_hash,
+            }
+        )
+    checked += 1
+
+print(
+    "PARITY "
+    + json.dumps(
+        {
+            "n_files": len(files),
+            "n_reparsed": len(reparsed),
+            "checked": checked,
+            "mismatches": mismatches,
+        }
+    )
+)
+"""
 
 
 # Byte-parity vs the in-process path is gated in CI after #431 (deterministic aggregate
 # outputs) and #529 (stable sitemap/agent.json ordering). render_isolation stays OFF by
 # default until the backend is promoted default-on.
-@pytest.mark.parallel_unsafe
+@pytest.mark.serial
 @pytest.mark.parametrize("root", ROOTS)
-def test_parse_shard_matches_in_process_parse(site_factory, root):
+def test_parse_shard_matches_in_process_parse(root, tmp_path):
     """A worker re-parsing a file shard in isolation produces pages whose PageView is
     identical to the in-process parse of the same files — proving the parse leg is
     self-contained and reproduces the build's discovery+parse exactly."""
-    from bengal.cache import directive_cache
-    from bengal.utils.cache_registry import clear_all_caches
+    import json
+    import os
+    import shutil
+    import subprocess
+    import sys
+    from pathlib import Path
 
-    clear_all_caches()
-    directive_cache.reset_for_testing()
-    directive_cache.configure_cache(enabled=False)
-    try:
-        site = _built(site_factory, root)
-        content_dir = site.root_path / "content"
+    src = Path(__file__).parents[3] / "roots" / root
+    if not src.exists():  # pragma: no cover - fixture must exist
+        pytest.skip(f"missing test root {src}")
 
-        files = discover_content_files(content_dir, site=site)
+    site_root = tmp_path / "site"
+    shutil.copytree(src, site_root)
+    env = dict(os.environ)
+    env["PYTHONHASHSEED"] = "0"
 
-        clear_all_caches()
-        directive_cache.reset_for_testing()
+    proc = subprocess.run(
+        [sys.executable, "-c", _PARSE_PARITY_CHILD, str(site_root)],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    report = None
+    for line in proc.stdout.splitlines():
+        if line.startswith("PARITY "):
+            report = json.loads(line[len("PARITY ") :])
+    assert report is not None, (
+        f"parse parity child produced no report; rc={proc.returncode}\n"
+        f"stderr tail:\n{proc.stderr[-4000:]}"
+    )
 
-        reparsed = parse_shard(files, site, content_dir=content_dir)
-
-        in_proc = {p.source_path: p for p in site.pages}
-
-        assert reparsed, f"{root} produced no parsed pages"
-        checked = 0
-        for page in reparsed:
-            assert page.source_path in in_proc, f"reparsed an unknown file: {page.source_path}"
-            pv_reparsed = page_view_from_live_page(page, site)
-            pv_in_process = page_view_from_live_page(in_proc[page.source_path], site)
-            assert pv_reparsed == pv_in_process, f"reparsed page diverged for {page.source_path}"
-            checked += 1
-        assert checked == len(files)
-    finally:
-        directive_cache.configure_cache(enabled=True)
+    assert report["n_reparsed"] > 0, f"{root} produced no parsed pages"
+    assert report["checked"] == report["n_files"], (
+        f"{root}: cover incomplete ({report['checked']} of {report['n_files']} files)"
+    )
+    assert not report["mismatches"], f"{root} parse parity diverged: {report['mismatches']}"
 
 
 @pytest.mark.parametrize("root", ROOTS)
