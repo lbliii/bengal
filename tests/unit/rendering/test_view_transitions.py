@@ -34,11 +34,15 @@ class TestViewTransitionsMetaTag:
         assert 'data-view-transitions="enabled"' in html
         assert 'href="/assets/css/base/transitions.css"' in html
 
-    def test_meta_tag_absent_when_disabled(self, site_builder):
-        """View transition meta tag should be absent when disabled."""
+    def test_meta_tag_absent_when_doc_nav_disabled_and_theme_off(self, site_builder, tmp_path):
+        """Doc-app navigation can still enable VT when the theme feature is off."""
+        theme_dir = tmp_path / "plain_theme"
+        (theme_dir / "templates").mkdir(parents=True)
+        (theme_dir / "theme.yaml").write_text("name: plain\nfeatures: {}\n")
         site = site_builder(
             config={
                 "title": "Test Site",
+                "theme": str(theme_dir),
                 "document_application": {
                     "enabled": True,
                     "navigation": {
@@ -55,8 +59,8 @@ class TestViewTransitionsMetaTag:
         assert 'data-view-transitions="enabled"' not in html
         assert "css/base/transitions.css" not in html
 
-    def test_meta_tag_absent_when_doc_app_disabled(self, site_builder):
-        """View transition meta tag should be absent when document_application is disabled."""
+    def test_meta_tag_present_from_theme_when_doc_app_disabled(self, site_builder):
+        """View transitions follow the theme feature when document_application is disabled."""
         site = site_builder(
             config={
                 "title": "Test Site",
@@ -72,9 +76,9 @@ class TestViewTransitionsMetaTag:
         site.build()
 
         html = site.read_output("index.html")
-        assert '<meta name="view-transition"' not in html
-        assert 'data-view-transitions="enabled"' not in html
-        assert "css/base/transitions.css" not in html
+        assert '<meta name="view-transition" content="same-origin">' in html
+        assert 'data-view-transitions="enabled"' in html
+        assert 'href="/assets/css/base/transitions.css"' in html
 
     def test_transition_style_attribute_slide(self, site_builder):
         """Transition style attribute should be added for non-default styles."""
@@ -213,8 +217,8 @@ class TestSpeculationRules:
 class TestDocumentApplicationDefaults:
     """Tests for document application default configuration."""
 
-    def test_default_config_disables_view_transitions(self, site_builder):
-        """Default config disables view transitions to avoid navigation hanging."""
+    def test_default_theme_enables_view_transitions(self, site_builder):
+        """Default theme enables view transitions without document_application."""
         site = site_builder(
             config={"title": "Test Site"},
             content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
@@ -222,9 +226,8 @@ class TestDocumentApplicationDefaults:
         site.build()
 
         html = site.read_output("index.html")
-        # By default, view transitions are disabled (can hang on 404/dev rebuild)
-        assert '<meta name="view-transition"' not in html
-        assert "css/base/transitions.css" not in html
+        assert '<meta name="view-transition" content="same-origin">' in html
+        assert 'href="/assets/css/base/transitions.css"' in html
 
     def test_default_config_enables_speculation(self, site_builder):
         """Default config should enable speculation rules."""

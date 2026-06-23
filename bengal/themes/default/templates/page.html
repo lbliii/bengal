@@ -37,10 +37,8 @@ Auto-selected for pages without a specific type
 <div class="container">
   <div class="{{ ['page-layout', 'page-with-toc' if toc] | classes }}">
     <article class="page prose {{ css_class }}">
-      <header class="page-header">
-        <h1>{{ page_title }}</h1>
-        {% include 'partials/version-selector.html' %}
-      </header>
+      {% include 'partials/page-hero.html' %}
+      {% include 'partials/version-selector.html' %}
 
       <div class="page-content">
         {{ content | safe }}

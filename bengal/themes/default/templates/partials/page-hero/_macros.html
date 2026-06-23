@@ -41,6 +41,8 @@ For automatic routing based on hero_style, use:
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/page-meta-actions.html' import page_meta_toolbar %}
+{% from 'partials/components/blog-share-dropdown.html' import blog_share_dropdown %}
+{% from 'partials/components/blog-post-meta.html' import blog_post_meta %}
 
 {# =============================================================================
 HELPER MACROS (internal)
@@ -578,5 +580,170 @@ KIDA FEATURES:
         {% end %}
     </div>
     {% end %}
+</div>
+{% end %}
+
+{# -----------------------------------------------------------------------------
+TRACK VARIANT
+
+Learning-track pillar pages: editorial chrome + track badge + scroll progress host.
+----------------------------------------------------------------------------- #}
+{% def hero_track(page, params, theme, hero_context) %}
+{% let track_title = hero_context?.track_title ?? page?.title ?? 'Track' %}
+{% let track_desc = hero_context?.track_desc ?? params?.description ?? '' %}
+{% let track_total = hero_context?.track_total ?? 0 %}
+<div class="page-hero page-hero--editorial page-hero--track">
+    <div class="page-hero__top">
+        {{ _breadcrumb_eyebrow(page) }}
+        {{ _share_dropdown(page) }}
+    </div>
+
+    <span class="badge badge-primary track-header__badge">{{ t('track.label', default='Learning Track') }}</span>
+    <h1 class="page-hero__title">{{ track_title }}</h1>
+
+    {% if track_desc %}
+    <p class="page-hero__description">{{ track_desc }}</p>
+    {% end %}
+
+    {{ _hero_metadata(page, params, theme) }}
+    {{ _hero_page_meta(page) }}
+
+    {% if track_total > 0 %}
+    <div class="track-progress" id="track-header-progress" data-track-total="{{ track_total }}">
+        <div class="track-progress__steps">
+            {% let step = 1 %}
+            {% while step <= track_total %}
+            {% let step_class = 'track-progress__step' ~ (' track-progress__step--current' if step == 1 else '') %}
+            <div class="{{ step_class }}" data-step="{{ step }}">
+                <span class="track-progress__number">{{ step }}</span>
+            </div>
+            {% if step < track_total %}
+            <div class="track-progress__connector"></div>
+            {% end %}
+            {% let step = step + 1 %}
+            {% end %}
+        </div>
+        <div class="track-progress__label">Step 1 of {{ track_total }}</div>
+    </div>
+    {% end %}
+</div>
+{% end %}
+
+{# -----------------------------------------------------------------------------
+BLOG VARIANT
+
+Blog posts: editorial layout with optional featured image and post metadata.
+----------------------------------------------------------------------------- #}
+{% def hero_blog(page, params, theme, hero_context) %}
+{% let page_title = page?.title ?? 'Blog Post' %}
+{% let page_href = hero_context?.page_href ?? (page?.href ?? page?._path ?? '') | absolute_url %}
+{% let post_image = hero_context?.post_image ?? params?.image ?? params?.cover ?? '' %}
+{% let post_desc = hero_context?.post_desc ?? params?.description ?? '' %}
+{% let theme_features = theme?.features ?? [] %}
+<div class="page-hero page-hero--editorial page-hero--blog">
+    <div class="page-hero__top">
+        <div></div>
+        {{ blog_share_dropdown(page, page_href) }}
+    </div>
+
+    {% if post_image %}
+    <div class="page-hero__image page-hero__image--blog">
+        <img src="{{ post_image }}" alt="{{ page_title }}" width="1200" height="630">
+    </div>
+    {% end %}
+
+    <h1 class="page-hero__title">{{ page_title }}</h1>
+
+    {% if post_desc %}
+    <p class="page-hero__description">{{ post_desc }}</p>
+    {% end %}
+
+    <div class="page-hero__meta">
+        {{ blog_post_meta(
+            hero_context?.post_author ?? '',
+            hero_context?.post_author_avatar ?? '',
+            hero_context?.post_author_title ?? '',
+            hero_context?.page_date ?? none,
+            hero_context?.page_read_time ?? 0,
+            hero_context?.post_views ?? none,
+            'content.author' in theme_features,
+            hero_context?.page_word_count and 'content.reading_time' in theme_features,
+            hero_context?.post_updated ?? none
+        ) }}
+    </div>
+</div>
+{% end %}
+
+{# -----------------------------------------------------------------------------
+AUTHOR VARIANT
+
+Author profile pages: avatar (photo or icon), bio, and social links.
+----------------------------------------------------------------------------- #}
+{% def hero_author(page, params, hero_context) %}
+{% let author_name = hero_context?.author_name ?? page?.title ?? 'Author' %}
+{% let author_avatar = hero_context?.author_avatar ?? '' %}
+{% let author_bio = hero_context?.author_bio ?? params?.bio ?? '' %}
+{% let author_social = hero_context?.author_social ?? params?.social ?? {} %}
+<div class="page-hero page-hero--editorial page-hero--author">
+    <div class="page-hero__top">
+        {{ _breadcrumb_eyebrow(page) }}
+        {{ _share_dropdown(page) }}
+    </div>
+
+    <div class="author-header">
+        {% if author_avatar %}
+        <img src="{{ author_avatar }}" alt="{{ author_name }}" class="author-avatar-large" width="96" height="96">
+        {% else %}
+        <div class="author-avatar-placeholder author-avatar-placeholder--icon" aria-hidden="true">
+            {{ icon('user-circle', size=64) }}
+        </div>
+        {% end %}
+
+        <div class="author-header-content">
+            <h1 class="page-hero__title author-name">{{ author_name }}</h1>
+
+            {% if author_bio %}
+            <p class="author-bio">{{ author_bio }}</p>
+            {% end %}
+
+            {% if author_social %}
+            <div class="author-social">
+                {% if author_social?.twitter %}
+                <a href="https://twitter.com/{{ author_social.twitter | replace('@', '') }}"
+                   class="social-link" aria-label="Twitter">
+                    {{ icon('twitter-logo', size=18) }}
+                    <span class="sr-only">Twitter</span>
+                </a>
+                {% end %}
+                {% if author_social?.github %}
+                <a href="https://github.com/{{ author_social.github }}"
+                   class="social-link" aria-label="GitHub">
+                    {{ icon('github-logo', size=18) }}
+                    <span class="sr-only">GitHub</span>
+                </a>
+                {% end %}
+                {% if author_social?.linkedin %}
+                <a href="https://linkedin.com/in/{{ author_social.linkedin }}"
+                   class="social-link" aria-label="LinkedIn">
+                    {{ icon('linkedin-logo', size=18) }}
+                    <span class="sr-only">LinkedIn</span>
+                </a>
+                {% end %}
+                {% if author_social?.website %}
+                <a href="{{ author_social.website }}" class="social-link" aria-label="Website">
+                    {{ icon('globe', size=18) }}
+                    <span class="sr-only">Website</span>
+                </a>
+                {% end %}
+                {% if author_social?.email %}
+                <a href="mailto:{{ author_social.email }}" class="social-link" aria-label="Email">
+                    {{ icon('envelope-simple', size=18) }}
+                    <span class="sr-only">Email</span>
+                </a>
+                {% end %}
+            </div>
+            {% end %}
+        </div>
+    </div>
 </div>
 {% end %}

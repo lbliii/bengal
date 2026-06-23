@@ -23,8 +23,6 @@ Context variables:
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs %}
-
 {# =============================================================================
 AUTHOR CARD COMPONENT
 ============================================================================= #}
@@ -41,10 +39,10 @@ AUTHOR CARD COMPONENT
 <article class="author-card">
   <a href="{{ author_href }}" class="author-card-link">
     {% if author_avatar %}
-    <img src="{{ author_avatar }}" alt="{{ author_name }}" class="author-card-avatar">
+    <img src="{{ author_avatar }}" alt="{{ author_name }}" class="author-card-avatar" width="80" height="80">
     {% else %}
-    <div class="author-card-avatar-placeholder">
-      {{ author_name[0] | upper }}
+    <div class="author-card-avatar-placeholder author-card-avatar-placeholder--icon" aria-hidden="true">
+      {{ icon('user-circle', size=48) }}
     </div>
     {% end %}
 
@@ -87,15 +85,9 @@ MAIN TEMPLATE
 {% let page_children = page?.children ?? [] %}
 {% let home_url = '/' | absolute_url %}
 
-{{ breadcrumbs(page) }}
-
 <div class="authors-page">
-  <header class="page-header">
-    <h1>{{ page_title }}</h1>
-    {% if page_desc %}
-    <p class="page-description">{{ page_desc }}</p>
-    {% end %}
-  </header>
+  {% let _list_hero_default = 'overview' %}
+  {% include 'partials/page-hero.html' %}
 
   {# Main content from markdown #}
   {% if content %}

@@ -113,13 +113,8 @@ MAIN TEMPLATE
 {% end %}
 
 <div class="container tracks-page">
-    {# Minimal Header - Title + optional description #}
-    <header class="tracks-header tracks-header--compact">
-        <h1 class="tracks-title">{{ page_title }}</h1>
-        {% if page_desc %}
-        <p class="tracks-lead">{{ page_desc }}</p>
-        {% end %}
-    </header>
+    {% let _list_hero_default = 'overview' %}
+    {% include 'partials/page-hero.html' %}
 
     {# Tracks Grid — container queries respond to slot width, not viewport (#540) #}
     {% if tracks_data | length > 0 %}

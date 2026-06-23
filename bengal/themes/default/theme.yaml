@@ -14,7 +14,7 @@ features:
     scroll_reveals: true
   content:
     code.copy: true
-    code.annotate: false
+    code.annotate: true
     code.word_wrap: true
     tabs.link: false
     lightbox: true
@@ -104,6 +104,7 @@ icons:
     clock: clock
     pin: map-pin
     user: user
+    user-circle: user-circle
     arrow-clockwise: arrow-clockwise
     # Theme
     sun: sun
