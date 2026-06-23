@@ -214,8 +214,11 @@ class TestGetOptimalWorkers:
         assert result_weighted >= result_normal
 
     def test_local_cpu_bound_moderate_workers(self) -> None:
-        """Local CPU-bound uses moderate workers."""
-        with patch("os.cpu_count", return_value=12):
+        """Local CPU-bound uses moderate workers (GIL-era cap)."""
+        with (
+            patch("os.cpu_count", return_value=12),
+            patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False),
+        ):
             result = get_optimal_workers(
                 100,
                 workload_type=WorkloadType.CPU_BOUND,
@@ -440,8 +443,9 @@ class TestGetProfile:
         assert isinstance(profile, WorkloadProfile)
 
     def test_cpu_bound_local_profile(self) -> None:
-        """CPU_BOUND + LOCAL has expected values."""
-        profile = get_profile(WorkloadType.CPU_BOUND, Environment.LOCAL)
+        """CPU_BOUND + LOCAL has expected GIL-era values."""
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False):
+            profile = get_profile(WorkloadType.CPU_BOUND, Environment.LOCAL)
         assert profile.parallel_threshold == 5
         assert profile.min_workers == 2
         assert profile.max_workers == 4
@@ -536,8 +540,12 @@ class TestIntegration:
             assert workers <= 4  # CI caps at 4 (free-threaded Python)
 
     def test_full_workflow_local(self) -> None:
-        """Full workflow in local environment."""
-        with patch.dict(os.environ, {}, clear=True), patch("os.cpu_count", return_value=8):
+        """Full workflow in local environment (GIL-era CPU_BOUND cap)."""
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("os.cpu_count", return_value=8),
+            patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False),
+        ):
             # Detect environment
             env = detect_environment()
             assert env == Environment.LOCAL
@@ -559,6 +567,40 @@ class TestIntegration:
                 config_override=12,
             )
             assert workers == 12  # Ignores CI cap
+
+
+class TestFreeThreadingCpuBoundWorkers:
+    """Free-threaded CPU_BOUND profile lift (#381 finding 5)."""
+
+    def test_ft_cpu_bound_local_uses_more_workers_than_gil(self) -> None:
+        with patch("os.cpu_count", return_value=12):
+            with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False):
+                gil_workers = get_optimal_workers(
+                    100,
+                    workload_type=WorkloadType.CPU_BOUND,
+                    environment=Environment.LOCAL,
+                )
+            with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=True):
+                ft_workers = get_optimal_workers(
+                    100,
+                    workload_type=WorkloadType.CPU_BOUND,
+                    environment=Environment.LOCAL,
+                )
+        assert ft_workers > gil_workers
+        assert gil_workers == 4
+        assert ft_workers == 8
+
+    def test_ft_cpu_bound_profile_max_workers(self) -> None:
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=True):
+            profile = get_profile(WorkloadType.CPU_BOUND, Environment.LOCAL)
+        assert profile.max_workers == 8
+        assert profile.cpu_fraction == 0.75
+
+    def test_gil_cpu_bound_profile_unchanged(self) -> None:
+        with patch("bengal.utils.concurrency.workers.is_gil_disabled", return_value=False):
+            profile = get_profile(WorkloadType.CPU_BOUND, Environment.LOCAL)
+        assert profile.max_workers == 4
+        assert profile.cpu_fraction == 0.5
 
 
 class TestGilDetectionConsolidation:

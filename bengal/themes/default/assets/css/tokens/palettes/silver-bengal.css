@@ -90,7 +90,7 @@ html[data-palette="silver-bengal"] {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    margin-right: 0.5rem;
+    margin-inline-end: 0.5rem;
     background: linear-gradient(135deg, #5A6A7A 0%, #7C8B9B 50%, #FAFBFC 100%);
     border: 1px solid rgba(90, 106, 122, 0.3);
     vertical-align: middle;
