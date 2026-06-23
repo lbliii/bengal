@@ -698,6 +698,20 @@ class TestFigureDirective:
         result = parser.parse(markdown, {})
         assert "width: 80%" in result
 
+    def test_pixel_dimensions_for_cls(self, parser: PatitasParser) -> None:
+        """Pixel width/height render as HTML attributes for CLS prevention."""
+        markdown = """\
+:::{figure} /images/test.png
+:alt: Test
+:width: 128px
+:height: 128px
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert 'width="128"' in result
+        assert 'height="128"' in result
+        assert 'style="width: 128px"' not in result
+
     def test_with_link(self, parser: PatitasParser) -> None:
         """Test figure with link."""
         markdown = """\
@@ -1195,8 +1209,8 @@ class TestMediaDirectivesEdgeCases:
         result = parser.parse(markdown, {})
         assert 'alt="Full Options Image"' in result
         assert "This is a detailed caption" in result
-        assert "width: 600px" in result
-        assert "height: 400px" in result
+        assert 'width="600"' in result
+        assert 'height="400"' in result
         assert "align-center" in result
         assert 'href="https://example.com"' in result
         assert 'target="_blank"' in result

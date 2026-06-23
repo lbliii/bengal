@@ -1,0 +1,34 @@
+# Pridelands theme showcase — demonstrates every default-theme component and interactive state.
+# Used as the visual-regression baseline and manual quality gate for issue #545.
+
+[site]
+title = "Bengal Theme Showcase"
+description = "Live gallery of the default (Pridelands) theme — every component, layout, and interactive state"
+baseurl = "/"
+language = "en"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "patitas"
+table_of_contents = true
+
+[features]
+search = true
+
+[[menu.main]]
+name = "Showcase"
+url = "/showcase/"
+weight = 1
+
+[[menu.main]]
+name = "Quality Gate"
+url = "/showcase/#quality-gate"
+weight = 2
+
+[output_formats]
+per_page = ["json", "llm_txt", "markdown"]
+site_wide = ["index_json", "llms_txt", "agent_manifest"]

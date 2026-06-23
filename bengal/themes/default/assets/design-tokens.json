@@ -1,0 +1,75 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "bengal-default-theme",
+  "version": "2.0.0",
+  "description": "Pridelands default theme design tokens for LLM theming context",
+  "consumer": "action-bar-copy-theme-tokens",
+  "palettes": {
+    "default": {
+      "primary": "#FF9D00",
+      "accent": "#F1C40F",
+      "success": "#2ECC71",
+      "error": "#E74C3C",
+      "surface": "#1e1e1e",
+      "background": "#121212"
+    },
+    "blue-bengal": {
+      "primary": "#1976D2",
+      "accent": "#FF9800",
+      "success": "#388E3C",
+      "error": "#D32F2F",
+      "surface": "#1e1e1e",
+      "background": "#121212"
+    },
+    "brown-bengal": {
+      "primary": "#6D4C41",
+      "accent": "#D4A574",
+      "success": "#558B2F",
+      "error": "#C62828",
+      "surface": "#1e1e1e",
+      "background": "#121212"
+    },
+    "charcoal-bengal": {
+      "primary": "#1A1D21",
+      "accent": "#8B6914",
+      "success": "#3D6B4A",
+      "error": "#A63D3D",
+      "surface": "#0d0d0d",
+      "background": "#000000"
+    },
+    "silver-bengal": {
+      "primary": "#607D8B",
+      "accent": "#78909C",
+      "success": "#66BB6A",
+      "error": "#EF5350",
+      "surface": "#1e1e1e",
+      "background": "#121212"
+    },
+    "snow-lynx": {
+      "primary": "#4FA8A0",
+      "accent": "#5BB8AF",
+      "success": "#2E7D5A",
+      "error": "#C62828",
+      "surface": "#1e1e1e",
+      "background": "#121212"
+    }
+  },
+  "css_variables": {
+    "semantic": [
+      "--color-primary",
+      "--color-text-primary",
+      "--color-bg-primary",
+      "--color-border-focus",
+      "--motion-signature-duration",
+      "--motion-signature-ease"
+    ],
+    "activation": "Set data-palette on <html> for named palettes; data-theme for light/dark"
+  },
+  "default_palette": {
+    "primary": "#FF9D00",
+    "secondary": "#3498DB",
+    "accent": "#F1C40F",
+    "success": "#2ECC71",
+    "error": "#E74C3C"
+  }
+}

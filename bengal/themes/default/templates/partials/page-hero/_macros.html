@@ -79,6 +79,7 @@ KIDA FEATURES:
 {% def _share_dropdown(page) %}
 {% let page_url = canonical_url(_get_page_url(page)) %}
 {% let llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+{% let theme_tokens_url = asset_url('design-tokens.json') %}
 {% let share_prompt = "Please help me understand this documentation: " ~ llm_txt_url %}
 
 <div class="page-hero__actions">
@@ -99,7 +100,9 @@ KIDA FEATURES:
                 {'action': 'open', 'url': llm_txt_url, 'icon': 'external', 'label': t('share.open_llm_text',
                 default='Open LLM text'), 'type': 'link'},
                 {'action': 'copy-llm-txt', 'url': llm_txt_url, 'icon': 'copy', 'label': t('share.copy_llm_text',
-                default='Copy LLM text'), 'type': 'button'}
+                default='Copy LLM text'), 'type': 'button'},
+                {'action': 'copy-theme-tokens', 'url': theme_tokens_url, 'icon': 'palette', 'label': t('share.copy_theme_tokens',
+                default='Copy theme tokens'), 'type': 'button'}
                 ] %}
                 {% for action in quick_actions %}
                 {% match action.type %}
