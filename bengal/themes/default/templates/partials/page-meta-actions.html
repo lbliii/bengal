@@ -2,15 +2,8 @@
 Shared edit-this-page + feedback chrome for docs and editorial layouts.
 #}
 
-{% def page_edit_url(page) -%}
-{% let page_meta = page?.metadata ?? {} %}
-{% let github_edit_base = config?.github_edit_base %}
-{% let source_path = page?.source_path %}
-{{ page_meta?.edit_url ?? (github_edit_base ~ source_path if github_edit_base and source_path else none) }}
-{%- end %}
-
 {% def page_meta_edit_link(page, css_class='page-meta-edit') %}
-{% with page_edit_url(page) as edit_url %}
+{% with page_github_edit_url(page) as edit_url %}
 {% if edit_url %}
 <a href="{{ edit_url }}" class="{{ css_class }}" target="_blank" rel="noopener noreferrer">
   {{ icon('pencil', size=14) }}

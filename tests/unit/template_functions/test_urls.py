@@ -8,6 +8,7 @@ from bengal.rendering.template_functions.urls import (
     ensure_trailing_slash,
     notebook_colab_url,
     notebook_download_url,
+    page_github_edit_url,
     url_decode,
     url_encode,
     url_param,
@@ -411,3 +412,96 @@ class TestNotebookColabUrl:
 
         result = notebook_colab_url(page, site)
         assert "blob/main/site/content/docs/notebooks/demo.ipynb" in result
+
+
+class TestPageGithubEditUrl:
+    """Tests for page_github_edit_url template function."""
+
+    def test_markdown_page_with_repo_url_returns_edit_url(self) -> None:
+        page = Mock()
+        page.source_path = Path("content/docs/reference/_index.md")
+        page.metadata = {}
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/lbliii/bengal"}
+
+        result = page_github_edit_url(page, site)
+        assert result == (
+            "https://github.com/lbliii/bengal/edit/main/content/docs/reference/_index.md"
+        )
+
+    def test_colab_path_prefix_prepends_to_edit_path(self) -> None:
+        page = Mock()
+        page.source_path = Path("content/docs/reference/_index.md")
+        page.metadata = {}
+        site = Mock()
+        site.params = {
+            "repo_url": "https://github.com/lbliii/bengal",
+            "colab_path_prefix": "site",
+        }
+        site.root_path = None
+
+        result = page_github_edit_url(page, site)
+        assert result == (
+            "https://github.com/lbliii/bengal/edit/main/site/content/docs/reference/_index.md"
+        )
+
+    def test_frontmatter_edit_url_override(self) -> None:
+        page = Mock()
+        page.source_path = Path("content/docs/reference/_index.md")
+        page.metadata = {"edit_url": "https://example.com/custom-edit"}
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/lbliii/bengal"}
+
+        result = page_github_edit_url(page, site)
+        assert result == "https://example.com/custom-edit"
+
+    def test_github_edit_base_override(self) -> None:
+        page = Mock()
+        page.source_path = Path("content/docs/reference/_index.md")
+        page.metadata = {}
+        site = Mock()
+        site.params = {
+            "github_edit_base": "https://github.com/lbliii/bengal/edit/develop/site/content",
+        }
+
+        result = page_github_edit_url(page, site)
+        assert result == (
+            "https://github.com/lbliii/bengal/edit/develop/site/content/content/docs/reference/_index.md"
+        )
+
+    def test_no_repo_url_returns_empty(self) -> None:
+        page = Mock()
+        page.source_path = Path("content/docs/reference/_index.md")
+        page.metadata = {}
+        site = Mock()
+        site.params = {}
+        site.config = {"params": {}}
+
+        result = page_github_edit_url(page, site)
+        assert result == ""
+
+    def test_none_page_returns_empty(self) -> None:
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/lbliii/bengal"}
+        assert page_github_edit_url(None, site) == ""
+
+    def test_absolute_source_path_relative_to_site_root(self, tmp_path: Path) -> None:
+        site_root = tmp_path / "site"
+        content_file = site_root / "content/docs/reference/_index.md"
+        content_file.parent.mkdir(parents=True)
+        content_file.write_text("---\ntitle: Reference\n---\n")
+
+        page = Mock()
+        page.source_path = content_file
+        page.metadata = {}
+        site = Mock()
+        site.params = {
+            "repo_url": "https://github.com/lbliii/bengal",
+            "colab_path_prefix": "site",
+        }
+        site.root_path = site_root
+
+        result = page_github_edit_url(page, site)
+        assert result == (
+            "https://github.com/lbliii/bengal/edit/main/site/content/docs/reference/_index.md"
+        )

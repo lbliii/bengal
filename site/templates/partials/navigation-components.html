@@ -321,8 +321,6 @@ KIDA FEATURES SHOWCASED:
   {% if page %}
   {% let page_meta = page?.metadata ?? {} %}
   {% let contributors = page_meta?.contributors ?? [] %}
-  {% let github_edit_base = config?.github_edit_base %}
-  {% let source_path = page?.source_path %}
 
   <div class="toc-metadata">
     {# Last Updated #}
@@ -339,11 +337,13 @@ KIDA FEATURES SHOWCASED:
     {% end %}
 
     {# Edit on GitHub #}
-    {% with page_meta?.edit_url ?? (github_edit_base ~ source_path if github_edit_base and source_path) as edit_url %}
+    {% with page_github_edit_url(page) as edit_url %}
+    {% if edit_url %}
     <a href="{{ edit_url }}" class="toc-edit-link" target="_blank" rel="noopener noreferrer">
       {{ icon('pencil', size=14) }}
       <span>{{ t('toc.edit_page', default='Edit this page') }}</span>
     </a>
+    {% end %}
     {% end %}
 
     {# Contributors - limit display with loop control #}
