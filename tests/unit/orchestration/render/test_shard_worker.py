@@ -52,6 +52,7 @@ def _built(site_factory, root: str) -> Site:
 # Byte-parity vs the in-process path is gated in CI after #431 (deterministic aggregate
 # outputs) and #529 (stable sitemap/agent.json ordering). render_isolation stays OFF by
 # default until the backend is promoted default-on.
+@pytest.mark.parallel_unsafe
 @pytest.mark.parametrize("root", ROOTS)
 def test_parse_shard_matches_in_process_parse(site_factory, root):
     """A worker re-parsing a file shard in isolation produces pages whose PageView is
