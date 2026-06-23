@@ -135,6 +135,33 @@ class TestParseFenceAttrs:
         assert attrs.title == "late-title.py"
         assert attrs.hl_lines == (2,)
 
+    def test_frame_terminal(self):
+        attrs = parse_fence_attrs('bash frame=terminal title="deploy.sh"')
+        assert attrs.frame == "terminal"
+        assert attrs.language == "bash"
+
+    def test_implicit_terminal_frame_for_shell(self):
+        attrs = parse_fence_attrs("bash")
+        assert attrs.frame == "terminal"
+
+    def test_editor_frame(self):
+        attrs = parse_fence_attrs('python frame=editor title="app.py"')
+        assert attrs.frame == "editor"
+
+    def test_collapsible_open(self):
+        attrs = parse_fence_attrs("python collapse")
+        assert attrs.collapsible is True
+        assert attrs.collapsed is False
+
+    def test_collapsible_closed(self):
+        attrs = parse_fence_attrs("python collapse=closed")
+        assert attrs.collapsible is True
+        assert attrs.collapsed is True
+
+    def test_annotations(self):
+        attrs = parse_fence_attrs('python annotate="1:Setup,3:Run"')
+        assert attrs.annotations == ((1, "Setup"), (3, "Run"))
+
 
 class TestHlLinesPattern:
     """Tests for the HL_LINES_PATTERN regex."""

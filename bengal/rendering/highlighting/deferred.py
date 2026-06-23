@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING
 
 from bengal.rendering.highlighting.rosettes import RosettesBackend
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.primitives.code import parse_fence_attrs
+from bengal.utils.primitives.code import CodeFenceAttrs, parse_fence_attrs
 
 if TYPE_CHECKING:
     from bengal.rendering.highlighting.cache import HighlightCache
@@ -278,6 +278,31 @@ def wrap_code_block_title(html: str, title: str | None) -> str:
     return _wrap_with_title(html, title)
 
 
+def apply_fence_metadata(html: str, fence_attrs: CodeFenceAttrs) -> str:
+    """Attach fence metadata as data-* attributes on the highlighted root element."""
+    if not html.startswith("<div"):
+        return html
+
+    additions: list[str] = []
+    if fence_attrs.show_linenos:
+        additions.append('data-linenos="true"')
+    if fence_attrs.frame:
+        additions.append(f'data-frame="{html_mod.escape(fence_attrs.frame)}"')
+    if fence_attrs.collapsible:
+        state = "closed" if fence_attrs.collapsed else "open"
+        additions.append(f'data-collapsible="{state}"')
+    if fence_attrs.annotations:
+        spec = ",".join(f"{line}:{text}" for line, text in fence_attrs.annotations)
+        additions.append(f'data-annotate="{html_mod.escape(spec)}"')
+    if fence_attrs.diff:
+        additions.append('data-diff="true"')
+
+    if not additions:
+        return html
+
+    return re.sub(r"^<div ", f"<div {' '.join(additions)} ", html, count=1)
+
+
 def parse_fence_info(info: str) -> tuple[str, list[int], str | None, bool, bool]:
     """Parse a fence info string into highlight kwargs for deferred mode."""
     attrs = parse_fence_attrs(info)
@@ -356,6 +381,7 @@ def flush_deferred_highlighting(content: str) -> str:
 
 # Re-export for backward compatibility
 __all__ = [
+    "apply_fence_metadata",
     "disable_deferred_highlighting",
     "enable_deferred_highlighting",
     "flush_deferred_highlighting",

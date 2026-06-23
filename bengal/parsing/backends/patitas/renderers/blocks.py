@@ -33,7 +33,7 @@ from bengal.parsing.backends.patitas.renderers.utils import (
     escape_attr,
     escape_html,
 )
-from bengal.rendering.highlighting.deferred import wrap_code_block_title
+from bengal.rendering.highlighting.deferred import apply_fence_metadata, wrap_code_block_title
 from bengal.utils.primitives.code import CodeFenceAttrs, parse_fence_attrs
 
 if TYPE_CHECKING:
@@ -320,6 +320,7 @@ class BlockRendererMixin:
                 # Rosettes parity: ensure trailing newline before closing tags
                 if highlighted.endswith("</code></pre></div>"):
                     highlighted = highlighted[:-19] + "\n</code></pre></div>"
+                highlighted = apply_fence_metadata(highlighted, fence_attrs)
                 sb.append(wrap_code_block_title(highlighted, fence_attrs.title))
                 return
 
