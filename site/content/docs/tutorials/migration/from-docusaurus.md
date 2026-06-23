@@ -701,5 +701,5 @@ If you're migrating from multiple platforms or need additional context:
 
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown guide
-- [Configuration Reference](/docs/building/configuration/) - Config options
+- [Configuration Reference](/docs/ship/configuration/) - Config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

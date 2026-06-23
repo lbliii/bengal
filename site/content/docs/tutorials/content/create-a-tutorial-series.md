@@ -26,7 +26,7 @@ In this tutorial, you'll learn how to create a multi-part tutorial series with n
 :::{note}
 **Do I need this?** Yes for multi-part courses with progress bars and explicit
 series metadata. For simple prev/next on docs pages, default theme navigation
-with `weight` may be enough — see [[docs/content/authoring|Authoring]].
+with `weight` may be enough — see [[docs/build-sites/write/authoring|Authoring]].
 
 The default theme also supports section-scoped prev/next via the
 `navigation.prev_next` feature flag.
@@ -752,6 +752,6 @@ You now have a complete tutorial series system with:
 
 ## Next Steps
 
-- **[Series Navigation Recipe](/docs/theming/recipes/series-navigation/)**: Quick reference
-- **[Build a Multi-Author Blog](/docs/tutorials/sites/build-a-multi-author-blog/)**: Add author attribution
-- **[Content Freshness](/docs/theming/recipes/content-freshness/)**: Show series age
+- **[Series Navigation Recipe](/docs/build-sites/customize/recipes/series-navigation/)**: Quick reference
+- **[Build a Multi-Author Blog](/docs/examples/sites/build-a-multi-author-blog/)**: Add author attribution
+- **[Content Freshness](/docs/build-sites/customize/recipes/content-freshness/)**: Show series age

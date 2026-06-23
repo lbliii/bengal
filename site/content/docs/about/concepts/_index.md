@@ -88,8 +88,8 @@ These concepts are covered in detail in their respective sections:
 
 | Concept | Learn More |
 |---------|------------|
-| **Content Organization** | [Content Structure](/docs/content/organization/) — frontmatter, sections, bundles |
-| **Templates** | [Kida Templating](/docs/theming/templating/kida/) — syntax, caching, performance |
-| **Assets** | [Asset Pipeline](/docs/theming/assets/) — CSS, JS, images, optimization |
-| **Build Process** | [Configuration](/docs/building/configuration/) — profiles, environment settings |
-| **Output Formats** | [Output Formats](/docs/building/output-formats/) — JSON, LLM text, search index |
+| **Content Organization** | [Content Structure](/docs/build-sites/structure/organization/) — frontmatter, sections, bundles |
+| **Templates** | [Kida Templating](/docs/build-sites/customize/templating/kida/) — syntax, caching, performance |
+| **Assets** | [Asset Pipeline](/docs/build-sites/customize/assets/) — CSS, JS, images, optimization |
+| **Build Process** | [Configuration](/docs/ship/configuration/) — profiles, environment settings |
+| **Output Formats** | [Output Formats](/docs/ship/output-formats/) — JSON, LLM text, search index |

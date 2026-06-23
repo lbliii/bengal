@@ -176,11 +176,11 @@ List sibling pages (pages in the same section as the current page).
 <div class="siblings">
   <ul class="siblings-list">
     <li>
-      <a href="/docs/theming/assets/">Assets</a>
+      <a href="/docs/build-sites/customize/assets/">Assets</a>
       <span class="sibling-description">Managing static assets</span>
     </li>
     <li>
-      <a href="/docs/theming/themes/">Themes</a>
+      <a href="/docs/build-sites/customize/themes/">Themes</a>
     </li>
   </ul>
 </div>
@@ -210,11 +210,11 @@ Generate previous/next links for sequential navigation within a section.
 
 ```html
 <nav class="prev-next">
-  <a class="prev-next-link prev-link" href="/docs/theming/templating/">
+  <a class="prev-next-link prev-link" href="/docs/build-sites/customize/templating/">
     <span class="prev-next-label">← Previous</span>
     <span class="prev-next-title">Templating</span>
   </a>
-  <a class="prev-next-link next-link" href="/docs/theming/themes/">
+  <a class="prev-next-link next-link" href="/docs/build-sites/customize/themes/">
     <span class="prev-next-label">Next →</span>
     <span class="prev-next-title">Themes</span>
   </a>
@@ -254,7 +254,7 @@ List pages that share tags with the current page.
       <span class="related-tags">theming, css, customization</span>
     </li>
     <li>
-      <a href="/docs/theming/assets/">Custom CSS Guide</a>
+      <a href="/docs/build-sites/customize/assets/">Custom CSS Guide</a>
     </li>
   </ul>
 </aside>
@@ -304,4 +304,4 @@ tags: [guide, python]  # For related pages
 ## Related
 
 - [Layout Directives](/docs/reference/directives/layout/) — Manual cards and tabs
-- [Content Organization](/docs/content/organization/) — How sections and pages work
+- [Content Organization](/docs/build-sites/structure/organization/) — How sections and pages work

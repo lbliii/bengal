@@ -321,6 +321,6 @@ Avoid for:
 
 ## Related
 
-- [Versioning Documentation](/docs/content/versioning/) — Full versioning guide
-- [Cross-Version Links](/docs/content/versioning/cross-version-links/) — Link between versions
+- [Versioning Documentation](/docs/build-sites/structure/versioning/) — Full versioning guide
+- [Cross-Version Links](/docs/build-sites/structure/versioning/cross-version-links/) — Link between versions
 - [Admonitions](/docs/reference/directives/admonitions/) — Standard callout directives

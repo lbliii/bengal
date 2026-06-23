@@ -164,5 +164,5 @@ i18n:
 ```
 
 :::{seealso}
-See [[docs/content/i18n|Multilingual Sites Guide]] for complete i18n setup.
+See [[docs/build-sites/structure/i18n|Multilingual Sites Guide]] for complete i18n setup.
 :::

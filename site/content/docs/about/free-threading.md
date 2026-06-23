@@ -169,6 +169,6 @@ The plugin system uses a builder→immutable pattern. `PluginRegistry` collects 
 
 ## See Also
 
-- [[docs/building/performance/large-sites|Large Site Optimization]] — Free-threading notes and scaling
-- [[docs/building/performance|Performance Overview]] — Incremental and parallel strategies
+- [[docs/ship/performance/large-sites|Large Site Optimization]] — Free-threading notes and scaling
+- [[docs/ship/performance|Performance Overview]] — Incremental and parallel strategies
 - [Bengal source](https://github.com/lbliii/bengal)

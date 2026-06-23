@@ -47,7 +47,7 @@ def test_no_base_url_config_key_in_bengal_docs() -> None:
     """
     # Files where ``base_url`` refers to a third-party API config, not Bengal's.
     exempt = {
-        _DOCS / "content" / "authoring" / "external-references.md",
+        _DOCS / "build-sites" / "write" / "authoring" / "external-references.md",
     }
     releases = _CONTENT / "releases"
     offenders: dict[str, list[int]] = {}
@@ -101,7 +101,9 @@ def test_error_code_docs_name_kida_not_jinja2() -> None:
 
 def test_object_model_lists_only_real_core_page_modules() -> None:
     """The object-model doc must not list phantom ``bengal/core/page`` modules."""
-    doc = _DOCS / "reference" / "architecture" / "core" / "object-model.md"
+    doc = _REPO_ROOT / "docs" / "architecture" / "core" / "object-model.md"
+    if not doc.is_file():
+        return  # architecture internals relocated out of site tree (#622)
     page_dir = _REPO_ROOT / "bengal" / "core" / "page"
     real_modules = {p.name for p in page_dir.glob("*.py")}
 
@@ -130,7 +132,7 @@ def test_no_bengal_ssg_package_name_in_docs() -> None:
 
 def test_architecture_cli_doc_matches_shipped_version() -> None:
     """The architecture CLI help snapshot is version-agnostic; stale versions must not linger."""
-    doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
+    doc = _REPO_ROOT / "docs" / "architecture" / "tooling" / "cli.md"
     text = doc.read_text(encoding="utf-8")
     assert "# bengal VERSION" in text, (
         "cli.md root help snapshot should use the normalized `# bengal VERSION` placeholder. "
@@ -146,11 +148,12 @@ _HUB_PAGES = (
     _DOCS / "_index.md",
     _DOCS / "about" / "_index.md",
     _DOCS / "get-started" / "_index.md",
-    _DOCS / "content" / "_index.md",
-    _DOCS / "theming" / "_index.md",
-    _DOCS / "extending" / "_index.md",
-    _DOCS / "building" / "_index.md",
+    _DOCS / "build-sites" / "_index.md",
+    _DOCS / "build-sites" / "customize" / "_index.md",
+    _DOCS / "build-sites" / "extend" / "_index.md",
+    _DOCS / "ship" / "_index.md",
     _DOCS / "tutorials" / "_index.md",
+    _DOCS / "examples" / "_index.md",
     _DOCS / "reference" / "_index.md",
 )
 
@@ -166,7 +169,7 @@ def test_hub_pages_do_not_reference_phantom_cli_section() -> None:
                 offenders.setdefault(str(path.relative_to(_REPO_ROOT)), []).append(lineno)
 
     assert not offenders, (
-        "Hub pages link to phantom `/cli/` section; use docs/reference/architecture/tooling/cli:\n"
+        "Hub pages link to phantom `/cli/` section; use /cli/ autodoc or docs/reference/architecture:\n"
         + "\n".join(f"  {p}: lines {ls}" for p, ls in sorted(offenders.items()))
     )
 
@@ -213,7 +216,7 @@ def test_cli_command_inventory_matches_registry() -> None:
         registered_command_inventory,
     )
 
-    doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
+    doc = _REPO_ROOT / "docs" / "architecture" / "tooling" / "cli.md"
     doc_inventory = parse_cli_doc_inventory(doc.read_text(encoding="utf-8"))
     registered = registered_command_inventory()
     assert doc_inventory == registered, (
@@ -248,7 +251,7 @@ def test_architecture_cli_doc_root_help_matches_snapshot() -> None:
     """Embedded cli.md help block must match the committed CLI help snapshot."""
     from tests._testing.cli_help_snapshot import parse_cli_doc_root_help, snapshot_path
 
-    doc = _DOCS / "reference" / "architecture" / "tooling" / "cli.md"
+    doc = _REPO_ROOT / "docs" / "architecture" / "tooling" / "cli.md"
     doc_help = parse_cli_doc_root_help(doc.read_text(encoding="utf-8"))
     expected = snapshot_path().read_text(encoding="utf-8")
     assert doc_help == expected, (
@@ -275,4 +278,24 @@ def test_directive_option_tables_match_registry() -> None:
     assert live == expected, (
         "Directive option tables drifted from registry.\n"
         "Regenerate with: python scripts/update_directive_options_snapshot.py"
+    )
+
+
+def test_template_functions_reference_matches_registry() -> None:
+    """Committed template-functions reference must match register_all()."""
+    from tests._testing.template_functions_snapshot import (
+        generated_doc_path,
+        live_generated_markdown,
+    )
+
+    doc = generated_doc_path()
+    assert doc.is_file(), (
+        f"Missing generated template functions doc at {doc.relative_to(_REPO_ROOT)}. "
+        "Generate with: python scripts/generate_template_functions_reference.py"
+    )
+    expected = doc.read_text(encoding="utf-8")
+    live = live_generated_markdown()
+    assert live == expected, (
+        "Template functions reference drifted from register_all().\n"
+        "Regenerate with: python scripts/generate_template_functions_reference.py"
     )

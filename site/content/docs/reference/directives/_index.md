@@ -15,7 +15,7 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 :::{tip}
 **See everything live:** [[docs/reference/directives/kitchen-sink|Directive Kitchen Sink]] — a gallery of all directive types with working examples.
 
-**Option defaults:** [[docs/reference/directives/_registry-options|Registry Options Reference]] — auto-generated tables from `create_default_registry()`.
+**Option defaults:** [Registry Options Reference](./_registry-options.md) — auto-generated tables from `create_default_registry()`.
 :::
 
 ## Key Terms

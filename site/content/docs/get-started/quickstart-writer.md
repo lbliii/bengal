@@ -76,7 +76,7 @@ or register a custom template with `bengal.scaffolds.register_template`):
 bengal new site myblog --template my-blog
 ```
 
-See [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]] for more examples.
+See [[docs/examples/sites/skeleton-quickstart|Skeleton YAML Quickstart]] for more examples.
 :::
 
 ## Start the Dev Server {#dev-server}
@@ -139,7 +139,7 @@ Bengal splits configuration across focused files in `config/_default/`:
 | `features.yaml` | Search, RSS, sitemap toggles |
 | `content.yaml` | Markdown processing options |
 
-See [[docs/building/configuration|Configuration Reference]] for details.
+See [[docs/ship/configuration|Configuration Reference]] for details.
 :::
 
 ## Build and Deploy
@@ -155,7 +155,7 @@ Deploy to any static host:
 | Vercel | `bengal build` | `public` |
 | GitHub Pages | `bengal build` | `public` |
 
-Bengal auto-detects Netlify, Vercel, and GitHub Pages to set `baseurl` automatically. See [[docs/building/deployment|Deployment Guide]] for CI/CD workflows.
+Bengal auto-detects Netlify, Vercel, and GitHub Pages to set `baseurl` automatically. See [[docs/ship/deployment|Deployment Guide]] for CI/CD workflows.
 
 ## Frontmatter Essentials {#frontmatter}
 
@@ -194,7 +194,7 @@ Custom fields are accessible in templates via `page.props.fieldname`, `page.para
 
 ## Next Steps
 
-- **[[docs/content/authoring|Content Authoring]]** — Markdown features and syntax
-- **[[docs/content/organization|Content Organization]]** — Structure your site
-- **[[docs/theming|Theming]]** — Customize appearance
-- **[[docs/tutorials/sites/build-a-blog|Build a Blog]]** — Complete tutorial
+- **[[docs/build-sites/write/authoring|Content Authoring]]** — Markdown features and syntax
+- **[[docs/build-sites/structure/organization|Content Organization]]** — Structure your site
+- **[[docs/build-sites/customize|Theming]]** — Customize appearance
+- **[[docs/examples/sites/build-a-blog|Build a Blog]]** — Complete tutorial

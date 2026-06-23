@@ -677,5 +677,5 @@ If you're migrating from multiple platforms or need additional context:
 
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration Reference](/docs/building/configuration/) - Full config options
+- [Configuration Reference](/docs/ship/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

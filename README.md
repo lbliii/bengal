@@ -151,17 +151,17 @@ excerpt generation, and pagination so custom content behavior stays in Python.
 
 | Feature | Description | Docs |
 |---------|-------------|------|
-| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph, social cards, search, JSON/LLM output, [llms.txt](https://llmstxt.org/), [Content Signals](https://contentsignals.org/) | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
-| **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
-| **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
-| **Autodoc** | API docs from Python, CLI, OpenAPI with symbol cross-linking, `@overload` grouping, and inherited-member badges | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
-| **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
-| **Image Processing** | Resize, crop, format conversion (WebP/AVIF), srcset generation | [Images →](https://lbliii.github.io/bengal/docs/theming/templating/image-processing/) |
-| **Content Collections** | Type-safe frontmatter with dataclass/Pydantic schemas | [Collections →](https://lbliii.github.io/bengal/docs/content/collections/) |
-| **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/theming/) |
-| **Validation** | Health checks, broken link detection, auto-fix | [Validation →](https://lbliii.github.io/bengal/docs/content/validation/) |
-| **Performance** | Parallel builds, incremental rebuilds, streaming | [Large Sites →](https://lbliii.github.io/bengal/docs/building/performance/large-sites/) |
-| **Zero-Config Deploy** | Auto-detects GitHub Pages, Netlify, Vercel | [Deployment →](https://lbliii.github.io/bengal/docs/building/deployment/) |
+| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph, social cards, search, JSON/LLM output, [llms.txt](https://llmstxt.org/), [Content Signals](https://contentsignals.org/) | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/ship/seo/) |
+| **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/build-sites/) |
+| **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/build-sites/write/authoring/notebooks/) |
+| **Autodoc** | API docs from Python, CLI, OpenAPI with symbol cross-linking, `@overload` grouping, and inherited-member badges | [Autodoc →](https://lbliii.github.io/bengal/docs/build-sites/extend/sources/autodoc/) |
+| **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/build-sites/extend/sources/) |
+| **Image Processing** | Resize, crop, format conversion (WebP/AVIF), srcset generation | [Images →](https://lbliii.github.io/bengal/docs/build-sites/customize/templating/image-processing/) |
+| **Content Collections** | Type-safe frontmatter with dataclass/Pydantic schemas | [Collections →](https://lbliii.github.io/bengal/docs/build-sites/structure/collections/) |
+| **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/build-sites/customize/) |
+| **Validation** | Health checks, broken link detection, auto-fix | [Validation →](https://lbliii.github.io/bengal/docs/ship/validate/) |
+| **Performance** | Parallel builds, incremental rebuilds, streaming | [Large Sites →](https://lbliii.github.io/bengal/docs/ship/performance/large-sites/) |
+| **Zero-Config Deploy** | Auto-detects GitHub Pages, Netlify, Vercel | [Deployment →](https://lbliii.github.io/bengal/docs/ship/deployment/) |
 
 📚 **Full documentation**: [lbliii.github.io/bengal](https://lbliii.github.io/bengal/)
 
@@ -202,7 +202,7 @@ bengal build --profile dev    # Development profile
 
 </details>
 
-📖 **Configuration guide**: [Configuration →](https://lbliii.github.io/bengal/docs/building/configuration/)
+📖 **Configuration guide**: [Configuration →](https://lbliii.github.io/bengal/docs/ship/configuration/)
 
 ---
 
@@ -257,7 +257,7 @@ Bengal follows a "bring your own" pattern — swap engines without changing your
 |--------|-------------|---------|
 | **Kida** | Bengal's native engine. AST-native, free-threading safe, Jinja2-compatible syntax | Built-in |
 
-Kida is the built-in template engine. It uses Jinja2-compatible syntax, so existing Jinja2 templates generally work without changes. See the [Kida migration guide](https://lbliii.github.io/bengal/docs/theming/templating/kida/migration/from-jinja/) if migrating from Jinja2.
+Kida is the built-in template engine. It uses Jinja2-compatible syntax, so existing Jinja2 templates generally work without changes. See the [Kida migration guide](https://lbliii.github.io/bengal/docs/build-sites/customize/templating/kida/migration/from-jinja/) if migrating from Jinja2.
 
 </details>
 

@@ -352,7 +352,7 @@ Cache expensive operations:
 ```
 
 :::{note}
-**Cache TTL**: Fragment cache uses a global TTL configured in `bengal.toml`. All cached fragments share the same expiration time. Per-key TTL is not currently supported. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
+**Cache TTL**: Fragment cache uses a global TTL configured in `bengal.toml`. All cached fragments share the same expiration time. Per-key TTL is not currently supported. See [Fragment Caching](/docs/build-sites/customize/templating/kida/caching/fragments/) for configuration details.
 :::
 
 :::{/step}
@@ -501,7 +501,7 @@ Check template lookup order:
 2. Theme templates
 3. Bengal defaults
 
-See [Template Lookup Order](/docs/theming/templating/#template-lookup-order) for details.
+See [Template Lookup Order](/docs/build-sites/customize/templating/#template-lookup-order) for details.
 
 ### Syntax Errors
 
@@ -515,10 +515,10 @@ Check build output for detailed error messages.
 ## Next Steps
 
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
-- [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) — Manual caching for expensive operations
-- [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build advanced templates
-- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend Kida functionality
+- [Kida How-Tos](/docs/build-sites/customize/templating/kida/) — Common tasks and patterns
+- [Fragment Caching](/docs/build-sites/customize/templating/kida/caching/fragments/) — Manual caching for expensive operations
+- [Create Custom Template](/docs/build-sites/customize/templating/kida/create-custom-template/) — Build advanced templates
+- [Add Custom Filters](/docs/build-sites/customize/templating/kida/add-custom-filter/) — Extend Kida functionality
 
 ## Summary
 
@@ -534,6 +534,6 @@ You've learned:
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
-- [Theming Guide](/docs/theming/templating/) — Template organization
-- [Performance Guide](/docs/building/performance/) — Optimization tips
+- [Theming Guide](/docs/build-sites/customize/templating/) — Template organization
+- [Performance Guide](/docs/ship/performance/) — Optimization tips
 :::

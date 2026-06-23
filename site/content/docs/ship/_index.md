@@ -1,0 +1,112 @@
+---
+title: Ship
+description: Build configuration, SEO/discovery, output formats, and deployment
+weight: 30
+icon: rocket
+tags:
+- persona-operator
+aliases:
+  - /docs/building/
+---
+
+# Ship
+
+You have a site working — now configure builds, validate quality, optimize
+performance, and ship to production.
+
+:::{note}
+**Do I need this?** Yes for operators and site owners tuning production builds,
+SEO, deployment, or troubleshooting. New to Bengal? Start with
+[[docs/get-started|Get Started]]. Writing content? See [[docs/build-sites|Build Sites]].
+:::
+
+:::{glossary}
+:tags: persona-operator
+:limit: 4
+:collapsed: true
+:::
+
+:::{child-cards}
+:columns: 2
+:include: sections
+:fields: title, description, icon
+:::
+
+## Build Pipeline
+
+```mermaid
+flowchart LR
+    subgraph Input
+        A[Content]
+        B[Config]
+        C[Theme]
+    end
+
+    subgraph Build
+        D[Discovery]
+        E[Content]
+        F[Rendering]
+        G[Post-Process]
+    end
+
+    subgraph Output
+        H[public/]
+    end
+
+    A --> D
+    B --> D
+    D --> E
+    C --> F
+    E --> F
+    F --> G
+    G --> H
+```
+
+## Quick Reference
+
+| I want to... | Go to... |
+|--------------|----------|
+| Configure my site | [Configuration](./configuration/) |
+| Improve metadata, sitemap, feeds, and social sharing | [SEO & Discovery](./seo.md) |
+| Add "Connect to IDE" button for Cursor MCP | [Connect to IDE](./connect-to-ide.md) |
+| Build OSS vs Enterprise variants | [Multi-Variant Builds](./configuration/variants) |
+| Build for production | [CLI Reference](/cli/) |
+| Speed up builds | [Performance](./performance/) |
+| Generate JSON/LLM output | [Output Formats](./output-formats.md) |
+| Understand DX hints (Docker, WSL, K8s) | [DX Hints](./dx-hints.md) |
+| Deploy my site | [Deployment](./deployment/) |
+| Fix build errors | [Troubleshooting](./troubleshooting/) |
+| Validate links and content | [Validation](./validate/) |
+
+## Essential Commands
+
+```bash
+# Development server with live reload
+bengal serve                # or: bengal s
+
+# Build, then preview completed output with static serving semantics
+bengal preview
+
+# Production build (recommended for deployment)
+bengal build --environment production --strict
+
+# Fast CI build (parallel, quiet output)
+bengal build --fast --environment production
+
+# Validate content before building
+bengal check                # or: bengal v
+
+# Clean cache and rebuild from scratch
+bengal clean --cache && bengal build
+```
+
+`bengal serve` keeps HTML, markdown negotiation, custom 404 pages, and live
+reload under Bengal's dev-server path. Static assets such as CSS, JavaScript,
+images, fonts, media, PDFs, and WebAssembly are served through Pounce's static
+file handler, so browsers get ETags, `304 Not Modified` revalidation, byte-range
+responses, and precompressed `.gz`/`.zst` variants when those files exist.
+
+`bengal preview` runs a complete build first and then serves the generated
+output directory read-only through Pounce static handling. It does not watch
+files, inject live reload, rewrite local development URLs, or serve pending
+generated artifacts; it is the local check for what a static host will receive.

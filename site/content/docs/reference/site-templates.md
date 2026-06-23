@@ -389,6 +389,6 @@ build:
 
 ## Related Documentation
 
-- [Configuration](/docs/building/configuration/) - How config works
-- [Configuration System](/docs/reference/architecture/tooling/config/) - Architecture details
+- [Configuration](/docs/ship/configuration/) - How config works
+- [Configuration System](https://github.com/lbliii/bengal/tree/main/docs/architecture/tooling/config/) - Architecture details
 - [Scaffold Tutorial](/docs/get-started/scaffold-your-site/) - Step-by-step guide

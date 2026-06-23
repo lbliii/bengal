@@ -83,7 +83,7 @@ Docusaurus for MDX components, Sphinx for RST directives).
 **Configuration errors?**
 - Verify `bengal.toml` or `config/` layout
 - Run `bengal config doctor`
-- See [[docs/building/configuration|Configuration Guide]]
+- See [[docs/ship/configuration|Configuration Guide]]
 
 **Links broken after migration?**
 - Run `bengal check` to find broken links

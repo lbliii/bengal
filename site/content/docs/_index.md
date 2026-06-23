@@ -36,8 +36,8 @@ knowledge bases, and product sites — authoring, search, SEO, theming, and
 deployment in one toolchain.
 
 **New here?** Start with **Get Started**. **Evaluating Bengal?** Read
-**About**. **Writing content?** Go to **Content**. **Deploying or tuning
-builds?** See **Building**. **Looking up syntax?** Use **Reference**.
+**About**. **Writing content?** Go to **Build Sites**. **Deploying or tuning
+builds?** See **Ship**. **Looking up syntax?** Use **Reference**.
 
 :::{cards}
 :columns: 2
@@ -59,14 +59,14 @@ Install, scaffold, and pick a writer, themer, or contributor path.
 
 :::{card} Content & Theming
 :icon: edit
-:link: ./content/
+:link: /docs/build-sites/
 :description: Author, organize, theme, and extend your site
 Markdown, directives, templates, plugins, and custom sources.
 :::{/card}
 
 :::{card} Building & Shipping
 :icon: rocket
-:link: ./building/
+:link: /docs/ship/
 :description: Configure, validate, optimize, and deploy
 Config, SEO, performance, health checks, and CI/CD deployment.
 :::{/card}
@@ -100,17 +100,17 @@ Interactive kitchen sink — copy examples straight into your content.
 
 :::{tab-item} Writer
 Start with [[docs/get-started/quickstart-writer|Writer Quickstart]], then
-[[docs/content/authoring|Authoring]] and [[docs/content/organization|Organization]].
+[[docs/build-sites/write/authoring|Authoring]] and [[docs/build-sites/structure/organization|Organization]].
 :::
 
 :::{tab-item} Theme Developer
 Start with [[docs/get-started/quickstart-themer|Themer Quickstart]], then
-[[docs/theming|Theming]] and [[docs/reference/kida-syntax|Kida Syntax]].
+[[docs/build-sites/customize|Theming]] and [[docs/reference/kida-syntax|Kida Syntax]].
 :::
 
 :::{tab-item} Operator
-Start with [[docs/building/configuration|Configuration]], then
-[[docs/content/validation|Validation]] and [[docs/building/deployment|Deployment]].
+Start with [[docs/ship/configuration|Configuration]], then
+[[docs/ship/validate|Validation]] and [[docs/ship/deployment|Deployment]].
 :::
 
 :::{tab-item} Migrator

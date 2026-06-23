@@ -280,5 +280,5 @@ poe benchmark-compare
 
 :::{seealso}
 - [Architecture Overview](/docs/reference/architecture/) for how the build pipeline works
-- [Configuration Reference](/docs/building/configuration/) for performance-related settings
+- [Configuration Reference](/docs/ship/configuration/) for performance-related settings
 :::

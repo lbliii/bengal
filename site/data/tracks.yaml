@@ -11,8 +11,8 @@ zero-to-deployed:
     - docs/get-started/installation
     - docs/get-started/quickstart-writer
     - docs/get-started/scaffold-your-site
-    - docs/tutorials/sites/build-a-blog
-    - docs/building/deployment/_index
+    - docs/examples/sites/build-a-blog
+    - docs/ship/deployment/_index
     - docs/tutorials/operations/automate-with-github-actions
 
 content-mastery:
@@ -21,16 +21,16 @@ content-mastery:
   duration: "60 min"
   audience: "Writers who completed quickstart"
   items:
-    - docs/content/authoring/_index
-    - docs/content/authoring/linking
-    - docs/content/authoring/code-blocks
-    - docs/content/authoring/tables
+    - docs/build-sites/write/authoring/_index
+    - docs/build-sites/write/authoring/linking
+    - docs/build-sites/write/authoring/code-blocks
+    - docs/build-sites/write/authoring/tables
     - docs/reference/directives/_index
     - docs/reference/directives/admonitions
     - docs/reference/directives/layout
     - docs/reference/directives/interactive
-    - docs/content/reuse/_index
-    - docs/content/reuse/snippets
+    - docs/build-sites/write/reuse/_index
+    - docs/build-sites/write/reuse/snippets
 
 theme-developer:
   title: "Theme Developer Journey"
@@ -39,14 +39,14 @@ theme-developer:
   audience: "Designers and frontend developers"
   items:
     - docs/get-started/quickstart-themer
-    - docs/theming/themes/customize
+    - docs/build-sites/customize/themes/customize
     - docs/tutorials/theming/swizzle-default-theme
-    - docs/theming/assets/_index
-    - docs/theming/recipes/_index
-    - docs/theming/recipes/reading-time
-    - docs/theming/recipes/list-recent-posts
-    - docs/theming/templating/_index
-    - docs/theming/templating/functions
+    - docs/build-sites/customize/assets/_index
+    - docs/build-sites/customize/recipes/_index
+    - docs/build-sites/customize/recipes/reading-time
+    - docs/build-sites/customize/recipes/list-recent-posts
+    - docs/build-sites/customize/templating/_index
+    - docs/build-sites/customize/templating/functions
     - docs/reference/theme-variables
 
 team-lead:
@@ -55,13 +55,13 @@ team-lead:
   duration: "75 min"
   audience: "Tech writers, doc managers, lead engineers"
   items:
-    - docs/content/collections/_index
-    - docs/content/sources/_index
-    - docs/content/validation/_index
-    - docs/content/validation/validate-and-fix
-    - docs/content/analysis/_index
-    - docs/building/configuration/_index
-    - docs/building/deployment/_index
+    - docs/build-sites/structure/collections/_index
+    - docs/build-sites/extend/sources/_index
+    - docs/ship/validate/_index
+    - docs/ship/validate/validate-and-fix
+    - docs/build-sites/structure/analysis/_index
+    - docs/ship/configuration/_index
+    - docs/ship/deployment/_index
     - docs/tutorials/operations/automate-with-github-actions
 
 migration-express:
@@ -75,9 +75,9 @@ migration-express:
     - docs/tutorials/migration/from-hugo
     - docs/tutorials/migration/from-sphinx
     - docs/tutorials/migration/from-docusaurus
-    - docs/content/organization/_index
-    - docs/content/organization/frontmatter
-    - docs/building/configuration/_index
+    - docs/build-sites/structure/organization/_index
+    - docs/build-sites/structure/organization/frontmatter
+    - docs/ship/configuration/_index
 
 api-docs-specialist:
   title: "API Documentation Specialist"
@@ -85,12 +85,12 @@ api-docs-specialist:
   duration: "60 min"
   audience: "Developer advocates, API teams, SDK maintainers"
   items:
-    - docs/content/sources/_index
-    - docs/content/sources/autodoc
-    - docs/extending/custom-sources
-    - docs/content/collections/_index
-    - docs/content/validation/_index
-    - docs/building/deployment/_index
+    - docs/build-sites/extend/sources/_index
+    - docs/build-sites/extend/sources/autodoc
+    - docs/build-sites/extend/custom-sources
+    - docs/build-sites/structure/collections/_index
+    - docs/ship/validate/_index
+    - docs/ship/deployment/_index
 
 versioning-expert:
   title: "Versioning Expert"
@@ -98,11 +98,11 @@ versioning-expert:
   duration: "45 min"
   audience: "Library authors, API teams, enterprise docs"
   items:
-    - docs/content/versioning/_index
-    - docs/content/versioning/folder-mode
-    - docs/content/versioning/git-mode
-    - docs/content/versioning/cross-version-links
-    - docs/content/versioning/directives
+    - docs/build-sites/structure/versioning/_index
+    - docs/build-sites/structure/versioning/folder-mode
+    - docs/build-sites/structure/versioning/git-mode
+    - docs/build-sites/structure/versioning/cross-version-links
+    - docs/build-sites/structure/versioning/directives
 
 performance-optimizer:
   title: "Performance Optimizer"
@@ -110,10 +110,10 @@ performance-optimizer:
   duration: "30 min"
   audience: "DevOps, large doc teams, enterprise"
   items:
-    - docs/building/performance/_index
-    - docs/building/performance/large-sites
-    - docs/content/analysis/_index
-    - docs/content/analysis/graph
+    - docs/ship/performance/_index
+    - docs/ship/performance/large-sites
+    - docs/build-sites/structure/analysis/_index
+    - docs/build-sites/structure/analysis/graph
     - docs/about/benchmarks
 
 extension-developer:
@@ -122,9 +122,9 @@ extension-developer:
   duration: "90 min"
   audience: "Python developers, plugin authors"
   items:
-    - docs/extending/_index
-    - docs/extending/build-hooks
-    - docs/extending/custom-directives
-    - docs/extending/custom-sources
-    - docs/extending/collections
-    - docs/extending/theme-customization
+    - docs/build-sites/extend/_index
+    - docs/build-sites/extend/build-hooks
+    - docs/build-sites/extend/custom-directives
+    - docs/build-sites/extend/custom-sources
+    - docs/build-sites/extend/collections
+    - docs/build-sites/extend/theme-customization

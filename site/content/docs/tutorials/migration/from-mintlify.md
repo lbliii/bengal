@@ -895,5 +895,5 @@ Bengal generates static HTML. For protected docs:
 
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown guide
-- [Configuration Reference](/docs/building/configuration/) - Config options
-- [OpenAPI Autodoc](/docs/content/sources/autodoc/) - API doc generation
+- [Configuration Reference](/docs/ship/configuration/) - Config options
+- [OpenAPI Autodoc](/docs/build-sites/extend/sources/autodoc/) - API doc generation

@@ -3,7 +3,7 @@
 
 Updates:
 - tests/unit/docs/fixtures/cli_root_help_commands.txt
-- site/content/docs/reference/architecture/tooling/cli.md (inventory + root help)
+- docs/architecture/tooling/cli.md (inventory + root help)
 """
 
 from __future__ import annotations

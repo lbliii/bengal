@@ -380,5 +380,5 @@ Bengal uses [Phosphor Icons](https://phosphoricons.com/) as its base icon set:
 ## Related
 
 - [Formatting Directives](/docs/reference/directives/formatting/) — Buttons with icons
-- [Assets](/docs/theming/assets/) — Asset pipeline for custom icons
-- [Content Authoring](/docs/content/authoring/) — Using icons in content
+- [Assets](/docs/build-sites/customize/assets/) — Asset pipeline for custom icons
+- [Content Authoring](/docs/build-sites/write/authoring/) — Using icons in content

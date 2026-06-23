@@ -21,7 +21,7 @@ keywords:
 
 Content reuse directives allow you to include external files directly in your markdown content, enabling a "Write Once, Publish Everywhere" strategy.
 
-**See also**: [Content Reuse](/docs/content/reuse/) for detailed strategies, best practices, and common patterns.
+**See also**: [Content Reuse](/docs/build-sites/write/reuse/) for detailed strategies, best practices, and common patterns.
 
 ## Key Terms
 
@@ -58,7 +58,7 @@ Include markdown files directly in your content.
 
 Paths are resolved relative to:
 
-1. **Current page's directory** - If you're in `content/docs/content/`, `snippets/warning.md` looks in `content/docs/content/snippets/`
+1. **Current page's directory** - If you're in `content/docs/build-sites/`, `snippets/warning.md` looks in `content/docs/build-sites/snippets/`
 2. **Site root** - Falls back to site root if not found relative to page
 
 :::{example-label} Path Resolution
@@ -339,5 +339,5 @@ If included markdown has syntax errors, they'll appear in the rendered page.
 
 ## Related
 
-- [Content Reuse](/docs/content/reuse/) - Detailed strategies and best practices
+- [Content Reuse](/docs/build-sites/write/reuse/) - Detailed strategies and best practices
 - [Formatting Directives](/docs/reference/directives/formatting/) - Other formatting options

@@ -164,7 +164,7 @@ Kida's native pattern matching replaces long `if/elif` chains:
 ```
 
 Multi-let, tuple unpacking, and export patterns are documented in
-[[docs/theming/templating/kida/syntax/variables|Variables and Scoping]].
+[[docs/build-sites/customize/templating/kida/syntax/variables|Variables and Scoping]].
 
 ## Template Structure
 
@@ -270,4 +270,4 @@ Built-in filters, fragment caching, Kida-only features, operators, tests, config
 - [[docs/reference/kida-syntax-reference|Kida Syntax Reference (detailed)]] — filters, operators, caching, migration
 - [[docs/tutorials/theming/getting-started-with-kida|Kida Tutorial]] — learn step-by-step
 - [[docs/reference/template-functions|Template Functions]] — Bengal filters and functions
-- [[docs/theming/templating/kida|Kida How-Tos]] — common tasks and patterns
+- [[docs/build-sites/customize/templating/kida|Kida How-Tos]] — common tasks and patterns

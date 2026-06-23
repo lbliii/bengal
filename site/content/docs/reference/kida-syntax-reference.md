@@ -533,7 +533,7 @@ site:
 Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to Kida syntax for pattern matching, pipeline operators, and unified block endings:
 
 :::{seealso}
-[How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migration/from-jinja/) — Step-by-step migration guide
+[How to Migrate from Jinja2 to Kida](/docs/build-sites/customize/templating/kida/migration/from-jinja/) — Step-by-step migration guide
 :::
 
 **Key differences**:
@@ -590,12 +590,12 @@ Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
 
 - [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) — Learn Kida step-by-step
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
-- [Theming Guide](/docs/theming/templating/) — Template organization and inheritance
-- [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
+- [Theming Guide](/docs/build-sites/customize/templating/) — Template organization and inheritance
+- [Kida How-Tos](/docs/build-sites/customize/templating/kida/) — Common tasks and patterns
 
 ## See Also
 
 - [[docs/reference/kida-syntax|Kida Syntax]] — overview and control flow
 - [[docs/tutorials/theming/getting-started-with-kida|Kida Tutorial]] — guided introduction
 - [[docs/reference/template-functions|Template Functions]] — Bengal filters and functions
-- [[docs/theming/templating/kida|Kida How-Tos]] — common tasks and patterns
+- [[docs/build-sites/customize/templating/kida|Kida How-Tos]] — common tasks and patterns
