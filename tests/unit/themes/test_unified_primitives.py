@@ -75,3 +75,11 @@ def test_prose_links_use_scope() -> None:
     typography = (THEME / "assets" / "css" / "base" / "typography.css").read_text(encoding="utf-8")
     assert "@scope (.prose) to (" in typography
     assert "@scope (.prose) {\n  to (" not in typography
+
+
+def test_theme_dropdown_popover_uses_implicit_anchor() -> None:
+    """Desktop + mobile theme menus must not share one anchor-name (breaks positioning)."""
+    header = (THEME / "assets" / "css" / "layouts" / "header.css").read_text(encoding="utf-8")
+    assert "anchor-name: --theme-anchor" not in header
+    assert "position-anchor: --theme-anchor" not in header
+    assert "position-anchor: auto" in header
