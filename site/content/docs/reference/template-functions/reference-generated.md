@@ -237,6 +237,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `options` | `options_filter` |
 | `page_exists` | `page_exists_wrapper` |
 | `page_exists_in_version` | `page_exists_in_version_wrapper` |
+| `page_github_edit_url` | `page_github_edit_url_with_site` |
 | `page_range` | `page_range` |
 | `page_url` | `page_url` |
 | `param_count` | `param_count` |

@@ -113,6 +113,9 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     def notebook_colab_url_with_site(page) -> str:
         return notebook_colab_url(page, site)
 
+    def page_github_edit_url_with_site(page) -> str:
+        return page_github_edit_url(page, site)
+
     def cursor_mcp_install_url_with_site() -> str:
         cfg = getattr(site, "config", {}) or {}
         connect_cfg = cfg.get("connect_to_ide", {}) or {}
@@ -129,6 +132,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "url_for_path": url_for_path_with_site,
             "notebook_download_url": notebook_download_url_with_site,
             "notebook_colab_url": notebook_colab_url_with_site,
+            "page_github_edit_url": page_github_edit_url_with_site,
             "cursor_mcp_install_url": cursor_mcp_install_url_with_site,
         }
     )
@@ -183,6 +187,92 @@ def notebook_download_url(page, site: SiteLike | None = None) -> str:
 
     base = path.rstrip("/") or "/"
     return f"{base}/{slug}.ipynb"
+
+
+def _get_site_params(site: SiteLike) -> dict:
+    """Return site [params] as a dict (empty when unset)."""
+    params = getattr(site, "params", None)
+    if params is None:
+        config = getattr(site, "config", None)
+        if isinstance(config, dict) or (config is not None and hasattr(config, "get")):
+            params = config.get("params") or {}
+        else:
+            params = {}
+    return params if isinstance(params, dict) else {}
+
+
+def _repo_relative_source_path(page, site: SiteLike, *, params: dict | None = None) -> str:
+    """Resolve page source path relative to the site root, with optional repo prefix."""
+    if params is None:
+        params = _get_site_params(site)
+
+    raw_path = str(page.source_path).replace("\\", "/")
+    root_path = getattr(site, "root_path", None)
+    if root_path:
+        try:
+            src = Path(page.source_path)
+            root = Path(root_path)
+            if src.is_absolute() and root.is_absolute():
+                path_rel = str(src.relative_to(root)).replace("\\", "/")
+            else:
+                path_rel = raw_path
+        except ValueError, TypeError:
+            path_rel = raw_path
+    else:
+        path_rel = raw_path
+
+    prefix = (
+        (params.get("colab_path_prefix") or params.get("github_path_prefix") or "")
+        .strip()
+        .rstrip("/")
+    )
+    if prefix:
+        return f"{prefix}/{path_rel.lstrip('/')}"
+    return path_rel
+
+
+def page_github_edit_url(page, site: SiteLike) -> str:
+    """
+    Build a GitHub "edit this page" URL from repo config and page source path.
+
+    Requires [params] repo_url (e.g. https://github.com/owner/repo).
+    Optional: colab_branch or repo_branch (default: main),
+    colab_path_prefix or github_path_prefix (for sites in repo subdirs),
+    github_edit_base (explicit edit URL prefix override),
+    or frontmatter edit_url on the page.
+
+    Returns empty string when no edit URL can be resolved.
+
+    Example:
+        {{ page_github_edit_url(page) }}
+    """
+    if not page or not getattr(page, "source_path", None):
+        return ""
+
+    metadata = getattr(page, "metadata", None)
+    if metadata is not None:
+        custom = metadata.get("edit_url") if hasattr(metadata, "get") else None
+        if custom:
+            return str(custom)
+
+    params = _get_site_params(site)
+    path_rel = _repo_relative_source_path(page, site, params=params)
+
+    edit_base = (params.get("github_edit_base") or "").strip()
+    if edit_base:
+        return f"{edit_base.rstrip('/')}/{path_rel.lstrip('/')}"
+
+    repo_url = params.get("repo_url") or ""
+    if not repo_url:
+        return ""
+
+    match = _GITHUB_REPO_RE.search(repo_url.strip())
+    if not match:
+        return ""
+
+    owner, repo = match.group(1), match.group(2).rstrip("/")
+    branch = params.get("colab_branch") or params.get("repo_branch") or "main"
+    return f"https://github.com/{owner}/{repo}/edit/{branch}/{path_rel}"
 
 
 def notebook_colab_url(page, site: SiteLike) -> str:

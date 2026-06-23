@@ -101,9 +101,19 @@ def parse_shard(
         if parent == root:
             return None
         section = section_cache.get(parent)
-        if section is None:
-            section = section_builder.create_section(parent)
-            section_cache[parent] = section
+        if section is not None:
+            return section
+        # Reuse the site's discovered section tree when available (oracle builds,
+        # WorkerSite after plan registration). Fresh empty sections break
+        # page-dependent directives such as child-cards on section indexes.
+        get_section_by_path = getattr(site, "get_section_by_path", None)
+        if callable(get_section_by_path):
+            existing = get_section_by_path(parent)
+            if existing is not None:
+                section_cache[parent] = existing
+                return existing
+        section = section_builder.create_section(parent)
+        section_cache[parent] = section
         return section
 
     pages: list[PageLike] = [
