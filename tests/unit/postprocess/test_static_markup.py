@@ -59,7 +59,14 @@ def test_inject_code_copy_chrome_adds_terminal_frame() -> None:
     )
     out = inject_code_copy_chrome(html)
     assert "code-block-frame--terminal" in out
-    assert "code-block-frame-header--terminal" in out
+    assert "code-block-chrome--terminal" in out
+    assert "code-block-frame-dots" in out
+    assert out.count("code-block-wrapper") == 1
+    assert out.count("code-block-toolbar") == 1
+    assert out.count("code-copy-button") == 1
+    assert 'class="code-language">BASH' in out
+    assert " rosettes" in out.split(">", 1)[0]
+    assert '<div class="rosettes"' not in out
 
 
 def test_inject_code_copy_chrome_adds_editor_frame_for_titled_blocks() -> None:
@@ -110,3 +117,40 @@ def test_parser_fence_metadata_reaches_premium_chrome() -> None:
     assert 'class="code-linenos"' in out
     assert 'class="code-line-annotation"' in out
     assert "<details" in out
+
+
+def test_bash_terminal_frame_has_single_wrapper_and_toolbar() -> None:
+    from bengal.parsing import PatitasParser
+
+    parser = PatitasParser(enable_highlighting=True)
+    raw = parser.parse("```bash\nbengal new site mysite\ncd mysite\nbengal serve\n```", {})
+    out = enhance_theme_markup(raw)
+    assert out.count("code-block-wrapper") == 1
+    assert out.count("code-block-toolbar") == 1
+    assert out.count("code-copy-button") == 1
+    assert "code-block-chrome--terminal" in out
+    assert 'data-frame="terminal"' in out
+
+
+def test_bash_collapsible_and_linenos_do_not_double_wrap() -> None:
+    from bengal.parsing import PatitasParser
+
+    parser = PatitasParser(enable_highlighting=True)
+    for fence in (
+        "```bash collapse\nx=1\n```",
+        "```bash linenos\na=1\nb=2\n```",
+    ):
+        out = enhance_theme_markup(parser.parse(fence, {}))
+        assert out.count("code-block-wrapper") == 1, fence
+        assert out.count("code-copy-button") == 1, fence
+
+
+def test_highlight_root_is_flattened_into_wrapper() -> None:
+    html = (
+        '<div class="rosettes" data-language="python" data-frame="terminal">'
+        "<pre><code>x=1</code></pre></div>"
+    )
+    out = inject_code_copy_chrome(html)
+    assert out.startswith('<div class="code-block-wrapper')
+    assert " rosettes" in out.split(">", 1)[0]
+    assert out.count("<div") == out.count("</div>")

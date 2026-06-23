@@ -38,11 +38,13 @@ _HIGHLIGHTED_BLOCK_RE = re.compile(
     re.IGNORECASE,
 )
 _COLLAPSIBLE_BLOCK_RE = re.compile(
-    r'(<div(?=[^>]*\bdata-collapsible="(open|closed)")(?=[^>]*\bclass="[^"]*\b(?:rosettes|highlight)\b[^"]*")[^>]*>)'
+    r'(<div(?=[^>]*\bdata-collapsible="(open|closed)")(?=[^>]*\bclass="[^"]*\b(?:code-block-wrapper|rosettes|highlight)\b[^"]*")[^>]*>)'
     r"([\s\S]*?)"
     r"(</div>)",
     re.IGNORECASE,
 )
+_ENHANCED_CODE_MARKER = "data-bengal-code-chrome"
+_HIGHLIGHT_ROOT_CLASSES = frozenset({"rosettes", "highlight"})
 
 
 def _normalize_origin(url: str) -> str:
@@ -122,6 +124,79 @@ def _language_from_code_tag(open_tag: str) -> str:
     return (match.group(1) or match.group(2) or "").upper()
 
 
+def _parse_div_attrs(open_div: str) -> dict[str, str]:
+    attrs_str = open_div[4:-1] if open_div.startswith("<div") else open_div
+    return {match.group(1): match.group(2) for match in _ATTR_RE.finditer(attrs_str)}
+
+
+def _highlight_root_classes(class_value: str) -> list[str]:
+    return [
+        token
+        for token in class_value.split()
+        if token in _HIGHLIGHT_ROOT_CLASSES or token.startswith("highlight-")
+    ]
+
+
+def _is_inside_enhanced_code_block(html: str, pos: int) -> bool:
+    """Return True when ``pos`` is inside an already-enhanced code block."""
+    div_depth = 0
+    enhanced_depth = 0
+    for match in re.finditer(r"<div[^>]*>|</div>", html[:pos], re.IGNORECASE):
+        tag = match.group(0)
+        if tag.startswith("</div"):
+            div_depth = max(0, div_depth - 1)
+            if enhanced_depth > div_depth:
+                enhanced_depth = div_depth
+            continue
+        div_depth += 1
+        if _ENHANCED_CODE_MARKER in tag:
+            enhanced_depth = div_depth
+    return enhanced_depth > 0
+
+
+def _merge_wrapper_opening(
+    wrapper_html: str,
+    *,
+    extra_classes: list[str],
+    data_attrs: dict[str, str],
+) -> str:
+    def repl(match: re.Match[str]) -> str:
+        attrs = match.group(1)
+        classes = (_attr_value(attrs, "class") or "code-block-wrapper").split()
+        for class_name in extra_classes:
+            if class_name not in classes:
+                classes.append(class_name)
+        if "code-block-wrapper" not in classes:
+            classes.insert(0, "code-block-wrapper")
+
+        merged_attrs = re.sub(
+            r'\bclass="[^"]*"',
+            f'class="{" ".join(classes)}"',
+            attrs,
+            count=1,
+        )
+        if 'class="' not in merged_attrs:
+            merged_attrs = f' class="{" ".join(classes)}"{merged_attrs}'
+
+        for key, value in data_attrs.items():
+            if key.startswith("data-") and not _attr_value(merged_attrs, key):
+                merged_attrs += f' {key}="{html_mod.escape(value, quote=True)}"'
+
+        if _ENHANCED_CODE_MARKER not in merged_attrs:
+            merged_attrs += f' {_ENHANCED_CODE_MARKER}="true"'
+        return f"<div{merged_attrs}>"
+
+    return re.sub(r"^<div([^>]*)>", repl, wrapper_html, count=1)
+
+
+def _absorb_highlight_root(open_div: str, wrapper_html: str) -> str:
+    """Fold rosettes/highlight root attrs into the single chrome wrapper."""
+    outer = _parse_div_attrs(open_div)
+    extra_classes = _highlight_root_classes(outer.get("class", ""))
+    data_attrs = {key: value for key, value in outer.items() if key.startswith("data-")}
+    return _merge_wrapper_opening(wrapper_html, extra_classes=extra_classes, data_attrs=data_attrs)
+
+
 def _parse_annotations(spec: str) -> dict[int, str]:
     annotations: dict[int, str] = {}
     if not spec:
@@ -138,9 +213,28 @@ def _parse_annotations(spec: str) -> dict[int, str]:
     return annotations
 
 
-def _build_toolbar(lang: str) -> str:
-    lang_label = f'<span class="code-language">{lang}</span>' if lang else "<span></span>"
-    return f'<div class="code-header-inline">{lang_label}{_WRAP_BUTTON}{_COPY_BUTTON}</div>'
+def _build_toolbar(lang: str, *, overlay: bool = False) -> str:
+    lang_label = f'<span class="code-language">{lang}</span>' if lang else ""
+    overlay_classes = " code-block-toolbar--overlay code-header-inline" if overlay else ""
+    return (
+        f'<div class="code-block-toolbar{overlay_classes}">'
+        f"{lang_label}{_WRAP_BUTTON}{_COPY_BUTTON}"
+        "</div>"
+    )
+
+
+def _build_frame_chrome(frame: str, lang: str) -> str:
+    dots = ""
+    if frame == "terminal":
+        dots = (
+            '<div class="code-block-frame-dots" aria-hidden="true">'
+            '<span class="code-block-frame-dot"></span>'
+            '<span class="code-block-frame-dot"></span>'
+            '<span class="code-block-frame-dot"></span>'
+            "</div>"
+        )
+    toolbar = _build_toolbar(lang, overlay=False)
+    return f'<div class="code-block-chrome code-block-chrome--{frame}">{dots}{toolbar}</div>'
 
 
 def _wrapper_classes(div_attrs: str, *, in_titled_block: bool = False) -> str:
@@ -214,25 +308,23 @@ def _wrap_pre_code(
         body = f"{open_pre}{code_html}{close_pre}"
 
     wrapper_class = _wrapper_classes(div_attrs, in_titled_block=in_titled_block)
-    header = _build_toolbar(lang)
     frame = _attr_value(div_attrs, "data-frame") or ("editor" if in_titled_block else "")
-    frame_header = ""
-    if frame == "terminal":
-        frame_header = (
-            '<div class="code-block-frame-header code-block-frame-header--terminal" aria-hidden="true">'
-            '<span class="code-block-frame-dot"></span>'
-            '<span class="code-block-frame-dot"></span>'
-            '<span class="code-block-frame-dot"></span>'
-            "</div>"
-        )
-    elif frame == "editor":
-        frame_header = '<div class="code-block-frame-header code-block-frame-header--editor" aria-hidden="true"></div>'
 
-    return f'<div class="{wrapper_class}">{frame_header}{body}{header}</div>'
+    if frame:
+        chrome = _build_frame_chrome(frame, lang)
+        return (
+            f'<div class="{wrapper_class}" {_ENHANCED_CODE_MARKER}="true">'
+            f'{chrome}<div class="code-block-body">{body}</div></div>'
+        )
+
+    toolbar = _build_toolbar(lang, overlay=True)
+    return f'<div class="{wrapper_class}" {_ENHANCED_CODE_MARKER}="true">{body}{toolbar}</div>'
 
 
 def _enhance_highlighted_block(match: re.Match[str]) -> str:
-    open_div, inner, close_div = match.group(1), match.group(2), match.group(3)
+    open_div, inner, _close_div = match.group(1), match.group(2), match.group(3)
+    if _ENHANCED_CODE_MARKER in open_div or "code-block-wrapper" in open_div:
+        return match.group(0)
     if "code-block-wrapper" in inner or "code-copy-button" in inner:
         return match.group(0)
 
@@ -240,7 +332,7 @@ def _enhance_highlighted_block(match: re.Match[str]) -> str:
     if not pre_match:
         return match.group(0)
 
-    div_attrs = open_div[4:-1]  # strip <div ...>
+    div_attrs = open_div[4:-1]
     wrapped = _wrap_pre_code(
         pre_match.group(1),
         pre_match.group(2),
@@ -248,20 +340,17 @@ def _enhance_highlighted_block(match: re.Match[str]) -> str:
         div_attrs=div_attrs,
         in_titled_block="code-block-titled" in match.string[: match.start()],
     )
-    return f"{open_div}{wrapped}{close_div}"
+    return _absorb_highlight_root(open_div, wrapped)
 
 
 def _wrap_plain_pre_code(match: re.Match[str]) -> str:
     full = match.group(0)
     if "code-copy-button" in full:
         return full
-    window = match.string[max(0, match.start() - 160) : match.start()]
-    if (
-        "code-block-wrapper" in window
-        or 'class="rosettes"' in window
-        or 'class="highlight' in window
-    ):
+    if _is_inside_enhanced_code_block(match.string, match.start()):
         return full
+
+    window = match.string[max(0, match.start() - 400) : match.start()]
     in_titled = "code-block-titled" in window
     return _wrap_pre_code(
         match.group(1),
