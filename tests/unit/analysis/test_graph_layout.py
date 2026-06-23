@@ -17,6 +17,7 @@ import math
 from bengal.analysis.graph.layout import (
     _BARNES_HUT_THRESHOLD,
     compute_force_layout,
+    compute_hierarchical_layout,
     compute_radial_layout,
 )
 
@@ -127,3 +128,31 @@ class TestRadialLayout:
             round(math.hypot(x - 0.5, y - 0.5), 2) for nid, (x, y) in coords.items() if nid != "me"
         )
         assert radii[0] < radii[-1]  # more than one ring distance present
+
+
+class TestHierarchicalLayout:
+    def test_multi_community_spreads_clusters(self):
+        ids = [f"n{i:04d}" for i in range(120)]
+        edges = [(ids[i], ids[i + 1]) for i in range(119)]
+        comms = {nid: i % 4 for i, nid in enumerate(ids)}
+        coords = compute_hierarchical_layout(ids, edges, communities=comms)
+        assert _in_unit_box(coords)
+        # Nearest-neighbor spacing should stay readable within packed atlas.
+        nn = []
+        pts = list(coords.values())
+        for i, (x1, y1) in enumerate(pts):
+            best = float("inf")
+            for j, (x2, y2) in enumerate(pts):
+                if i == j:
+                    continue
+                best = min(best, math.hypot(x1 - x2, y1 - y2))
+            nn.append(best)
+        assert min(nn) > 0.005
+
+    def test_deterministic(self):
+        ids = [f"n{i:04d}" for i in range(40)]
+        edges = [(ids[i], ids[(i + 1) % 40]) for i in range(40)]
+        comms = {nid: i % 3 for i, nid in enumerate(ids)}
+        a = compute_hierarchical_layout(ids, edges, communities=comms, seed=7)
+        b = compute_hierarchical_layout(ids, edges, communities=comms, seed=7)
+        assert a == b

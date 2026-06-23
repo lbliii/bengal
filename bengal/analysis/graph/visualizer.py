@@ -190,6 +190,7 @@ class GraphVisualizer:
         # Louvain local seeded PRNG); we round the PageRank float before baking.
         community_by_page: dict[Any, int] = {}
         communities_summary: list[dict[str, Any]] = []
+        community_results = None
         pr_scores: dict[Any, float] = {}
         pr_max = 0.0
         try:
@@ -392,22 +393,60 @@ class GraphVisualizer:
         # what lets the explorer drop D3 and stop choking at scale). The layout
         # is seeded + reproducible: coordinates ship in graph.json and the build
         # guards warm==cold byte parity.
-        from bengal.analysis.graph.layout import compute_force_layout
+        from bengal.analysis.graph.layout import (
+            compute_community_bounds,
+            compute_force_layout,
+            compute_hierarchical_layout,
+        )
 
         # Community-aware layout: cluster nodes into separated topical lobes
         # (not one center-piled hairball) and pull strongly-linked pairs closer.
         node_community = {n["id"]: n["community"] for n in nodes}
         edge_weights = {(e["source"], e["target"]): e["weight"] for e in edges}
-        coords = compute_force_layout(
-            [n["id"] for n in nodes],
-            [(e["source"], e["target"]) for e in edges],
-            communities=node_community,
-            weights=edge_weights,
-        )
+        node_sizes = {n["id"]: float(n["size"]) for n in nodes}
+        unique_communities = len({c for c in node_community.values() if c >= 0})
+
+        node_id_list = [n["id"] for n in nodes]
+        edge_list = [(e["source"], e["target"]) for e in edges]
+        if unique_communities > 1:
+            coords = compute_hierarchical_layout(
+                node_id_list,
+                edge_list,
+                communities=node_community,
+                weights=edge_weights,
+                node_sizes=node_sizes,
+            )
+        else:
+            coords = compute_force_layout(
+                node_id_list,
+                edge_list,
+                communities=node_community,
+                weights=edge_weights,
+                node_sizes=node_sizes,
+            )
         for n in nodes:
             x, y = coords.get(n["id"], (0.5, 0.5))
             n["x"] = x
             n["y"] = y
+
+        bounds_by_community = compute_community_bounds(coords, node_community)
+        community_regions: list[dict[str, Any]] = []
+        if community_results is not None:
+            for community in community_results.communities:
+                region = {
+                    "id": community.id,
+                    "label": self._community_label(community, pr_scores),
+                    "size": community.size,
+                }
+                region.update(bounds_by_community.get(community.id, {}))
+                community_regions.append(region)
+            for entry in communities_summary:
+                entry.update(bounds_by_community.get(entry["id"], {}))
+        else:
+            for cid, bounds in sorted(bounds_by_community.items()):
+                community_regions.append(
+                    {"id": cid, "label": f"Cluster {cid}", "size": 0, **bounds}
+                )
 
         logger.info(
             "graph_viz_generate_complete",
@@ -425,6 +464,7 @@ class GraphVisualizer:
                 "hubs": self.graph.metrics.hub_count if self.graph.metrics else 0,
                 "orphans": self.graph.metrics.orphan_count if self.graph.metrics else 0,
                 "communities": communities_summary,
+                "community_regions": community_regions,
             },
         }
 

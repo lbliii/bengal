@@ -19,6 +19,8 @@ Two layouts are provided:
 - :func:`compute_force_layout` — Fruchterman-Reingold for the full-graph explorer.
   Uses a Barnes-Hut quadtree for repulsion so it scales to large graphs; falls
   back to exact O(n^2) repulsion below a threshold (simpler + exact for small N).
+- :func:`compute_hierarchical_layout` — per-community sub-layout packed into an
+  atlas (topic map at scale). Used when Louvain detects multiple communities.
 - :func:`compute_radial_layout` — a concentric layout for the per-page minimap
   neighborhood: the current page pinned dead-center, neighbors placed on rings
   ordered by connectivity. Centered by construction, trivially deterministic.
@@ -52,6 +54,26 @@ _BH_THETA = 0.9
 # this scale the points are effectively the same location, so collapsing them
 # into one aggregate cell is both correct and cheap.
 _MIN_CELL = 1e-6
+
+# Spacing knobs for the full-graph explorer. Large sites (1k+ nodes) otherwise
+# compress into overlapping blobs: FR's ``k = sqrt(1/n)`` shrinks with N, and
+# strong community gravity pulls intra-cluster nodes onto the same spokes.
+_K_SCALE = 2.5  # multiplier on ideal edge length (larger => more spread)
+_REPULSION_SOFTENING = 0.18  # min center-to-center distance as a fraction of k
+_COMMUNITY_RING_R = 0.42  # community centroid ring radius (was 0.35)
+_SEED_SPREAD = 0.22  # initial jitter around each community centroid
+_COMMUNITY_GRAVITY = 0.65  # pull toward community centroid (was 0.9)
+_GLOBAL_GRAVITY = 0.10  # weak pull toward graph center (was 0.12)
+_OVERLAP_MIN_K = 0.45  # post-layout minimum center distance as a fraction of k
+_OVERLAP_PASSES = 5  # relaxation sweeps before normalization
+
+# Hierarchical layout: each Louvain community gets its own local box before packing.
+_COMMUNITY_SLOT_MIN = 0.14  # smallest community footprint (pre-global-normalize)
+_COMMUNITY_SLOT_MAX = 0.52  # largest community footprint
+_COMMUNITY_PACK_RING = 0.38  # ring radius for packed community centers
+_COMMUNITY_PACK_PAD = 0.04  # gap between adjacent community boxes
+_SIZE_RADIUS_MIN = 0.006  # layout collision radius floor (normalized local space)
+_SIZE_RADIUS_MAX = 0.024  # layout collision radius ceiling
 
 
 class _Rng:
@@ -110,6 +132,88 @@ def _normalize(
         nx = off_x + (px - min_x) / span * inner
         ny = off_y + (py - min_y) / span * inner
         out[node_id] = (_round(nx), _round(ny))
+    return out
+
+
+def _relax_overlaps(
+    positions: dict[str, list[float]],
+    ids: Sequence[str],
+    *,
+    min_dist: float,
+    rng: _Rng,
+    passes: int,
+    radii: Mapping[str, float] | None = None,
+) -> None:
+    """Push apart pairs closer than ``min_dist`` (deterministic, in-place)."""
+    if min_dist <= 0.0 or len(ids) < 2 or passes <= 0:
+        return
+
+    n = len(ids)
+    for _ in range(passes):
+        moved = False
+        for i in range(n):
+            a = ids[i]
+            ax, ay = positions[a]
+            ra = radii.get(a, min_dist / 2.0) if radii else min_dist / 2.0
+            for j in range(i + 1, n):
+                b = ids[j]
+                bx, by = positions[b]
+                rb = radii.get(b, min_dist / 2.0) if radii else min_dist / 2.0
+                pair_min = max(min_dist, ra + rb)
+                pair_min2 = pair_min * pair_min
+                dx = ax - bx
+                dy = ay - by
+                dist2 = dx * dx + dy * dy
+                if dist2 >= pair_min2:
+                    continue
+                moved = True
+                if dist2 < 1e-18:
+                    dx = (rng.random() - 0.5) * pair_min
+                    dy = (rng.random() - 0.5) * pair_min
+                    dist2 = dx * dx + dy * dy
+                dist = math.sqrt(dist2)
+                shift = (pair_min - dist) * 0.55
+                ux = dx / dist
+                uy = dy / dist
+                positions[a][0] = ax + ux * shift
+                positions[a][1] = ay + uy * shift
+                positions[b][0] = bx - ux * shift
+                positions[b][1] = by - uy * shift
+                ax, ay = positions[a]
+        if not moved:
+            break
+
+
+def _layout_radius(size: float) -> float:
+    """Map visual node size (8–50) to a layout collision radius in local space."""
+    clamped = max(8.0, min(50.0, float(size)))
+    t = (clamped - 8.0) / 42.0
+    return _SIZE_RADIUS_MIN + t * (_SIZE_RADIUS_MAX - _SIZE_RADIUS_MIN)
+
+
+def compute_community_bounds(
+    coords: Mapping[str, tuple[float, float]],
+    communities: Mapping[str, int],
+) -> dict[int, dict[str, float]]:
+    """Derive centroid + axis-aligned bounds per community id from final coords."""
+    grouped: dict[int, list[tuple[float, float]]] = {}
+    for nid in sorted(coords):
+        cid = int(communities.get(nid, -1))
+        grouped.setdefault(cid, []).append(coords[nid])
+
+    out: dict[int, dict[str, float]] = {}
+    for cid in sorted(grouped):
+        pts = grouped[cid]
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        out[cid] = {
+            "x": _round(sum(xs) / len(xs)),
+            "y": _round(sum(ys) / len(ys)),
+            "min_x": _round(min(xs)),
+            "min_y": _round(min(ys)),
+            "max_x": _round(max(xs)),
+            "max_y": _round(max(ys)),
+        }
     return out
 
 
@@ -177,20 +281,26 @@ class _BHNode:
             self.children[q] = child
         child.insert(x, y)
 
-    def force_on(self, x: float, y: float, k2: float, theta: float) -> tuple[float, float]:
+    def force_on(
+        self,
+        x: float,
+        y: float,
+        k2: float,
+        theta: float,
+        *,
+        soft_dist2: float,
+    ) -> tuple[float, float]:
         """Accumulated repulsion on ``(x, y)`` from this subtree."""
         if self.mass == 0.0:
             return (0.0, 0.0)
 
         dx = x - self.cx
         dy = y - self.cy
-        dist2 = dx * dx + dy * dy
+        dist2 = max(dx * dx + dy * dy, soft_dist2)
 
         children = self.children
         # Treat far/aggregate cells as a single body (Barnes-Hut criterion).
         if children is None or (self.size * self.size < theta * theta * dist2):
-            if dist2 < 1e-12:
-                return (0.0, 0.0)
             inv = k2 * self.mass / dist2
             return (dx * inv, dy * inv)
 
@@ -198,7 +308,7 @@ class _BHNode:
         fy = 0.0
         for child in children:
             if child is not None:
-                cfx, cfy = child.force_on(x, y, k2, theta)
+                cfx, cfy = child.force_on(x, y, k2, theta, soft_dist2=soft_dist2)
                 fx += cfx
                 fy += cfy
         return (fx, fy)
@@ -212,6 +322,7 @@ def compute_force_layout(
     iterations: int | None = None,
     communities: Mapping[str, int] | None = None,
     weights: Mapping[tuple[str, str], float] | None = None,
+    node_sizes: Mapping[str, float] | None = None,
 ) -> dict[str, tuple[float, float]]:
     """Fruchterman-Reingold layout, normalized to ``[0, 1]``.
 
@@ -232,6 +343,8 @@ def compute_force_layout(
         weights: Optional ``(source, target) -> weight`` map (any key order).
             Edge attraction is scaled by the weight (capped), so strongly /
             bidirectionally linked pairs sit closer together.
+        node_sizes: Optional ``node_id -> visual size`` map (8–50). When given,
+            the post-layout overlap pass reserves space proportional to size.
 
     Returns:
         ``dict[node_id, (x, y)]`` with coordinates in ``[0, 1]``. Empty input
@@ -253,7 +366,7 @@ def compute_force_layout(
     if communities:
         comm_ids = sorted({int(communities.get(nid, -1)) for nid in ids})
         num_comms = len(comm_ids)
-        ring_r = 0.35
+        ring_r = _COMMUNITY_RING_R
         for rank, cid in enumerate(comm_ids):
             if num_comms <= 1:
                 centroids[cid] = (0.5, 0.5)
@@ -272,7 +385,10 @@ def compute_force_layout(
     for nid in ids:
         if communities:
             cx, cy = _centroid(nid)
-            pos[nid] = [cx + (rng.random() - 0.5) * 0.12, cy + (rng.random() - 0.5) * 0.12]
+            pos[nid] = [
+                cx + (rng.random() - 0.5) * _SEED_SPREAD,
+                cy + (rng.random() - 0.5) * _SEED_SPREAD,
+            ]
         else:
             pos[nid] = [rng.random(), rng.random()]
 
@@ -285,9 +401,11 @@ def compute_force_layout(
         for (s, t), w in weights.items():
             weight_by_pair[(s, t) if s <= t else (t, s)] = float(w)
 
-    # FR ideal edge length for a unit area.
-    k = math.sqrt(1.0 / n)
+    # FR ideal edge length for a unit area, scaled up so large graphs don't
+    # collapse into overlapping clusters before normalization.
+    k = math.sqrt(_K_SCALE / n)
     k2 = k * k
+    soft_dist2 = (k * _REPULSION_SOFTENING) ** 2
 
     if iterations is None:
         # More nodes need more iterations to settle, but cap for build cost.
@@ -308,7 +426,7 @@ def compute_force_layout(
                 root.insert(px, py)
             for nid in ids:
                 px, py = pos[nid]
-                fx, fy = root.force_on(px, py, k2, _BH_THETA)
+                fx, fy = root.force_on(px, py, k2, _BH_THETA, soft_dist2=soft_dist2)
                 disp[nid][0] += fx
                 disp[nid][1] += fy
         else:
@@ -327,6 +445,7 @@ def compute_force_layout(
                         dx = (rng.random() - 0.5) * 1e-3
                         dy = (rng.random() - 0.5) * 1e-3
                         dist2 = dx * dx + dy * dy
+                    dist2 = max(dist2, soft_dist2)
                     f = k2 / dist2
                     fx = dx * f
                     fy = dy * f
@@ -360,8 +479,12 @@ def compute_force_layout(
             px, py = pos[nid]
             if communities:
                 cx, cy = _centroid(nid)
-                disp[nid][0] += (cx - px) * k * 0.9 + (0.5 - px) * k * 0.12
-                disp[nid][1] += (cy - py) * k * 0.9 + (0.5 - py) * k * 0.12
+                disp[nid][0] += (cx - px) * k * _COMMUNITY_GRAVITY + (
+                    0.5 - px
+                ) * k * _GLOBAL_GRAVITY
+                disp[nid][1] += (cy - py) * k * _COMMUNITY_GRAVITY + (
+                    0.5 - py
+                ) * k * _GLOBAL_GRAVITY
             else:
                 disp[nid][0] += (0.5 - px) * k * 0.5
                 disp[nid][1] += (0.5 - py) * k * 0.5
@@ -377,7 +500,118 @@ def compute_force_layout(
 
         temp -= cooling
 
+    _relax_overlaps(
+        pos,
+        ids,
+        min_dist=k * _OVERLAP_MIN_K,
+        rng=rng,
+        passes=_OVERLAP_PASSES,
+        radii=(
+            {nid: _layout_radius(node_sizes[nid]) for nid in ids if nid in node_sizes}
+            if node_sizes
+            else None
+        ),
+    )
     return _normalize(pos)
+
+
+def compute_hierarchical_layout(
+    node_ids: Sequence[str],
+    edges: Sequence[tuple[str, str]],
+    *,
+    communities: Mapping[str, int],
+    seed: int = 1,
+    weights: Mapping[tuple[str, str], float] | None = None,
+    node_sizes: Mapping[str, float] | None = None,
+) -> dict[str, tuple[float, float]]:
+    """Hierarchical layout: each community laid out locally, then packed into an atlas.
+
+    Phase A — layout each Louvain community independently in its own unit box
+    (so dense topics spread internally instead of fighting for one global centroid).
+    Phase B — pack community boxes on a ring, sized by ``sqrt(node count)``.
+    Phase C — normalize the composed atlas to ``[0, 1]``.
+
+    Deterministic for a given (node set, edge set, communities, weights, seed).
+    """
+    ids = sorted(set(node_ids))
+    if not ids:
+        return {}
+    if len(ids) == 1:
+        return {ids[0]: (0.5, 0.5)}
+
+    # Group members by community id (sorted for determinism).
+    groups: dict[int, list[str]] = {}
+    for nid in ids:
+        cid = int(communities.get(nid, -1))
+        groups.setdefault(cid, []).append(nid)
+
+    valid = set(ids)
+    clean_edges = sorted((s, t) for s, t in edges if s in valid and t in valid and s != t)
+
+    weight_by_pair: dict[tuple[str, str], float] = {}
+    if weights:
+        for (s, t), w in weights.items():
+            weight_by_pair[(s, t) if s <= t else (t, s)] = float(w)
+
+    local_by_comm: dict[int, dict[str, tuple[float, float]]] = {}
+    for cid in sorted(groups):
+        members = groups[cid]
+        if len(members) == 1:
+            local_by_comm[cid] = {members[0]: (0.5, 0.5)}
+            continue
+        member_set = set(members)
+        local_edges = [(s, t) for s, t in clean_edges if s in member_set and t in member_set]
+        local_weights = {
+            pair: weight_by_pair[pair]
+            for pair in weight_by_pair
+            if pair[0] in member_set and pair[1] in member_set
+        }
+        local_sizes = (
+            {nid: node_sizes[nid] for nid in members if nid in node_sizes} if node_sizes else None
+        )
+        # Distinct seed per community so layouts don't mirror each other.
+        local_by_comm[cid] = compute_force_layout(
+            members,
+            local_edges,
+            seed=seed + (cid + 1) * 997,
+            weights=local_weights or None,
+            node_sizes=local_sizes,
+        )
+
+    # Slot size scales with sqrt(n) so large topics get more atlas real estate.
+    comm_ids = sorted(groups)
+    counts = {cid: len(groups[cid]) for cid in comm_ids}
+    max_sqrt = max(math.sqrt(float(counts[cid])) for cid in comm_ids) or 1.0
+
+    rng = _Rng(seed)
+    num_comms = len(comm_ids)
+    centers: dict[int, tuple[float, float]] = {}
+    slots: dict[int, float] = {}
+    for rank, cid in enumerate(comm_ids):
+        sqrt_n = math.sqrt(float(counts[cid]))
+        slot = _COMMUNITY_SLOT_MIN + (_COMMUNITY_SLOT_MAX - _COMMUNITY_SLOT_MIN) * (
+            sqrt_n / max_sqrt
+        )
+        slots[cid] = slot
+        if num_comms <= 1:
+            centers[cid] = (0.5, 0.5)
+        else:
+            angle = 2.0 * math.pi * rank / num_comms + (rng.random() - 0.5) * 0.04
+            centers[cid] = (
+                0.5 + _COMMUNITY_PACK_RING * math.cos(angle),
+                0.5 + _COMMUNITY_PACK_RING * math.sin(angle),
+            )
+
+    composed: dict[str, list[float]] = {}
+    for cid in comm_ids:
+        cx, cy = centers[cid]
+        slot = slots[cid]
+        inner = max(0.05, slot - _COMMUNITY_PACK_PAD)
+        for nid in groups[cid]:
+            lx, ly = local_by_comm[cid][nid]
+            composed[nid] = [cx + (lx - 0.5) * inner, cy + (ly - 0.5) * inner]
+
+    return _normalize(composed)
 
 
 def compute_radial_layout(
