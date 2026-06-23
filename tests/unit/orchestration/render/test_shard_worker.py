@@ -58,34 +58,36 @@ def test_parse_shard_matches_in_process_parse(site_factory, root):
     """A worker re-parsing a file shard in isolation produces pages whose PageView is
     identical to the in-process parse of the same files — proving the parse leg is
     self-contained and reproduces the build's discovery+parse exactly."""
-    site = _built(site_factory, root)
-    content_dir = site.root_path / "content"
-
-    files = discover_content_files(content_dir, site=site)
-
-    # child-cards on test-navigation's docs/_index.md keys the global directive cache
-    # by content hash (not site id). Under xdist a prior test on this worker can leave
-    # stale entries that skew parse_shard without touching the oracle build's hashes.
     from bengal.cache import directive_cache
     from bengal.utils.cache_registry import clear_all_caches
 
     clear_all_caches()
-    directive_cache.clear_cache()
-    directive_cache.configure_for_site(site)
+    directive_cache.reset_for_testing()
+    directive_cache.configure_cache(enabled=False)
+    try:
+        site = _built(site_factory, root)
+        content_dir = site.root_path / "content"
 
-    reparsed = parse_shard(files, site, content_dir=content_dir)
+        files = discover_content_files(content_dir, site=site)
 
-    in_proc = {p.source_path: p for p in site.pages}
+        clear_all_caches()
+        directive_cache.reset_for_testing()
 
-    assert reparsed, f"{root} produced no parsed pages"
-    checked = 0
-    for page in reparsed:
-        assert page.source_path in in_proc, f"reparsed an unknown file: {page.source_path}"
-        pv_reparsed = page_view_from_live_page(page, site)
-        pv_in_process = page_view_from_live_page(in_proc[page.source_path], site)
-        assert pv_reparsed == pv_in_process, f"reparsed page diverged for {page.source_path}"
-        checked += 1
-    assert checked == len(files)
+        reparsed = parse_shard(files, site, content_dir=content_dir)
+
+        in_proc = {p.source_path: p for p in site.pages}
+
+        assert reparsed, f"{root} produced no parsed pages"
+        checked = 0
+        for page in reparsed:
+            assert page.source_path in in_proc, f"reparsed an unknown file: {page.source_path}"
+            pv_reparsed = page_view_from_live_page(page, site)
+            pv_in_process = page_view_from_live_page(in_proc[page.source_path], site)
+            assert pv_reparsed == pv_in_process, f"reparsed page diverged for {page.source_path}"
+            checked += 1
+        assert checked == len(files)
+    finally:
+        directive_cache.configure_cache(enabled=True)
 
 
 @pytest.mark.parametrize("root", ROOTS)
