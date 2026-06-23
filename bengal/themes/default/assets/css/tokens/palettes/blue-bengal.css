@@ -32,8 +32,8 @@ html[data-palette="blue-bengal"] {
     --color-text-tertiary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%), #A4B5C8);
     --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #738AA1);
     --color-text-inverse: light-dark(oklch(100.00% 0 0), #141B22);
-    --color-text-link: light-dark(var(--color-primary), #9DBDD9);
-    --color-text-link-hover: light-dark(var(--color-primary-hover), #B4CFE6);
+    --color-text-link: var(--color-primary);
+    --color-text-link-hover: var(--color-primary-hover);
 
     /* Borders (gentle blue-grays) */
     --color-border: light-dark(oklch(91.34% 0.0209 248.1), #2A3849);

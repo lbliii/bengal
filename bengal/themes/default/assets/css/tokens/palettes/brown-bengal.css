@@ -32,8 +32,8 @@ html[data-palette="brown-bengal"] {
     --color-text-tertiary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%), #B39772);
     --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #8A7455);
     --color-text-inverse: light-dark(oklch(100.00% 0 0), #1F1811);
-    --color-text-link: light-dark(var(--color-primary), #FFAD3D);
-    --color-text-link-hover: light-dark(var(--color-primary-hover), #FFC266);
+    --color-text-link: var(--color-primary);
+    --color-text-link-hover: var(--color-primary-hover);
 
     /* Borders (warm butterscotch) */
     --color-border: light-dark(oklch(87.55% 0.0618 86.4), #3D3630);
