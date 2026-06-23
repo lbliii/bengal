@@ -23,9 +23,7 @@ KIDA FEATURES USED:
 {% block content %}
 {# Template-scoped variables #}
 {% let current_language = current_lang() %}
-{% let main_menu = get_menu_lang('main', current_language) %}
-{% let auto_nav = get_auto_nav() if main_menu | length == 0 else [] %}
-{% let nav_items = main_menu if main_menu | length > 0 else auto_nav %}
+{% let nav_items = get_menu_lang('main', current_language) %}
 {% let home_url = '/' | absolute_url %}
 
 {% from "partials/empty-state.html" import empty_state %}

@@ -77,8 +77,7 @@ Functions available directly in templates:
 | `breadcrumbs(page)` | Generate breadcrumb trail |
 | `page_navigation(page)` | Prev/next page navigation |
 | `toc(toc_items, toc, page)` | Render table of contents |
-| `get_auto_nav()` | Auto-discovered navigation tree |
-| `get_menu('name')` | Get named menu items |
+| `get_menu('name')` | Get named menu items (includes auto-discovered main when unconfigured) |
 | `get_menu_lang('name', 'en')` | Get menu for specific language |
 
 ### Content

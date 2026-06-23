@@ -40,6 +40,22 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
 
 
+def _auto_nav_item_to_config(item: dict[str, Any] | Any) -> dict[str, Any]:
+    """Convert auto-nav items into MenuBuilder config dicts."""
+    from bengal.rendering.template_functions.navigation.models import AutoNavItem
+
+    if isinstance(item, AutoNavItem):
+        return {
+            "name": item.name,
+            "url": item.url,
+            "weight": item.weight,
+            "identifier": item.identifier,
+            "parent": item.parent,
+            "icon": item.icon,
+        }
+    return item
+
+
 class MenuOrchestrator:
     """
     Orchestrates navigation menu building with incremental caching.
@@ -562,6 +578,7 @@ class MenuOrchestrator:
         Returns:
             True if item was added, False if duplicate
         """
+        item = _auto_nav_item_to_config(item)
         item_id = item.get("identifier")
         item_url = item.get("url", "").rstrip("/")
         item_name = item.get("name", "").lower()

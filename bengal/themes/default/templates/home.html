@@ -95,8 +95,8 @@ MAIN TEMPLATE
 {% block content %}
 {% let page_title = page?.title ?? site.title ?? 'Home' %}
 {% let page_desc = params?.description ?? site.description ?? '' %}
-{% let _auto_nav = get_auto_nav() %}
-{% let _first_section = _auto_nav[0] if _auto_nav | length > 0 else none %}
+{% let _main_nav = get_menu_lang('main', _current_lang) %}
+{% let _first_section = _main_nav[0] if _main_nav | length > 0 else none %}
 
 {% let _default_features = [
   {'icon': 'star', 'title': t('home.feature_speed_title', default='Lightning fast'), 'description': t('home.feature_speed_desc', default='Static HTML, zero runtime overhead, and builds that finish in seconds.')},
@@ -111,7 +111,7 @@ MAIN TEMPLATE
 ] %}
 
 {% let _default_quick_links = [] %}
-{% for item in _auto_nav | take(6) %}
+{% for item in _main_nav | take(6) %}
 {% set _ = _default_quick_links.append({'title': item?.name ?? 'Section', 'href': item?.href ?? '#', 'icon': 'folder', 'description': ''}) %}
 {% end %}
 

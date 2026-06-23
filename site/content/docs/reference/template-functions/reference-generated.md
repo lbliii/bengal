@@ -198,7 +198,6 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `file_exists` | `file_exists_with_site` |
 | `file_size` | `file_size_with_site` |
 | `generate_code_sample` | `generate_code_sample` |
-| `get_auto_nav` | `<lambda>` |
 | `get_breadcrumbs` | `get_breadcrumbs` |
 | `get_data` | `get_data_with_site` |
 | `get_element_stats` | `get_element_stats` |

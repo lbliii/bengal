@@ -1,8 +1,8 @@
 """
 Auto-navigation discovery functions.
 
-Provides get_auto_nav() for automatic navigation from site sections and
-root-level pages.
+Internal to menu building — templates should use ``get_menu_lang('main')``,
+which reflects the orchestrated menu (auto-discovery, dev bundling, extras).
 
 Performance:
     get_auto_nav() is memoized per-build since the result is identical
@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.template_functions.memo import site_scoped_memoize
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
+from bengal.rendering.template_functions.navigation.models import AutoNavItem
 from bengal.rendering.urls import RenderURLContext
 from bengal.rendering.urls import url_for as resolve_url_for
 from bengal.utils.paths.normalize import to_posix
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 
 def _build_section_menu_item(
     section: Any, site: SiteLike, parent_identifier: str | None = None
-) -> dict[str, Any] | None:
+) -> AutoNavItem | None:
     """
     Build a menu item from a section, recursively including subsections.
 
@@ -102,14 +103,14 @@ def _build_section_menu_item(
     if parent_identifier is None and hasattr(section, "parent") and section.parent:
         parent_identifier = section.parent.name
 
-    return {
-        "name": section_title,
-        "url": section_url,
-        "weight": section_weight,
-        "identifier": section_identifier,
-        "parent": parent_identifier,
-        "icon": section_icon,
-    }
+    return AutoNavItem(
+        name=section_title,
+        url=section_url,
+        weight=section_weight,
+        identifier=section_identifier,
+        parent=parent_identifier,
+        icon=section_icon,
+    )
 
 
 def _is_root_level_page(page: Any, content_dir: Path) -> bool:
@@ -131,7 +132,7 @@ def _is_root_level_page(page: Any, content_dir: Path) -> bool:
         return False
 
 
-def _build_root_page_menu_item(page: Any) -> dict[str, Any] | None:
+def _build_root_page_menu_item(page: Any) -> AutoNavItem | None:
     """
     Build a menu item from a root-level page (opt-out: include unless menu: false).
     """
@@ -147,18 +148,18 @@ def _build_root_page_menu_item(page: Any) -> dict[str, Any] | None:
     page_title = get_nav_title(page, getattr(page, "title", "Untitled"))
     page_weight = metadata.get("weight", 999)
     slug = getattr(page, "slug", None) or Path(str(page.source_path)).stem
-    return {
-        "name": page_title,
-        "url": page_url,
-        "weight": page_weight,
-        "identifier": f"page-{slug}",
-        "parent": None,
-        "icon": None,
-    }
+    return AutoNavItem(
+        name=page_title,
+        url=page_url,
+        weight=page_weight,
+        identifier=f"page-{slug}",
+        parent=None,
+        icon=None,
+    )
 
 
 @site_scoped_memoize("auto_nav")
-def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
+def get_auto_nav(site: SiteLike) -> list[AutoNavItem]:
     """
     Auto-discover hierarchical navigation from site sections and root-level pages.
 
@@ -182,14 +183,10 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     Returns:
         List of navigation items with name, url, weight, parent (for hierarchy)
 
-    Example:
-        {# In nav template #}
-        {% set auto_items = get_auto_nav() %}
-        {% if auto_items %}
-          {% for item in auto_items %}
-            <a href="{{ item.href }}">{{ item.name }}</a>
-          {% endfor %}
-        {% endif %}
+    Example (MenuOrchestrator internal use):
+        auto_items = get_auto_nav(site)
+        for item in auto_items:
+            builder.add_from_config([_auto_nav_item_to_config(item)])
 
     Section _index.md frontmatter can control visibility:
         ---
@@ -215,7 +212,7 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     # sections like those used by autodoc. MenuOrchestrator and templates
     # can then decide how to use these items.
 
-    nav_items: list[dict[str, Any]] = []
+    nav_items: list[AutoNavItem] = []
 
     # Find all top-level sections (those with no parent)
     top_level_sections = []
@@ -251,7 +248,7 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
         if item is None:
             return
 
-        section_identifier = item["identifier"]
+        section_identifier = item.identifier
         nav_items.append(item)
 
         # Recursively add subsections
@@ -274,6 +271,6 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
                     nav_items.append(item)
 
     # Sort by weight (lower weights first)
-    nav_items.sort(key=lambda x: (x["weight"], x["name"]))
+    nav_items.sort(key=lambda x: (x.weight, x.name))
 
     return nav_items

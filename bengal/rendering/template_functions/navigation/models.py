@@ -209,13 +209,10 @@ class AutoNavItem:
         parent: Parent item identifier (for hierarchy)
         icon: Optional icon identifier
 
-    Example (Jinja template):
-        {% set auto_items = get_auto_nav() %}
-        {% for item in auto_items %}
-          <a href="{{ item.href }}"
-             {% if item.icon %}class="icon-{{ item.icon }}"{% endif %}>
-            {{ item.name }}
-          </a>
+    Example (orchestrated menu in templates):
+        {% set nav_items = get_menu_lang('main', current_lang()) %}
+        {% for item in nav_items %}
+          <a href="{{ item.href }}">{{ item.name }}</a>
         {% endfor %}
 
     """
@@ -227,14 +224,31 @@ class AutoNavItem:
     parent: str | None = None
     icon: str | None = None
 
+    @property
+    def href(self) -> str:
+        """Site-relative URL for templates (alias for url)."""
+        return self.url
+
+    @property
+    def _path(self) -> str:
+        """Site-relative path for active-state comparison (alias for url)."""
+        return self.url
+
     def __getitem__(self, key: str) -> Any:
         """Dict-style access for template compatibility."""
+        if key == "href":
+            return self.href
+        if key == "_path":
+            return self._path
         return getattr(self, key)
 
     def keys(self) -> list[str]:
         """Return field names for dict-style iteration."""
-        return ["name", "url", "weight", "identifier", "parent", "icon"]
+        return ["name", "url", "href", "_path", "weight", "identifier", "parent", "icon"]
 
     def get(self, key: str, default: Any = None) -> Any:
         """Dict-style get with default for template compatibility."""
-        return getattr(self, key, default)
+        try:
+            return self[key]
+        except AttributeError:
+            return default

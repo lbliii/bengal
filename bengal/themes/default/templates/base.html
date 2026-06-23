@@ -41,9 +41,6 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _cap_wiring = capability_wiring | default({'cache_key': '', 'stylesheets': [], 'scripts': [], 'lazy_loaders': [], 'runtime_globals': []}) %}
 {% let _cap_cache_key = _cap_wiring.cache_key %}
 
-{# Auto navigation if main menu is empty #}
-{% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
-
 {# =============================================================================
 HELPER: Render a menu item (desktop/mobile)
 ============================================================================= #}
@@ -322,20 +319,10 @@ HELPER: Render a menu item (desktop/mobile)
                     {% end %}
                 </a>
 
-                {% if _main_menu or _auto_nav %}
+                {% if _main_menu %}
                 {% spaceless %}
                 <ul class="nav-main hidden-mobile">
                     {% for item in _main_menu %}{{ render_menu_item(item) }}{% end %}
-                    {% if _auto_nav %}
-                    <li class="{{ ['active' if _page_url == '/'] | classes }}"><a href="{{ '/' | absolute_url }}">Home</a>
-                    </li>
-                    {% for item in _auto_nav %}
-                    <li
-                        class="{{ ['active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/')] | classes }}">
-                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                    </li>
-                    {% end %}
-                    {% end %}
                     {% with (site?.params?.repo_url ?? none) as repo_url %}
                     {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
                     <li><a href="{{ repo_url }}" target="_blank" rel="noopener" aria-label="GitHub">{{
@@ -463,17 +450,10 @@ HELPER: Render a menu item (desktop/mobile)
             </div>
         </form>
 
-        {% if _main_menu or _auto_nav %}
+        {% if _main_menu %}
         <nav class="mobile-nav-content" role="navigation">
             <ul>
                 {% for item in _main_menu %}{{ render_menu_item(item, is_mobile=true) }}{% end %}
-                {% if _auto_nav %}
-                <li class="{{ ['active' if _page_url == '/'] | classes }}"><a href="{{ '/' | absolute_url }}">Home</a></li>
-                {% for item in _auto_nav %}<li
-                    class="{{ ['active' if (_page_url.startswith(item._path) if _page_url is string and item._path != '/' else false)] | classes }}">
-                    <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                </li>{% end %}
-                {% end %}
                 {% with (site?.params?.repo_url ?? none) as repo_url %}
                 {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
                 <li><a href="{{ repo_url }}" target="_blank" rel="noopener">{{ icon('github-logo', size=16) }}
