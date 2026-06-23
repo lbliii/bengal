@@ -1,45 +1,29 @@
 {% extends "base.html" %}
 
 {#
-================================================================================
-Generic Post Template (Kida-Native)
-================================================================================
-
-Default template for blog posts and articles.
-
-KIDA FEATURES USED:
-- {% let %} for template-scoped variables
-- Optional chaining (?.) for null-safe access
-- Null coalescing (??) for smart defaults
-- {% def %} for reusable components
-
-USAGE:
-Auto-selected for posts without a specific type
-================================================================================
+Generic Post Template — unified editorial hero (#542).
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc as toc_macro %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/related-posts-simple.html' import related_posts_simple %}
-
-{# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+{% from 'partials/page-hero/_macros.html' import hero_editorial %}
 
 {% block content %}
-{# Template-scoped variables #}
 {% let page_title = page?.title ?? 'Post' %}
 {% let page_tags = page?.tags ?? [] %}
 {% let css_class = params?.css_class ?? '' %}
+{% let toc_items_list = toc_items ?? [] %}
+{% let show_toc = page?.toc and (toc_items_list | length >= 3) %}
 
 <div class="container">
-  <div class="{{ ['page-layout', 'page-with-toc' if toc] | classes }}">
-    <article class="post">
-      <header class="post-header">
-        <h1>{{ page_title }}</h1>
-      </header>
+  {% include 'partials/action-bar.html' %}
 
-      <div class="post-content prose">
+  <div class="{{ ['page-layout', 'page-with-toc' if show_toc else ''] | classes }}">
+    <article class="post prose {{ css_class }}">
+      {{ hero_editorial(page, params, theme) }}
+
+      <div class="post-content">
         {{ content | safe }}
       </div>
 
@@ -51,16 +35,13 @@ Auto-selected for posts without a specific type
         </div>
       </footer>
       {% end %}
+
+      {{ page_navigation(page) }}
     </article>
 
-    {% if toc %}
-    <aside class="page-sidebar">
-      <nav class="toc" aria-label="Table of contents">
-        <h2 class="toc-title">On This Page</h2>
-        <div class="toc-content">
-          {{ toc | safe }}
-        </div>
-      </nav>
+    {% if show_toc %}
+    <aside class="page-sidebar" role="complementary" aria-label="Table of contents">
+      {{ toc_macro(toc_items=toc_items, toc=page.toc, page=page) }}
     </aside>
     {% end %}
   </div>

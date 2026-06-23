@@ -66,7 +66,7 @@
 .language-switcher__menu {
   position: absolute;
   top: 100%;
-  right: 0;
+  inset-inline-end: 0;
   z-index: 50;
   min-width: 140px;
   margin-top: 0.25rem;
@@ -139,11 +139,6 @@
 }
 
 /* RTL Support */
-[dir="rtl"] .language-switcher__menu {
-  right: auto;
-  left: 0;
-}
-
 [dir="rtl"] .language-switcher__toggle {
   flex-direction: row-reverse;
 }

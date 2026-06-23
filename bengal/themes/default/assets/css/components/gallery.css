@@ -67,8 +67,7 @@
 .gallery__caption {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   padding: 0.75rem 1rem;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
   color: #fff;

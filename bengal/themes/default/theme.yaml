@@ -87,6 +87,13 @@ icons:
     trash: trash
     download: download
     upload: upload
+    bug: bug
+    shield: shield
+    globe: globe
+    envelope-simple: envelope-simple
+    twitter-logo: twitter-logo
+    github-logo: github-logo
+    linkedin-logo: linkedin-logo
     # UI & Metadata
     settings: settings
     star: star

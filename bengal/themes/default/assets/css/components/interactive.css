@@ -16,7 +16,7 @@
 .back-to-top {
   position: fixed;
   bottom: 5rem;
-  right: 2rem;
+  inset-inline-end: 2rem;
   width: 3rem;
   height: 3rem;
   min-width: 3rem;

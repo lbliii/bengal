@@ -154,6 +154,7 @@
 
 @layer components {
   @import url('components/cards.css');
+  @import url('components/gallery.css');
 }
 
 @layer components {
@@ -289,6 +290,7 @@
 @layer components {
   @import url('components/versioning.css');
   @import url('components/stale-banner.css');
+  @import url('components/announcement.css');
 }
 
 @layer components {

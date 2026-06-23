@@ -86,7 +86,7 @@ MAIN TEMPLATE
 {% let resume_languages = resume?.languages ?? [] %}
 {% let resume_volunteer = resume?.volunteer ?? [] %}
 
-<div class="resume">
+<div class="resume" data-print-cv>
     {# Header Section #}
     <header class="resume-header">
         <h1 class="resume-name">{{ resume_name }}</h1>
@@ -99,33 +99,33 @@ MAIN TEMPLATE
         <div class="resume-contact">
             {% if resume_contact?.email %}
             <a href="mailto:{{ resume_contact.email }}" class="contact-item">
-                <span class="contact-icon">✉</span> {{ resume_contact.email }}
+                <span class="contact-icon" aria-hidden="true">{{ icon('envelope-simple', size=16) }}</span> {{ resume_contact.email }}
             </a>
             {% end %}
             {% if resume_contact?.phone %}
             <span class="contact-item">
-                <span class="contact-icon">📱</span> {{ resume_contact.phone }}
+                <span class="contact-icon" aria-hidden="true">{{ icon('link', size=16) }}</span> {{ resume_contact.phone }}
             </span>
             {% end %}
             {% if resume_contact?.location %}
             <span class="contact-item">
-                <span class="contact-icon">📍</span> {{ resume_contact.location }}
+                <span class="contact-icon" aria-hidden="true">{{ icon('map', size=16) }}</span> {{ resume_contact.location }}
             </span>
             {% end %}
             {% if resume_contact?.website %}
             {% let website_display = resume_contact.website | replace('https://', '') | replace('http://', '') %}
-            <a href="{{ resume_contact.website }}" class="contact-item" target="_blank">
-                <span class="contact-icon">🌐</span> {{ website_display }}
+            <a href="{{ resume_contact.website }}" class="contact-item" target="_blank" rel="noopener noreferrer">
+                <span class="contact-icon" aria-hidden="true">{{ icon('globe', size=16) }}</span> {{ website_display }}
             </a>
             {% end %}
             {% if resume_contact?.linkedin %}
-            <a href="{{ resume_contact.linkedin }}" class="contact-item" target="_blank">
-                <span class="contact-icon">💼</span> LinkedIn
+            <a href="{{ resume_contact.linkedin }}" class="contact-item" target="_blank" rel="noopener noreferrer">
+                <span class="contact-icon" aria-hidden="true">{{ icon('linkedin-logo', size=16) }}</span> LinkedIn
             </a>
             {% end %}
             {% if resume_contact?.github %}
-            <a href="{{ resume_contact.github }}" class="contact-item" target="_blank">
-                <span class="contact-icon">🔗</span> GitHub
+            <a href="{{ resume_contact.github }}" class="contact-item" target="_blank" rel="noopener noreferrer">
+                <span class="contact-icon" aria-hidden="true">{{ icon('github-logo', size=16) }}</span> GitHub
             </a>
             {% end %}
         </div>

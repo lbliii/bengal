@@ -73,6 +73,7 @@ CSS_SHARED: list[str] = [
     "components/buttons.css",
     "components/forms.css",
     "components/cards.css",
+    "components/gallery.css",
     "components/badges.css",
     "components/labels.css",
     "components/icons.css",
@@ -102,6 +103,7 @@ CSS_SHARED: list[str] = [
     "components/_figure.css",
     "components/_terminal-embed.css",
     "components/link-preview.css",
+    "components/announcement.css",
 ]
 
 # ============================================================================

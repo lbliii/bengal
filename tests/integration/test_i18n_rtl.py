@@ -416,3 +416,135 @@ class TestCSSLogicalProperties:
             f"Found {len(violations)} physical padding-left/right properties:\n"
             + "\n".join(violations[:10])
         )
+
+
+@pytest.mark.bengal(testroot="test-i18n-rtl")
+class TestRTLGalleryView:
+    """RTL regression checkpoint for card-grid gallery layouts."""
+
+    def test_arabic_gallery_page_discovered(self, shared_site) -> None:
+        """Arabic gallery section index should be discovered."""
+        ar_gallery = [
+            p
+            for p in shared_site.pages
+            if getattr(p, "lang", None) == "ar" and "/gallery" in getattr(p, "_path", "")
+        ]
+        assert len(ar_gallery) >= 1, "Arabic gallery index should exist"
+
+    def test_arabic_gallery_renders_rtl(self, shared_site) -> None:
+        """Built Arabic gallery page should render dir=rtl with card tiles."""
+        ar_gallery = next(
+            (
+                p
+                for p in shared_site.pages
+                if getattr(p, "lang", None) == "ar"
+                and "gallery" in getattr(p, "_path", "")
+                and getattr(p, "source_path", None)
+                and getattr(p.source_path, "stem", "") == "_index"
+            ),
+            None,
+        )
+        assert ar_gallery is not None
+
+        output_candidates = list((shared_site.output_dir / "ar").rglob("gallery/index.html"))
+        assert output_candidates, "Expected built Arabic gallery index.html"
+        html = output_candidates[0].read_text(encoding="utf-8")
+        assert 'dir="rtl"' in html
+        assert "content-tiles" in html
+
+
+class TestSiteAnnouncement:
+    """Site-wide announcement bar partial."""
+
+    def test_announcement_partial_exists(self) -> None:
+        from pathlib import Path
+
+        partial = Path("bengal/themes/default/templates/partials/site-announcement.html")
+        assert partial.is_file()
+        text = partial.read_text(encoding="utf-8")
+        assert "bengal-site-announcement" in text
+        assert "site.params.announcement" in text or "params?.announcement" in text
+
+    def test_announcement_in_base_template(self) -> None:
+        from pathlib import Path
+
+        base = Path("bengal/themes/default/templates/base.html").read_text(encoding="utf-8")
+        assert "partials/site-announcement.html" in base
+        assert "enhancements/announcement.js" in base
+
+    def test_announcement_renders_when_configured(self, tmp_path) -> None:
+        from pathlib import Path
+
+        from bengal.core.site import Site
+        from bengal.rendering.template_engine import TemplateEngine
+
+        config = {
+            "params": {
+                "announcement": {
+                    "message": "Welcome to the beta!",
+                    "href": "/docs/",
+                    "variant": "promo",
+                    "id": "beta-launch",
+                }
+            }
+        }
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        class Page:
+            lang = "en"
+            title = "Home"
+
+        partial = Path("bengal/themes/default/templates/partials/site-announcement.html").read_text(
+            encoding="utf-8"
+        )
+        html = engine.render_string(partial, {"page": Page(), "site": site})
+        assert "bengal-site-announcement" in html
+        assert "Welcome to the beta!" in html
+        assert 'data-announcement-id="beta-launch"' in html
+
+    def test_announcement_hidden_when_unconfigured(self, tmp_path) -> None:
+        from pathlib import Path
+
+        from bengal.core.site import Site
+        from bengal.rendering.template_engine import TemplateEngine
+
+        site = Site(root_path=tmp_path, config={})
+        engine = TemplateEngine(site)
+
+        class Page:
+            lang = "en"
+
+        partial = Path("bengal/themes/default/templates/partials/site-announcement.html").read_text(
+            encoding="utf-8"
+        )
+        html = engine.render_string(partial, {"page": Page(), "site": site})
+        assert "bengal-site-announcement" not in html
+
+
+class TestRTLPhysicalPropertyFinish:
+    """Remaining directional affordance conversions for #544."""
+
+    def test_back_to_top_uses_logical_inset(self) -> None:
+        from pathlib import Path
+
+        css = Path("bengal/themes/default/assets/css/components/interactive.css").read_text(
+            encoding="utf-8"
+        )
+        assert "inset-inline-end:" in css
+        assert ".back-to-top" in css
+
+    def test_minimal_tiles_rtl_arrow_flip(self) -> None:
+        from pathlib import Path
+
+        css = Path("bengal/themes/default/assets/css/components/widgets.css").read_text(
+            encoding="utf-8"
+        )
+        assert '[dir="rtl"] .content-tiles--minimal li::before' in css
+
+    def test_home_landing_uses_nav_arrow(self) -> None:
+        from pathlib import Path
+
+        template = Path("bengal/themes/default/templates/home.html").read_text(encoding="utf-8")
+        assert "nav-arrow" in template
+        assert "home--splash" in template

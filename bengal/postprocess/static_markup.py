@@ -6,11 +6,18 @@ import re
 from urllib.parse import urlparse
 
 _COPY_BUTTON = (
-    '<button type="button" class="code-copy-button copy-success-burst" aria-label="Copy">'
+    '<button type="button" class="code-copy-button copy-success-burst" aria-label="Copy code to clipboard">'
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
     'stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>'
     '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
     "<span>Copy</span></button>"
+)
+
+_WRAP_BUTTON = (
+    '<button type="button" class="code-wrap-toggle" aria-label="Enable word wrap" aria-pressed="false">'
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2"><path d="M4 6h16M4 12h10M4 18h16"/></svg>'
+    "<span>Wrap</span></button>"
 )
 
 _LANG_RE = re.compile(r"language-(\w+)|hljs-(\w+)")
@@ -101,7 +108,7 @@ def _wrap_pre_code(match: re.Match[str]) -> str:
     open_pre = match.group(1)
     lang = _language_from_code_tag(open_pre)
     lang_label = f'<span class="code-language">{lang}</span>' if lang else "<span></span>"
-    header = f'<div class="code-header-inline">{lang_label}{_COPY_BUTTON}</div>'
+    header = f'<div class="code-header-inline">{lang_label}{_WRAP_BUTTON}{_COPY_BUTTON}</div>'
     return (
         f'<div class="code-block-wrapper">{open_pre}{match.group(2)}{match.group(3)}{header}</div>'
     )

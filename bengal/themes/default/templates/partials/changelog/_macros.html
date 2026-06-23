@@ -1,0 +1,19 @@
+{#
+Shared changelog category macro — iconified headings + subgrid-ready markup (#543).
+#}
+
+{% def change_category(title, icon_name, items, is_breaking=false) %}
+{% if items and items is iterable and items is not string and items | length > 0 %}
+<div class="{{ ['changelog-category', 'changelog-category--breaking' if is_breaking] | classes }}" data-category="{{ title | lower | replace(' ', '-') }}">
+  <h3 class="{{ ['category-title', 'category-title--breaking' if is_breaking] | classes }}">
+    <span class="category-icon" aria-hidden="true">{{ icon(icon_name, size=18) }}</span>
+    {{ title }}
+  </h3>
+  <ul class="changelog-list{{ ' changelog-list--breaking' if is_breaking else '' }}">
+    {% for item in items %}
+    <li class="{{ 'changelog-item--breaking' if is_breaking else '' }}">{{ item }}</li>
+    {% end %}
+  </ul>
+</div>
+{% end %}
+{% end %}

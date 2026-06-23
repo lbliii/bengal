@@ -1,0 +1,58 @@
+{#
+  Site-wide announcement bar (opt-in via [params.announcement] in bengal.toml).
+
+  Invisible when unconfigured. Dismiss state persisted in localStorage by
+  <bengal-site-announcement> (see enhancements/announcement.js).
+
+  Config shape:
+    [params.announcement]
+    message = "Welcome!"
+    href = "/docs/"           # optional
+    link_text = "Learn more"  # optional
+    variant = "info"          # info | warning | promo
+    id = "launch-2026"        # optional dismiss key
+    dismissible = true        # default true
+#}
+{% let _announcement = site?.params?.announcement ?? none %}
+{% if _announcement %}
+{% let _message = _announcement?.message ?? _announcement?.text ?? '' %}
+{% if _message %}
+{% let _variant = _announcement?.variant ?? 'info' %}
+{% let _href = _announcement?.href ?? _announcement?.url ?? none %}
+{% let _link_text = _announcement?.link_text ?? _announcement?.linkText ?? t('announcement.learn_more', default='Learn more') %}
+{% let _announcement_id = _announcement?.id ?? (_message | slugify) %}
+{% let _dismissible = _announcement?.dismissible ?? true %}
+
+<bengal-site-announcement
+  class="site-announcement site-announcement--{{ _variant }}"
+  data-announcement-id="{{ _announcement_id }}"
+  {% if _dismissible %}data-dismissible="true"{% end %}
+  role="region"
+  aria-label="{{ t('announcement.aria_label', default='Site announcement') }}">
+  <div class="site-announcement__inner container">
+    <div class="site-announcement__content">
+      {% if _variant == 'warning' %}
+      {{ icon('warning', size=18, css_class='site-announcement__icon') }}
+      {% elif _variant == 'promo' %}
+      {{ icon('star', size=18, css_class='site-announcement__icon') }}
+      {% else %}
+      {{ icon('info', size=18, css_class='site-announcement__icon') }}
+      {% end %}
+      <p class="site-announcement__message"><bdi>{{ _message }}</bdi></p>
+      {% if _href %}
+      <a href="{{ _href | absolute_url }}" class="site-announcement__link">
+        <bdi>{{ _link_text }}</bdi>
+        {{ icon('arrow-right', size=14, css_class='nav-arrow') }}
+      </a>
+      {% end %}
+    </div>
+    {% if _dismissible %}
+    <button type="button" class="site-announcement__dismiss"
+      aria-label="{{ t('announcement.dismiss', default='Dismiss announcement') }}">
+      {{ icon('x', size=16) }}
+    </button>
+    {% end %}
+  </div>
+</bengal-site-announcement>
+{% end %}
+{% end %}

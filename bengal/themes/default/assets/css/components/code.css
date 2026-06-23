@@ -428,6 +428,48 @@ pre.code-block--wrap,
   display: none;
 }
 
+.code-wrap-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast), opacity 0.15s ease;
+  flex-shrink: 0;
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.code-wrap-toggle > span {
+  display: none;
+}
+
+pre:hover .code-wrap-toggle,
+.code-block-wrapper:hover .code-wrap-toggle,
+.highlight:hover .code-wrap-toggle,
+.code-wrap-toggle:focus-visible,
+.code-wrap-toggle[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.code-wrap-toggle[aria-pressed="true"] {
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+[data-theme="dark"] .code-wrap-toggle {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Tooltip */
 .code-copy-button::after {
   content: attr(aria-label);
