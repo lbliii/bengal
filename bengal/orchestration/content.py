@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.build.contracts.keys import xref_path_key
+from bengal.content.discovery_facts import extract_target_directives_from_content
 from bengal.content.page_source import get_raw_source
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.page_site import set_page_site
@@ -338,7 +339,7 @@ class ContentOrchestrator:
         # only necessary CSS files. Runs efficiently O(n) over all pages.
         # See: plan/drafted/rfc-css-tree-shaking.md
         t0 = time.perf_counter()
-        self._detect_features()
+        self._detect_features(build_cache=build_cache)
         breakdown_ms["feature_detection"] = (time.perf_counter() - t0) * 1000
         logger.debug(
             "features_detected",
@@ -1249,10 +1250,17 @@ class ContentOrchestrator:
         rule), the opposite of :meth:`_index_headings`.
         """
         source = get_raw_source(page)
-        if not (hasattr(page, "content") and source):
+        if not source:
+            cached_anchors = getattr(page, "_target_anchors_cache", None)
+            if cached_anchors:
+                target_anchors = list(cached_anchors)
+            else:
+                return
+        elif hasattr(page, "content") and source:
+            target_anchors = self._extract_target_directives(source)
+        else:
             return
 
-        target_anchors = self._extract_target_directives(source)
         page_version = getattr(page, "version", None)
         for anchor_id in target_anchors:
             anchor_key = anchor_id.lower()
@@ -1322,30 +1330,9 @@ class ContentOrchestrator:
         Returns:
             List of anchor IDs found in target directives
         """
-        import re
+        return extract_target_directives_from_content(content)
 
-        anchor_ids = []
-        # Pattern matches :::{target} id or :::{anchor} id
-        # Handles optional whitespace and closing ::: on same or next line
-        pattern = r"^(\s*):{3,}\{(?:target|anchor)\}([^\n]*)$"
-        lines = content.split("\n")
-        i = 0
-        while i < len(lines):
-            match = re.match(pattern, lines[i])
-            if match:
-                indent = len(match.group(1))
-                # Skip if indented 4+ spaces (code block)
-                if indent < 4:
-                    # Extract anchor ID from title (everything after directive name)
-                    title = match.group(2).strip()
-                    # Validate it looks like an anchor ID (starts with letter)
-                    if title and re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", title):
-                        anchor_ids.append(title)
-            i += 1
-
-        return anchor_ids
-
-    def _detect_features(self) -> None:
+    def _detect_features(self, build_cache: BuildCache | None = None) -> None:
         """
         Detect CSS-requiring features in all pages.
 
@@ -1365,8 +1352,14 @@ class ContentOrchestrator:
         detector = FeatureDetector()
 
         for page in self.site.pages:
-            # Detect features in page content
-            features = detector.detect_features_in_page(page)
+            cached_features = getattr(page, "_detected_features_cache", None)
+            if cached_features:
+                features = set(cached_features)
+            elif getattr(page, "_from_cache", False) and build_cache is not None:
+                facts = build_cache.get_parsed_discovery_facts(page.source_path)
+                features = set(facts["detected_features"]) if facts else set()
+            else:
+                features = detector.detect_features_in_page(page)
             # Prefer BuildState (fresh each build), fall back to Site field
             _bs = self.site.build_state
             target = _bs.features_detected if _bs is not None else self.site.features_detected

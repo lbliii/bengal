@@ -26,7 +26,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.content.page_source import get_raw_source
+from bengal.content.discovery_facts import DiscoveryFactsExtractor
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteContent
@@ -84,22 +84,7 @@ class FeatureDetector:
         Returns:
             Set of detected feature names
         """
-        features: set[str] = set()
-
-        if not content:
-            return features
-
-        # Check content patterns
-        for feature, pattern in self.PATTERNS.items():
-            if pattern.search(content):
-                features.add(feature)
-
-        # Check directive patterns
-        for feature, pattern in self.DIRECTIVE_PATTERNS.items():
-            if pattern.search(content):
-                features.add(feature)
-
-        return features
+        return DiscoveryFactsExtractor.detect_features_in_content(content)
 
     def detect_features_in_page(self, page: PageLike) -> set[str]:
         """
@@ -113,28 +98,7 @@ class FeatureDetector:
         Returns:
             Set of detected feature names
         """
-        features: set[str] = set()
-
-        # Detect from content
-        source = get_raw_source(page)
-        if source:
-            features.update(self.detect_features_in_content(source))
-
-        # Check metadata for explicit feature flags
-        if page.metadata:
-            # Check for mermaid in metadata
-            if page.metadata.get("mermaid"):
-                features.add("mermaid")
-
-            # Check for interactive features
-            if page.metadata.get("interactive"):
-                features.add("interactive")
-
-            # Check for graph features
-            if page.metadata.get("graph"):
-                features.add("graph")
-
-        return features
+        return DiscoveryFactsExtractor.detect_features_in_page(page)
 
 
 def detect_site_features(site: SiteContent) -> set[str]:

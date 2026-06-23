@@ -585,6 +585,7 @@ def phase_render(
                     profile_templates=profile_templates,
                     incremental=bool(incremental),
                     output_collector=collector,
+                    cache=getattr(orchestrator.site, "_cache", None),
                 )
                 # Transfer cached content from early context (build-integrated validation)
                 if early_context and early_context.has_cached_content:
@@ -624,6 +625,7 @@ def phase_render(
                     profile_templates=profile_templates,
                     incremental=bool(incremental),
                     output_collector=collector,
+                    cache=getattr(orchestrator.site, "_cache", None),
                 )
                 # Transfer cached content from early context (build-integrated validation)
                 if early_context and early_context.has_cached_content:

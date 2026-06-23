@@ -456,6 +456,13 @@ class ContentDiscovery:
             # pipeline retrieves it from the build cache if needed.
             apply_parsed_page_to_page(page, parsed_page, seed_ast=False)
 
+            facts = build_cache.get_parsed_discovery_facts(file_path)
+            if facts is not None:
+                if facts["target_anchors"]:
+                    page._target_anchors_cache = facts["target_anchors"]  # type: ignore[attr-defined]
+                if facts["detected_features"]:
+                    page._detected_features_cache = facts["detected_features"]  # type: ignore[attr-defined]
+
             return page
         except Exception:
             # Any failure during cache reconstruction falls through to full parse.

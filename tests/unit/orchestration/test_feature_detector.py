@@ -207,6 +207,21 @@ graph TD
 
         assert "interactive" in features
 
+    def test_detect_features_from_plain_text_cache_when_raw_empty(self) -> None:
+        """Cache-hit pages with empty raw content should use plain_text cache."""
+        from bengal.orchestration.feature_detector import FeatureDetector
+
+        detector = FeatureDetector()
+
+        page = MagicMock()
+        page._raw_content = ""
+        page._plain_text_cache = "Page with ```mermaid\ngraph TD\n``` diagram"
+        page.metadata = {}
+
+        features = detector.detect_features_in_page(page)
+
+        assert "mermaid" in features
+
 
 class TestDetectSiteFeatures:
     """Tests for detect_site_features function."""

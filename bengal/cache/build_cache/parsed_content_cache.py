@@ -87,6 +87,8 @@ class ParsedContentCacheMixin:
         plain_text: str = "",
         word_count: int = 0,
         reading_time: int = 0,
+        detected_features: list[str] | None = None,
+        target_anchors: list[str] | None = None,
     ) -> None:
         """
         Store parsed content in cache (Optimization #2 + AST caching).
@@ -152,6 +154,25 @@ class ParsedContentCacheMixin:
             "parser_version": parser_version,
             "timestamp": datetime.now(UTC).isoformat(),
             "size_bytes": size_bytes,
+        }
+        if detected_features is not None:
+            self.parsed_content[key]["detected_features"] = detected_features
+        if target_anchors is not None:
+            self.parsed_content[key]["target_anchors"] = target_anchors
+
+    def get_parsed_discovery_facts(self, file_path: Path) -> dict[str, list[str]] | None:
+        """Return cached per-page discovery facts when the parsed entry exists.
+
+        Used during warm discovery to avoid re-scanning unchanged pages for
+        CSS features and target-directive anchors (#332).
+        """
+        key = self._cache_key(file_path)
+        cached = self.parsed_content.get(key)
+        if not cached:
+            return None
+        return {
+            "detected_features": list(cached.get("detected_features") or []),
+            "target_anchors": list(cached.get("target_anchors") or []),
         }
 
     def get_parsed_content(
@@ -254,6 +275,9 @@ class ParsedContentCacheMixin:
         metadata: dict[str, Any],
         template: str,
         parser_version: str,
+        *,
+        detected_features: list[str] | None = None,
+        target_anchors: list[str] | None = None,
     ) -> None:
         """Store a ``ParsedPage`` record in the parsed content cache.
 
@@ -275,6 +299,8 @@ class ParsedContentCacheMixin:
             plain_text=parsed_page.plain_text,
             word_count=parsed_page.word_count,
             reading_time=parsed_page.reading_time,
+            detected_features=detected_features,
+            target_anchors=target_anchors,
         )
 
     def get_excerpt_for_path(self, file_path: Path) -> str:
