@@ -39,8 +39,8 @@ html[data-palette="snow-lynx"] {
     --color-text-tertiary: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 40%), #9D9B97);
     --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #75736F);
     --color-text-inverse: light-dark(oklch(100.00% 0 0), #18191A);
-    --color-text-link: light-dark(var(--color-primary), #6EC4BC);
-    --color-text-link-hover: light-dark(var(--color-primary-hover), #87D3CC);
+    --color-text-link: var(--color-primary);
+    --color-text-link-hover: var(--color-primary-hover);
 
     /* Borders (subtle warmth against clean white) */
     --color-border: light-dark(oklch(92.00% 0.0104 81.8), #3A3D40);

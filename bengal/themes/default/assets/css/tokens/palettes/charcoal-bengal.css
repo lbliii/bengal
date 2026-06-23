@@ -40,8 +40,8 @@ html[data-palette="charcoal-bengal"] {
     --color-text-muted: light-dark(color-mix(in oklab, var(--color-text-primary), var(--color-bg-primary) 56%), #6B655C);
     --color-text-inverse: light-dark(oklch(99.16% 0.0017 67.8), #0C0B0A);
     /* Charcoal's primary is achromatic ink, so links/focus use the bronze accent for affordance */
-    --color-text-link: light-dark(var(--color-accent), #C9A84D);
-    --color-text-link-hover: light-dark(var(--color-accent-hover), #D9BC6D);
+    --color-text-link: var(--color-accent);
+    --color-text-link-hover: var(--color-accent-hover);
 
     /* Borders (warm grays - charcoal mask effect) */
     --color-border: light-dark(oklch(82.49% 0.0094 78.3), #302D28);

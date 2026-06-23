@@ -151,8 +151,7 @@ a {
 }
 
 /* Content link styles — @scope bounds prose link treatment (#540) */
-@scope (.prose) {
-  to (.button, .btn, .card, .card-link, [data-no-external-icon]) {
+@scope (.prose) to (.button, .btn, .card, .card-link, [data-no-external-icon]) {
     a {
       color: var(--color-text-link);
       background-image: linear-gradient(
@@ -267,9 +266,17 @@ a {
     a[target="_blank"][href^="http"]:has(code)::after {
       margin-inline-start: 0.3em;
     }
-  }
 
-  to (.button, .btn) {
+    table a[data-external="true"]::after,
+    table a[rel*="external"]::after,
+    table a[target="_blank"][href^="http"]::after {
+      width: 0.65em;
+      height: 0.65em;
+      margin-inline-start: 0.15em;
+    }
+}
+
+@scope (.prose) to (.button, .btn) {
     a[href^="#"] {
       color: var(--color-text-secondary);
       background-image: linear-gradient(
@@ -287,34 +294,21 @@ a {
         var(--color-text-link) 100%
       );
     }
-  }
-
-  table a[data-external="true"]::after,
-  table a[rel*="external"]::after,
-  table a[target="_blank"][href^="http"]::after {
-    width: 0.65em;
-    height: 0.65em;
-    margin-inline-start: 0.15em;
-  }
 }
 
 [data-theme="dark"] {
-  @scope (.prose) {
-    to (.button, .btn) {
-      a:hover {
-        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
-      }
+  @scope (.prose) to (.button, .btn) {
+    a:hover {
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
     }
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    @scope (.prose) {
-      to (.button, .btn) {
-        a:hover {
-          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
-        }
+    @scope (.prose) to (.button, .btn) {
+      a:hover {
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
       }
     }
   }

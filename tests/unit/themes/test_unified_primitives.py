@@ -73,4 +73,5 @@ def test_container_queries_on_layout_primitives() -> None:
 
 def test_prose_links_use_scope() -> None:
     typography = (THEME / "assets" / "css" / "base" / "typography.css").read_text(encoding="utf-8")
-    assert "@scope (.prose)" in typography
+    assert "@scope (.prose) to (" in typography
+    assert "@scope (.prose) {\n  to (" not in typography
