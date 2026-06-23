@@ -1,6 +1,7 @@
 {
-    "name": "Bengal Site",
-    "short_name": "Bengal",
+    "name": "Bengal Theme Showcase",
+    "short_name": "Showcase",
+    "description": "Pridelands default theme component gallery",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
@@ -13,7 +14,8 @@
             "type": "image/png"
         }
     ],
-    "theme_color": "#ffffff",
+    "theme_color": "#4FA8A0",
     "background_color": "#ffffff",
-    "display": "standalone"
+    "display": "standalone",
+    "start_url": "/showcase/"
 }

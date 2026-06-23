@@ -1,3 +1,14 @@
-{# Image. Usage: {{< img src=path alt="..." >}} or nested in gallery. #}
+{# Image. Usage: {{< img src=path alt="..." width=800 height=600 >}} #}
+{% set src = shortcode.Get('src') %}
+{% set alt = shortcode.Get('alt') %}
 {% set cls = shortcode.Parent.Get("class") if shortcode.Parent else shortcode.Get("class") %}
-<img src="{{ shortcode.Get('src') }}" alt="{{ shortcode.Get('alt') }}"{% if cls %} class="{{ cls }}"{% end %}>
+{% set width = shortcode.Get('width') %}
+{% set height = shortcode.Get('height') %}
+{% if (not width or not height) and src %}
+{% let dims = image_dimensions(src) %}
+{% if dims %}
+{% if not width %}{% set width = dims[0] %}{% end %}
+{% if not height %}{% set height = dims[1] %}{% end %}
+{% end %}
+{% end %}
+<img src="{{ src }}" alt="{{ alt }}"{% if width %} width="{{ width }}"{% end %}{% if height %} height="{{ height }}"{% end %}{% if cls %} class="{{ cls }}"{% end %} loading="lazy">

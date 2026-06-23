@@ -154,15 +154,19 @@ class FigureDirective:
             classes.append(css_class)
         class_str = " ".join(classes)
 
-        # Build style string
-        style_str = f' style="width: {width}"' if width else ""
+        # Build style string (percentage widths stay on figure; pixel widths go on img)
+        style_str = ""
+        if width and width.endswith("%"):
+            style_str = f' style="width: {html_escape(width)}"'
 
-        # Build img tag
+        # Build img tag — numeric px dimensions as HTML attributes for CLS prevention
         img_attrs = [f'src="{html_escape(image_path)}"']
         img_attrs.append(f'alt="{html_escape(alt)}"')
         img_attrs.append(f'loading="{loading}"')
+        if width and not width.endswith("%"):
+            img_attrs.append(f'width="{html_escape(width.rstrip("px"))}"')
         if height:
-            img_attrs.append(f'style="height: {height}"')
+            img_attrs.append(f'height="{html_escape(height.rstrip("px"))}"')
 
         img_tag = f"<img {' '.join(img_attrs)}>"
 

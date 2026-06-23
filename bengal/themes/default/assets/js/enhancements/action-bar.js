@@ -262,6 +262,26 @@
           }
           break;
 
+        case 'copy-theme-tokens': {
+          const tokenController = new AbortController();
+          const tokenTimeoutId = setTimeout(() => tokenController.abort(), 5000);
+          try {
+            const response = await fetch(url, { signal: tokenController.signal });
+            clearTimeout(tokenTimeoutId);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            textToCopy = await response.text();
+            await copyToClipboard(textToCopy);
+            showSuccess(button, 'Theme tokens copied!');
+          } catch (fetchError) {
+            clearTimeout(tokenTimeoutId);
+            if (fetchError.name === 'AbortError') {
+              throw new Error('Request timed out');
+            }
+            throw fetchError;
+          }
+          break;
+        }
+
         default:
           log('Unknown copy action:', action);
       }

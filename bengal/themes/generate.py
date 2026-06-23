@@ -31,6 +31,7 @@ bengal/themes/default/assets/css/tokens/: Generated CSS output
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from bengal.errors import BengalAssetError, ErrorCode
@@ -40,6 +41,8 @@ from bengal.utils.io.atomic_write import atomic_write_text
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+DEFAULT_DESIGN_TOKENS_PATH = DEFAULT_CSS_TOKENS_PATH.parent.parent / "design-tokens.json"
 
 
 def generate_web_css() -> str:
@@ -119,6 +122,71 @@ def generate_web_css() -> str:
     return "\n".join(lines)
 
 
+def generate_design_tokens_manifest() -> dict[str, object]:
+    """
+    Generate a JSON manifest of design tokens for LLM/agent theming consumers.
+
+    Consumer: action-bar "Copy theme tokens" button (design-tokens.json).
+    """
+    palettes = {
+        name: {
+            "primary": variant.primary,
+            "accent": variant.accent,
+            "success": variant.success,
+            "error": variant.error,
+            "surface": variant.surface,
+            "background": variant.background,
+        }
+        for name, variant in PALETTE_VARIANTS.items()
+    }
+    return {
+        "$schema": "https://design-tokens.github.io/community-group/format/",
+        "name": "bengal-default-theme",
+        "version": "2.0.0",
+        "description": "Pridelands default theme design tokens for LLM theming context",
+        "consumer": "action-bar-copy-theme-tokens",
+        "palettes": palettes,
+        "css_variables": {
+            "semantic": [
+                "--color-primary",
+                "--color-text-primary",
+                "--color-bg-primary",
+                "--color-border-focus",
+                "--motion-signature-duration",
+                "--motion-signature-ease",
+            ],
+            "activation": "Set data-palette on <html> for named palettes; data-theme for light/dark",
+        },
+        "default_palette": {
+            "primary": BENGAL_PALETTE.primary,
+            "secondary": BENGAL_PALETTE.secondary,
+            "accent": BENGAL_PALETTE.accent,
+            "success": BENGAL_PALETTE.success,
+            "error": BENGAL_PALETTE.error,
+        },
+    }
+
+
+def write_design_tokens_manifest(output_path: Path | None = None) -> Path:
+    """Write design-tokens.json for the action-bar copy-theme-tokens consumer."""
+    if output_path is None:
+        output_path = DEFAULT_DESIGN_TOKENS_PATH
+
+    manifest = generate_design_tokens_manifest()
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_text(output_path, json.dumps(manifest, indent=2) + "\n")
+    except OSError as e:
+        raise BengalAssetError(
+            f"Failed to write design tokens manifest: {output_path}",
+            code=ErrorCode.X004,
+            file_path=output_path,
+            suggestion="Check file permissions and disk space",
+            original_error=e,
+        ) from e
+    return output_path
+
+
 def write_generated_css(output_dir: Path | None = None) -> Path:
     """
     Write generated CSS custom properties to file.
@@ -195,6 +263,8 @@ def main() -> None:
     try:
         output_path = write_generated_css()
         cli.success(f"Generated web CSS: {output_path}")
+        tokens_path = write_design_tokens_manifest()
+        cli.success(f"Generated design tokens manifest: {tokens_path}")
     except BengalAssetError as e:
         cli.error(f"CSS generation failed: {e.message}")
         if e.suggestion:

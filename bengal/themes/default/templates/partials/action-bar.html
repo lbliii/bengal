@@ -62,6 +62,7 @@ BREADCRUMB ITEM HELPER
     {# Template-scoped variables #}
     {% let page_url = canonical_url(get_page_url(page)) %}
     {% let llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+    {% let theme_tokens_url = asset_url('design-tokens.json') %}
     {% let share_prompt = "Please help me understand this documentation: " ~ llm_txt_url %}
 
     {# Breadcrumbs - assign outside cache for variable access #}
@@ -120,6 +121,12 @@ BREADCRUMB ITEM HELPER
                                 data-url="{{ llm_txt_url }}" type="button">
                                 {{ icon('copy', size=16) }}
                                 <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
+                            </button>
+
+                            <button class="action-bar-share-item" data-action="copy-theme-tokens"
+                                data-url="{{ theme_tokens_url }}" type="button">
+                                {{ icon('palette', size=16) }}
+                                <span>{{ t('share.copy_theme_tokens', default='Copy theme tokens') }}</span>
                             </button>
 
                             {% include 'partials/connect-to-ide.html' %}
