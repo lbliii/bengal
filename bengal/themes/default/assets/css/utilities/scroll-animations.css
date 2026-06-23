@@ -195,13 +195,23 @@
    RESPECT REDUCED MOTION
    ============================================ */
 
+/* Scroll reveals for editorial content when navigation.scroll_reveals is enabled */
+.scroll-reveal-root .prose > * {
+  opacity: 0;
+  transform: translate3d(0, var(--motion-signature-distance, 12px), 0);
+}
+
+@supports (animation-timeline: scroll()) {
+  .scroll-reveal-root .prose > * {
+    animation: fade-in-scroll linear;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .fade-in-on-scroll,
-  .slide-up-on-scroll,
-  .scale-in-on-scroll,
-  .stagger-fade-in > * {
+  .scroll-reveal-root .prose > * {
     animation: none !important;
-    transition: none !important;
     opacity: 1 !important;
     transform: none !important;
   }

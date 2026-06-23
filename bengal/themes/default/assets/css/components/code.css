@@ -297,6 +297,13 @@ pre code {
   animation: code-border-glow-dark 8s ease-in-out infinite;
 }
 
+pre.code-block--wrap,
+.code-block-wrapper pre.code-block--wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: hidden;
+}
+
 /* Keep animated borders outside the scrolling <pre> */
 .code-block-wrapper.gradient-border,
 .code-block-wrapper.gradient-border-subtle,

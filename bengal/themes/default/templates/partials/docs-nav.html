@@ -44,6 +44,7 @@ per-call overhead of {% include %} (context copy, template lookup).
 {% let item_icon = item?.icon ?? '' %}
 {% let item_href = item?.href ?? '' %}
 {% let item_children = item?.children ?? [] %}
+{% let item_status = item?.page?.metadata?.status ?? item?.page?.params?.status ?? '' %}
 {% let is_current = item?.is_current ?? false %}
 {% let is_in_trail = item?.is_in_trail ?? false %}
 {% let is_section = item?.is_section ?? false %}
@@ -200,6 +201,9 @@ per-call overhead of {% include %} (context copy, template lookup).
         {% end %}
         {% end %}
         <span class="docs-nav-link-text"><bdi>{{ item_title }}</bdi></span>
+        {% if item_status %}
+        <span class="docs-nav-status docs-nav-status--{{ item_status | lower }}">{{ item_status | capitalize }}</span>
+        {% end %}
       </a>
       {% else %}
       <span class="docs-nav-link{{ ' docs-nav-link--section' if is_section else '' }}">

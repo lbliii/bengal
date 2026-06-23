@@ -40,6 +40,7 @@ For automatic routing based on hero_style, use:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/page-meta-actions.html' import page_meta_toolbar %}
 
 {# =============================================================================
 HELPER MACROS (internal)
@@ -210,6 +211,13 @@ instead of filters for better performance (cached on first access).
 {% end %}
 {% end %}
 
+{# Docs chrome: edit-this-page + feedback (shown on editorial/doc heroes) #}
+{% def _hero_page_meta(page) %}
+{% if page %}
+{{ page_meta_toolbar(page, show_edit=true, show_feedback=true) }}
+{% end %}
+{% end %}
+
 {# =============================================================================
 ELEMENT BADGES MACRO (internal)
 
@@ -318,6 +326,7 @@ KIDA FEATURES:
 
     {# Unified Metadata Row (DRY) #}
     {{ _hero_metadata(page, params, theme) }}
+    {{ _hero_page_meta(page) }}
 </div>
 {% end %}
 {% end %}
@@ -350,6 +359,7 @@ KIDA FEATURES:
 
     {# Unified Metadata Row (DRY) #}
     {{ _hero_metadata(page, params, theme) }}
+    {{ _hero_page_meta(page) }}
 </div>
 {% end %}
 {% end %}

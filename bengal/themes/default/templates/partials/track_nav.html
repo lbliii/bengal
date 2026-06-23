@@ -1,6 +1,6 @@
 {% set current_slug = page.source_path | string | replace('.md', '') %}
 
-{# Check if page is in any track defined in site.data.tracks #}
+{# Inline track navigation for doc pages following a learning-track path #}
 {% if site.data.tracks %}
 {% for track_id, track in site.data.tracks | items %}
 {% if current_slug in track.items %}
@@ -8,56 +8,57 @@
 {% set current_index = track.items.index(current_slug) %}
 {% set prev_slug = track.items[current_index - 1] if current_index > 0 else None %}
 {% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %}
+{% set progress_pct = ((current_index + 1) / track.items|length) * 100 %}
 
-{# Track Navigation Component #}
-<div class="track-navigation card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-            <span class="badge bg-primary me-2">Track</span>
-            <strong>{{ track.title }}</strong>
-        </div>
-        <span class="text-muted small">{{ current_index + 1 }} of {{ track.items|length }}</span>
+<div class="track-navigation">
+  <div class="track-navigation__header cluster cluster-between">
+    <div class="track-navigation__title-group cluster">
+      <span class="badge badge-primary">{{ t('track.label', default='Track') }}</span>
+      <strong class="track-navigation__title">{{ track.title }}</strong>
     </div>
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="track-navigation__step text-secondary">{{ current_index + 1 }} / {{ track.items|length }}</span>
+  </div>
 
-            {% if prev_slug %}
-            {% set prev_page = get_page(prev_slug) %}
-            {% if prev_page %}
-            <a href="{{ prev_page.href }}" class="btn btn-outline-primary btn-sm">
-                &larr; {{ prev_page.title }}
-            </a>
-            {% else %}
-            <span class="text-muted small">&larr; Previous (Missing)</span>
-            {% end %}
-            {% else %}
-            <span class="text-muted small">Start of Track</span>
-            {% end %}
+  <div class="track-navigation__body">
+    <div class="track-navigation__nav cluster cluster-between">
+      {% if prev_slug %}
+      {% set prev_page = get_page(prev_slug) %}
+      {% if prev_page %}
+      <a href="{{ prev_page.href }}" class="button button-outline button-primary button-sm">
+        &larr; {{ prev_page.title }}
+      </a>
+      {% else %}
+      <span class="track-navigation__placeholder text-secondary">&larr; {{ t('track.previous_missing', default='Previous (missing)') }}</span>
+      {% end %}
+      {% else %}
+      <span class="track-navigation__placeholder text-secondary">{{ t('track.start', default='Start of track') }}</span>
+      {% end %}
 
-            {% if next_slug %}
-            {% set next_page = get_page(next_slug) %}
-            {% if next_page %}
-            <a href="{{ next_page.href }}" class="btn btn-primary btn-sm">
-                {{ next_page.title }} &rarr;
-            </a>
-            {% else %}
-            <span class="text-muted small">Next (Missing) &rarr;</span>
-            {% end %}
-            {% else %}
-            <a href="{{ '/tracks/' | absolute_url }}" class="btn btn-success btn-sm">Finish Track &check;</a>
-            {% end %}
-
-        </div>
-
-        <div class="progress" style="height: 4px;">
-            <div class="progress-bar" role="progressbar"
-                style="width: {{ ((current_index + 1) / track.items|length) * 100 }}%"
-                aria-valuenow="{{ ((current_index + 1) / track.items|length) * 100 }}" aria-valuemin="0"
-                aria-valuemax="100"></div>
-        </div>
-    </div>
+      {% if next_slug %}
+      {% set next_page = get_page(next_slug) %}
+      {% if next_page %}
+      <a href="{{ next_page.href }}" class="button button-primary button-sm">
+        {{ next_page.title }} &rarr;
+      </a>
+      {% else %}
+      <span class="track-navigation__placeholder text-secondary">{{ t('track.next_missing', default='Next (missing)') }} &rarr;</span>
+      {% end %}
+      {% else %}
+      <a href="{{ '/tracks/' | absolute_url }}" class="button button-primary button-sm">
+        {{ t('track.finish', default='Finish track') }} &check;
+      </a>
+      {% end %}
     </div>
 
-    {% end %}
-    {% end %}
-    {% end %}
+    <div class="track-navigation__progress progress" role="progressbar"
+      aria-valuenow="{{ progress_pct | round }}" aria-valuemin="0" aria-valuemax="100"
+      aria-label="{{ t('track.progress', default='Track progress') }}">
+      <div class="track-navigation__progress-bar progress-bar" id="track-progress-bar"
+        style="width: {{ progress_pct }}%"></div>
+    </div>
+  </div>
+</div>
+
+{% end %}
+{% end %}
+{% end %}

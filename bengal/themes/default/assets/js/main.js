@@ -40,6 +40,20 @@
    */
   function setupDelegatedCodeCopy() {
     document.addEventListener('click', function (e) {
+      const wrapButton = e.target.closest('.code-wrap-toggle');
+      if (wrapButton) {
+        e.preventDefault();
+        const wrapper = wrapButton.closest('.code-block-wrapper, .highlight, pre');
+        const pre = wrapper?.querySelector('pre');
+        if (pre) {
+          pre.classList.toggle('code-block--wrap');
+          const wrapped = pre.classList.contains('code-block--wrap');
+          wrapButton.setAttribute('aria-pressed', wrapped ? 'true' : 'false');
+          wrapButton.setAttribute('aria-label', wrapped ? 'Disable word wrap' : 'Enable word wrap');
+        }
+        return;
+      }
+
       const button = e.target.closest('.code-copy-button');
       if (!button) return;
 
@@ -168,9 +182,14 @@
    * Setup scroll animations fallback (for browsers without scroll-driven animations)
    */
   function setupScrollAnimations() {
+    const scrollRevealRoot = document.querySelector('.scroll-reveal-root');
+    const selector = scrollRevealRoot
+      ? '.scroll-reveal-root .prose > *, .fade-in-on-scroll, .stagger-fade-in > *'
+      : '.fade-in-on-scroll, .stagger-fade-in > *';
+
     // Only setup fallback if browser doesn't support scroll-driven animations
     if (!CSS.supports('animation-timeline', 'scroll()')) {
-      const animatedElements = document.querySelectorAll('.stagger-fade-in > *');
+      const animatedElements = document.querySelectorAll(selector);
 
       if (animatedElements.length === 0) return;
 

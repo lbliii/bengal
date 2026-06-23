@@ -61,6 +61,17 @@ def test_parse_shard_matches_in_process_parse(site_factory, root):
     content_dir = site.root_path / "content"
 
     files = discover_content_files(content_dir, site=site)
+
+    # child-cards on test-navigation's docs/_index.md keys the global directive cache
+    # by content hash (not site id). Under xdist a prior test on this worker can leave
+    # stale entries that skew parse_shard without touching the oracle build's hashes.
+    from bengal.cache import directive_cache
+    from bengal.utils.cache_registry import clear_all_caches
+
+    clear_all_caches()
+    directive_cache.clear_cache()
+    directive_cache.configure_for_site(site)
+
     reparsed = parse_shard(files, site, content_dir=content_dir)
 
     in_proc = {p.source_path: p for p in site.pages}

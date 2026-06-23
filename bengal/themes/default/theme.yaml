@@ -10,9 +10,12 @@ features:
     prev_next: true
     tabs: false
     back_to_top: true
+    view_transitions: true
+    scroll_reveals: true
   content:
     code.copy: true
     code.annotate: false
+    code.word_wrap: true
     tabs.link: false
     lightbox: true
     math: false
@@ -21,6 +24,7 @@ features:
     author: true
     excerpts: true
     children: true
+    motion_signature: true
   search:
     suggest: true
     highlight: true

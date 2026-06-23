@@ -4,9 +4,9 @@
 {% let _theme_menu_id = theme_menu_id ?? 'theme-menu' %}
 
 {# HELPER: Render a theme option button #}
-{% def theme_option(type, value, label_key, default_label, icon_name=none) %}
+{% def theme_option(type, value, label_key, default_label, icon_name=none, swatch=none) %}
 <button type="button" data-{{ type }}="{{ value }}" class="theme-option">
-    {% if icon_name %}{{ icon(icon_name, size=18) }}{% end %}
+    {% if swatch %}<span class="theme-option__swatch" data-palette-swatch="{{ swatch }}" aria-hidden="true"></span>{% elif icon_name %}{{ icon(icon_name, size=18) }}{% end %}
     <span>{{ t(label_key, default=default_label) }}</span>
 </button>
 {% end %}
@@ -30,11 +30,11 @@
         </fieldset>
         <fieldset class="theme-menu-section">
             <legend class="separator">{{ t('theme.palette', default='Palette') }}</legend>
-            {{ theme_option('palette', 'snow-lynx', 'theme.palette_snow_lynx', 'Snow Lynx') }}
-            {{ theme_option('palette', 'brown-bengal', 'theme.palette_brown_bengal', 'Brown Bengal') }}
-            {{ theme_option('palette', 'silver-bengal', 'theme.palette_silver_bengal', 'Silver Bengal') }}
-            {{ theme_option('palette', 'charcoal-bengal', 'theme.palette_charcoal_bengal', 'Charcoal Bengal') }}
-            {{ theme_option('palette', 'blue-bengal', 'theme.palette_blue_bengal', 'Blue Bengal') }}
+            {{ theme_option('palette', 'snow-lynx', 'theme.palette_snow_lynx', 'Snow Lynx', swatch='snow-lynx') }}
+            {{ theme_option('palette', 'brown-bengal', 'theme.palette_brown_bengal', 'Brown Bengal', swatch='brown-bengal') }}
+            {{ theme_option('palette', 'silver-bengal', 'theme.palette_silver_bengal', 'Silver Bengal', swatch='silver-bengal') }}
+            {{ theme_option('palette', 'charcoal-bengal', 'theme.palette_charcoal_bengal', 'Charcoal Bengal', swatch='charcoal-bengal') }}
+            {{ theme_option('palette', 'blue-bengal', 'theme.palette_blue_bengal', 'Blue Bengal', swatch='blue-bengal') }}
         </fieldset>
     </div>
 </div>
