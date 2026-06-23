@@ -43,6 +43,15 @@ _COLLAPSIBLE_BLOCK_RE = re.compile(
     r"(</div>)",
     re.IGNORECASE,
 )
+_TITLE_BEFORE_RE = re.compile(
+    r'<div class="code-block-title">([^<]*)</div>\s*$',
+    re.IGNORECASE,
+)
+_DEDUPE_EDITOR_TITLE_RE = re.compile(
+    r'(<div class="code-block-titled">\s*)<div class="code-block-title">[^<]*</div>\s*'
+    r'(<div class="code-block-wrapper[^"]*\bcode-block-frame--editor\b[^"]*")',
+    re.IGNORECASE,
+)
 _ENHANCED_CODE_MARKER = "data-bengal-code-chrome"
 _HIGHLIGHT_ROOT_CLASSES = frozenset({"rosettes", "highlight"})
 
@@ -213,8 +222,8 @@ def _parse_annotations(spec: str) -> dict[int, str]:
     return annotations
 
 
-def _build_toolbar(lang: str, *, overlay: bool = False) -> str:
-    lang_label = f'<span class="code-language">{lang}</span>' if lang else ""
+def _build_toolbar(lang: str, *, overlay: bool = False, show_lang: bool = True) -> str:
+    lang_label = f'<span class="code-language">{lang}</span>' if lang and show_lang else ""
     overlay_classes = " code-block-toolbar--overlay code-header-inline" if overlay else ""
     return (
         f'<div class="code-block-toolbar{overlay_classes}">'
@@ -223,18 +232,64 @@ def _build_toolbar(lang: str, *, overlay: bool = False) -> str:
     )
 
 
-def _build_frame_chrome(frame: str, lang: str) -> str:
-    dots = ""
+def _frame_dots() -> str:
+    return (
+        '<div class="code-block-frame-dots" aria-hidden="true">'
+        '<span class="code-block-frame-dot"></span>'
+        '<span class="code-block-frame-dot"></span>'
+        '<span class="code-block-frame-dot"></span>'
+        "</div>"
+    )
+
+
+def _editor_tab_label(filename: str, lang: str) -> str:
+    if filename:
+        return filename
+    if lang:
+        return lang.lower()
+    return "untitled"
+
+
+def _build_editor_tab(filename: str, lang: str) -> str:
+    label = html_mod.escape(_editor_tab_label(filename, lang))
+    return (
+        '<div class="code-block-tabs" role="presentation">'
+        f'<div class="code-block-tab code-block-tab--active">'
+        f'<span class="code-block-tab__icon" aria-hidden="true"></span>'
+        f'<span class="code-block-tab__label">{label}</span>'
+        "</div>"
+        "</div>"
+    )
+
+
+def _extract_title_from_context(html: str, pos: int) -> str:
+    window = html[max(0, pos - 500) : pos]
+    if "code-block-titled" not in window:
+        return ""
+    match = _TITLE_BEFORE_RE.search(window)
+    if not match:
+        return ""
+    return html_mod.unescape(match.group(1).strip())
+
+
+def _resolve_editor_filename(div_attrs: str, html: str, pos: int) -> str:
+    return _attr_value(div_attrs, "data-title") or _extract_title_from_context(html, pos)
+
+
+def _build_frame_chrome(frame: str, lang: str, *, filename: str = "") -> str:
     if frame == "terminal":
-        dots = (
-            '<div class="code-block-frame-dots" aria-hidden="true">'
-            '<span class="code-block-frame-dot"></span>'
-            '<span class="code-block-frame-dot"></span>'
-            '<span class="code-block-frame-dot"></span>'
-            "</div>"
+        toolbar = _build_toolbar(lang, overlay=False)
+        return (
+            f'<div class="code-block-chrome code-block-chrome--{frame}">'
+            f"{_frame_dots()}{toolbar}</div>"
         )
-    toolbar = _build_toolbar(lang, overlay=False)
-    return f'<div class="code-block-chrome code-block-chrome--{frame}">{dots}{toolbar}</div>'
+
+    tab = _build_editor_tab(filename, lang)
+    toolbar = _build_toolbar(lang, overlay=False, show_lang=not filename)
+    return (
+        f'<div class="code-block-chrome code-block-chrome--editor">'
+        f"{_frame_dots()}{tab}{toolbar}</div>"
+    )
 
 
 def _wrapper_classes(div_attrs: str, *, in_titled_block: bool = False) -> str:
@@ -297,6 +352,8 @@ def _wrap_pre_code(
     *,
     div_attrs: str = "",
     in_titled_block: bool = False,
+    source_html: str = "",
+    source_pos: int = 0,
 ) -> str:
     lang = _attr_value(div_attrs, "data-language").upper() or _language_from_code_tag(open_pre)
     annotations = _parse_annotations(_attr_value(div_attrs, "data-annotate"))
@@ -311,7 +368,12 @@ def _wrap_pre_code(
     frame = _attr_value(div_attrs, "data-frame") or ("editor" if in_titled_block else "")
 
     if frame:
-        chrome = _build_frame_chrome(frame, lang)
+        filename = (
+            _resolve_editor_filename(div_attrs, source_html, source_pos)
+            if frame == "editor"
+            else ""
+        )
+        chrome = _build_frame_chrome(frame, lang, filename=filename)
         return (
             f'<div class="{wrapper_class}" {_ENHANCED_CODE_MARKER}="true">'
             f'{chrome}<div class="code-block-body">{body}</div></div>'
@@ -339,6 +401,8 @@ def _enhance_highlighted_block(match: re.Match[str]) -> str:
         pre_match.group(3),
         div_attrs=div_attrs,
         in_titled_block="code-block-titled" in match.string[: match.start()],
+        source_html=match.string,
+        source_pos=match.start(),
     )
     return _absorb_highlight_root(open_div, wrapped)
 
@@ -357,6 +421,8 @@ def _wrap_plain_pre_code(match: re.Match[str]) -> str:
         match.group(2),
         match.group(3),
         in_titled_block=in_titled,
+        source_html=match.string,
+        source_pos=match.start(),
     )
 
 
@@ -388,6 +454,7 @@ def inject_code_copy_chrome(html: str) -> str:
 
     html = _HIGHLIGHTED_BLOCK_RE.sub(_enhance_highlighted_block, html)
     html = _PRE_CODE_RE.sub(_wrap_plain_pre_code, html)
+    html = _DEDUPE_EDITOR_TITLE_RE.sub(r"\1\2", html)
     html = _wrap_collapsible_blocks(html)
     return html
 
