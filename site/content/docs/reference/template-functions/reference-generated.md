@@ -120,6 +120,13 @@ Use with the pipe operator: `{{ value | filter_name }}` or `{{ value |> filter_n
 | `round` | `round_filter` |
 | `safe_html` | `safe_html` |
 | `sample` | `sample` |
+| `schema_additional_properties` | `schema_additional_properties` |
+| `schema_composition` | `schema_composition` |
+| `schema_constraints` | `schema_constraints` |
+| `schema_examples` | `schema_examples` |
+| `schema_flags` | `schema_flags` |
+| `schema_ref` | `schema_ref` |
+| `schema_view` | `schema_view_filter` |
 | `schemas` | `schemas_filter` |
 | `shuffle` | `shuffle` |
 | `slugify` | `slugify` |
@@ -159,6 +166,8 @@ Use with the pipe operator: `{{ value | filter_name }}` or `{{ value |> filter_n
 | `word_count` | `word_count` |
 | `wordcount` | `word_count` |
 | `wrap` | `wrap_text` |
+| `xref_docstring` | `_xref_docstring` |
+| `xref_type` | `_xref_type` |
 
 ## Functions
 
@@ -206,7 +215,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `get_version_target_url` | `get_version_target_url_wrapper` |
 | `hackernews_share_url` | `hackernews_share_url` |
 | `highlight_path_params` | `highlight_path_params` |
-| `icon` | `icon` |
+| `icon` | `site_icon` |
 | `image_data_uri` | `image_data_uri_with_site` |
 | `image_dimensions` | `image_dimensions_with_site` |
 | `image_srcset_gen` | `image_srcset_gen` |
@@ -223,6 +232,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `notebook_download_url` | `notebook_download_url_with_site` |
 | `nt` | `nt` |
 | `og_image` | `og_image_with_site` |
+| `og_type` | `og_type` |
 | `option_view` | `option_view_filter` |
 | `options` | `options_filter` |
 | `page_exists` | `page_exists_wrapper` |
@@ -238,19 +248,23 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `ref` | `ref_with_site` |
 | `related_posts` | `related_posts_with_site` |
 | `relref` | `relref_with_site` |
-| `render_icon` | `icon` |
+| `render_icon` | `site_icon` |
 | `resources` | `ResourcesProxy` |
 | `return_type` | `return_type` |
+| `schema_view` | `schema_view_filter` |
 | `section_href` | `section_href` |
 | `section_pages` | `section_pages_wrapper` |
 | `share_url` | `share_url_with_site` |
 | `status_code_class` | `status_code_class` |
+| `structured_data_type` | `structured_data_type` |
 | `t` | `t` |
 | `tag_url` | `tag_url` |
 | `twitter_share_url` | `twitter_share_url` |
 | `url_for` | `url_for_with_site` |
 | `url_for_path` | `url_for_path_with_site` |
 | `xref` | `ref_with_site` |
+| `xref_docstring` | `_xref_docstring` |
+| `xref_type` | `_xref_type` |
 
 ## See Also
 

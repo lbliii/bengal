@@ -298,7 +298,7 @@ Generate a link to external documentation (Python stdlib, third-party libraries,
 </p>
 ```
 
-**See also**: [[docs/content/authoring/external-references|External References Guide]]
+**See also**: [[docs/build-sites/write/authoring/external-references|External References Guide]]
 
 ## ext_exists
 
@@ -342,7 +342,7 @@ Check if an external reference is resolvable before rendering.
 </ul>
 ```
 
-**See also**: [[docs/content/authoring/external-references|External References Guide]]
+**See also**: [[docs/build-sites/write/authoring/external-references|External References Guide]]
 
 ---
 

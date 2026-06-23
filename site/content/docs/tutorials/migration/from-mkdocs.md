@@ -314,7 +314,7 @@ This is a major simplification. Add a page, and it appears in nav automatically.
 | `footnotes` | Built-in | Standard markdown |
 | `meta` | Built-in | YAML frontmatter |
 | `pymdownx.emoji` | Not built-in | Use unicode emoji |
-| `pymdownx.arithmatex` | Built-in | KaTeX math; enable `content.math` in theme features — [[docs/content/authoring/math|Math and LaTeX]] |
+| `pymdownx.arithmatex` | Built-in | KaTeX math; enable `content.math` in theme features — [[docs/build-sites/write/authoring/math|Math and LaTeX]] |
 
 ---
 
@@ -640,7 +640,7 @@ Bengal has built-in autodoc that generates Python API documentation. Configure i
 :::{dropdown} Can I use MkDocs plugins?
 :icon: question
 
-MkDocs plugins are not compatible. However, most popular plugin functionality is built into Bengal: search, tags, blog, API docs, diagrams (Mermaid), math (KaTeX). Enable `content.math` in theme features for math rendering. See [[docs/content/authoring/math|Math and LaTeX]] and the directives reference for equivalents.
+MkDocs plugins are not compatible. However, most popular plugin functionality is built into Bengal: search, tags, blog, API docs, diagrams (Mermaid), math (KaTeX). Enable `content.math` in theme features for math rendering. See [[docs/build-sites/write/authoring/math|Math and LaTeX]] and the directives reference for equivalents.
 :::
 
 :::{dropdown} What about the explicit nav in mkdocs.yml?
@@ -655,5 +655,5 @@ Bengal auto-generates navigation from your directory structure. Use `weight` fro
 
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration Reference](/docs/building/configuration/) - Full config options
+- [Configuration Reference](/docs/ship/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

@@ -51,5 +51,5 @@ For automatic build-time generation, pre-process images or use a CDN with on-the
 :::{seealso}
 - [[docs/about/comparison|Key Capabilities]]
 - [[docs/about/faq|FAQ]]
-- [[docs/theming/templating/image-processing|Image Processing]]
+- [[docs/build-sites/customize/templating/image-processing|Image Processing]]
 :::

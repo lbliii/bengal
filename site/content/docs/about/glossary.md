@@ -210,6 +210,6 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 
 :::{seealso}
 - [[docs/about/concepts|Core Concepts]] — Detailed explanations of how Bengal works
-- [[docs/reference/architecture/tooling/config|Configuration Reference]] — All configuration options
+- [Configuration Reference](https://github.com/lbliii/bengal/tree/main/docs/architecture/tooling/config/) — All configuration options
 - [[docs/about/faq|FAQ]] — Answers to common questions
 :::

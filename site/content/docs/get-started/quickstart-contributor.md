@@ -202,6 +202,6 @@ Bengal provides a comprehensive CLI with aliases for common operations:
 ## Next Steps
 
 - **[[docs/reference/architecture|Architecture]]** — Understand Bengal's internals
-- **[[docs/reference/architecture/meta/testing|Testing Patterns]]** — Test best practices
+- **[Testing Patterns](https://github.com/lbliii/bengal/tree/main/docs/architecture/meta/testing)** — Test best practices
 - **[[docs/about|About Bengal]]** — Philosophy, benchmarks, and FAQ
 - **`CONTRIBUTING.md`** — Full contribution guidelines (in repo root)

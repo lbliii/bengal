@@ -15,7 +15,7 @@ Automate builds, deployments, and site quality checks.
 
 :::{note}
 **Do I need this?** Yes when wiring CI/CD or running graph analysis at scale.
-For deployment basics, start with [[docs/building/deployment|Deployment]].
+For deployment basics, start with [[docs/ship/deployment|Deployment]].
 :::
 
 :::{child-cards}

@@ -1649,6 +1649,6 @@ If you encounter a health check issue:
 1. Check this page for the code (Ctrl+F / Cmd+F)
 2. Review the suggested fix
 3. Run with `--verbose` for more details
-4. Check the [troubleshooting guide](/docs/building/troubleshooting/)
+4. Check the [troubleshooting guide](/docs/ship/troubleshooting/)
 
 For bugs or unclear errors, please [open an issue](https://github.com/lbliii/bengal/issues).

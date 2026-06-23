@@ -26,7 +26,7 @@ Set up continuous integration and deployment (CI/CD) for your Bengal site.
 
 :::{note}
 **Do I need this?** Yes when automating builds, preview deploys, or CI validation.
-For a manual deploy checklist, see [[docs/building/deployment|Deployment]] first.
+For a manual deploy checklist, see [[docs/ship/deployment|Deployment]] first.
 :::
 
 Automate builds, run tests, and deploy to production with GitHub Actions.
@@ -332,7 +332,7 @@ jobs:
           path: public/
 ```
 
-Ensure `config/environments/oss.yaml` and `config/environments/enterprise.yaml` set `params.edition` accordingly. See [Multi-Variant Builds](/docs/building/configuration/variants) for full setup.
+Ensure `config/environments/oss.yaml` and `config/environments/enterprise.yaml` set `params.edition` accordingly. See [Multi-Variant Builds](/docs/ship/configuration/variants) for full setup.
 :::{/step}
 :::{/steps}
 
@@ -449,7 +449,7 @@ Create `vercel.json`:
 
 ## Next Steps
 
-- **[Deployment Options](/docs/building/deployment/)** — Explore other hosting platforms
-- **[Configuration](/docs/building/configuration/)** — Environment-specific settings
-- **[Health Checks](/docs/content/validation/)** — Set up content validation
+- **[Deployment Options](/docs/ship/deployment/)** — Explore other hosting platforms
+- **[Configuration](/docs/ship/configuration/)** — Environment-specific settings
+- **[Health Checks](/docs/ship/validate/)** — Set up content validation
 - **[Graph Analysis](/docs/tutorials/operations/analyze-site-connectivity/)** — Add connectivity checks to CI

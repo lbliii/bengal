@@ -697,7 +697,7 @@ Bengal includes image processing with similar capabilities to Hugo:
      sizes="(max-width: 640px) 400px, 800px">
 ```
 
-Supported operations: `fill`, `fit`, `resize`, format conversion (WebP, AVIF), quality control, and anchor points for cropping. See [[docs/theming/templating/image-processing|Image Processing]] for details.
+Supported operations: `fill`, `fit`, `resize`, format conversion (WebP, AVIF), quality control, and anchor points for cropping. See [[docs/build-sites/customize/templating/image-processing|Image Processing]] for details.
 :::
 
 ---
@@ -711,6 +711,6 @@ Supported operations: `fill`, `fit`, `resize`, format conversion (WebP, AVIF), q
 ## Next Steps
 
 - [Directives Reference](/docs/reference/directives/) - Complete directive reference
-- [Configuration Reference](/docs/building/configuration/) - Full config options
+- [Configuration Reference](/docs/ship/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference
 - [Theme Variables](/docs/reference/theme-variables/) - Customize themes

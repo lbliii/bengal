@@ -28,7 +28,7 @@ In this tutorial, you'll learn how to **swizzle** (copy) templates from Bengal's
 :::{note}
 **Do I need this?** Yes when customizing default theme templates without forking.
 Try [[docs/get-started/quickstart-themer|Themer Quickstart]] first. For CSS-only
-changes, see [[docs/theming/themes/customize|Customize the Default Theme]].
+changes, see [[docs/build-sites/customize/themes/customize|Customize the Default Theme]].
 :::
 
 ## Goal
@@ -562,10 +562,10 @@ In this tutorial, you:
 
 Now that you can swizzle templates, explore further:
 
-- **[Theme Customization Guide](/docs/theming/themes/customize/)** — Deep dive into advanced customization techniques
-- **[Template Reference](/docs/theming/templating/)** — Learn about [[ext:kida:|Kida]] templates and available functions
+- **[Theme Customization Guide](/docs/build-sites/customize/themes/customize/)** — Deep dive into advanced customization techniques
+- **[Template Reference](/docs/build-sites/customize/templating/)** — Learn about [[ext:kida:|Kida]] templates and available functions
 - **[Variables Reference](/docs/reference/theme-variables/)** — Discover all template variables available
-- **[Assets Guide](/docs/theming/assets/)** — Customize CSS and JavaScript
+- **[Assets Guide](/docs/build-sites/customize/assets/)** — Customize CSS and JavaScript
 
 ## Summary
 

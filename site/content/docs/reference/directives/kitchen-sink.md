@@ -51,13 +51,13 @@ Critical — data loss, security, or irreversible action possible.
 
 :::{card} Cards
 :icon: layout
-:link: ./layout/
+:link: ./layout.md
 Two-column card grid for navigation and feature highlights.
 :::
 
 :::{card} Child Cards
 :icon: folder
-:link: ./layout/
+:link: ./layout.md
 Auto-generates cards from section children via `{child-cards}`.
 :::
 
@@ -167,6 +167,6 @@ OpenAPI autodoc now generates one page per endpoint by default.
 
 ## Next Steps
 
-- [[docs/content/authoring/callouts|Authoring → Callouts]] — when to use each admonition type
-- [[docs/content/authoring/interactive|Authoring → Interactive]] — tabs, steps, and checklists in guides
+- [[docs/build-sites/write/authoring/callouts|Authoring → Callouts]] — when to use each admonition type
+- [[docs/build-sites/write/authoring/interactive|Authoring → Interactive]] — tabs, steps, and checklists in guides
 - [[docs/get-started/quickstart-writer|Writer Quickstart]] — put directives to work in your first site

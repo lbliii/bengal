@@ -25,37 +25,37 @@ or a focused [[docs/tutorials|Tutorial]] instead.
 :gap: small
 
 :::{card} Blog
-:link: "#blog-author-workflow"
+:link: /docs/tutorials/user-scenarios/#blog-author-workflow
 :icon: edit
 Date-sorted posts, categories, RSS, pagination.
 :::
 
 :::{card} Documentation
-:link: "#documentation-site"
+:link: /docs/tutorials/user-scenarios/#documentation-site
 :icon: book-open
 Search, versioning, hierarchical nav.
 :::
 
 :::{card} Portfolio
-:link: "#portfolio-site"
+:link: /docs/tutorials/user-scenarios/#portfolio-site
 :icon: image
 Project showcases and featured work.
 :::
 
 :::{card} Mixed Content
-:link: "#mixed-content-site"
+:link: /docs/tutorials/user-scenarios/#mixed-content-site
 :icon: layers
 Blog, docs, and portfolio on one site.
 :::
 
 :::{card} Multi-Variant
-:link: "#multi-variant-site"
+:link: /docs/tutorials/user-scenarios/#multi-variant-site
 :icon: git-branch
 One repo, multiple deployed editions.
 :::
 
 :::{card} More Scenarios
-:link: [[docs/tutorials/user-scenarios-specialized|Specialized Scenarios]]
+:link: /docs/tutorials/user-scenarios-specialized/
 :icon: ellipsis
 i18n, landing pages, resume, changelog.
 :::
@@ -160,7 +160,7 @@ content/
 ### 3. Configure Search
 
 Search is enabled by default for the docs template (`index.json` output). See
-[[docs/building/configuration|Configuration]] to customize search behavior.
+[[docs/ship/configuration|Configuration]] to customize search behavior.
 
 ### 4. Add Navigation
 
@@ -375,11 +375,11 @@ bengal build --environment enterprise
 Deploy each build to its own URL (e.g., `docs.example.com` and `enterprise.example.com`). Use CI matrix jobs or separate workflows per variant.
 
 :::{seealso}
-[[docs/building/configuration/variants|Multi-Variant Builds]] — cascade, CI/CD, and env overrides
+[[docs/ship/configuration/variants|Multi-Variant Builds]] — cascade, CI/CD, and env overrides
 :::
 
 ## Next Steps
 
 - See [[docs/reference/site-templates|Templates Reference]] for template details
-- Read [[docs/building/configuration|Configuration Guide]] for advanced settings
-- Explore [[docs/theming|Theming]] for customization
+- Read [[docs/ship/configuration|Configuration Guide]] for advanced settings
+- Explore [[docs/build-sites/customize|Theming]] for customization

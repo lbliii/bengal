@@ -194,7 +194,7 @@ bengal theme swizzle --template-path partials/header.html
 
 ## Next Steps
 
-- **[[docs/theming/themes/customize|Theme Customization]]** — Deep dive into overrides
-- **[[docs/theming/templating/functions|Template Functions]]** — All available filters and functions
+- **[[docs/build-sites/customize/themes/customize|Theme Customization]]** — Deep dive into overrides
+- **[[docs/build-sites/customize/templating/functions|Template Functions]]** — All available filters and functions
 - **[[docs/reference/theme-variables|Variables Reference]]** — Complete template variables
-- **[[docs/theming/assets|Assets]]** — CSS, JS, and image handling
+- **[[docs/build-sites/customize/assets|Assets]]** — CSS, JS, and image handling

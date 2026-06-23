@@ -27,7 +27,7 @@ Bengal provides built-in templates to quickly create sites with common informati
 **Do I need this?** Yes when you want to compare templates or scaffold manually.
 For the fastest path, use [[docs/get-started/quickstart-writer|Writer Quickstart]].
 For YAML-driven scaffolds, see
-[[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]].
+[[docs/examples/sites/skeleton-quickstart|Skeleton YAML Quickstart]].
 :::
 
 This tutorial covers three ways to scaffold a site.
@@ -211,13 +211,13 @@ materializes it automatically during `bengal new site`.
 bengal new site api-docs --template api-docs
 ```
 
-See [[docs/extending/custom-skeletons|Create Custom Skeletons]] for the full guide on writing skeleton YAML files.
+See [[docs/build-sites/extend/custom-skeletons|Create Custom Skeletons]] for the full guide on writing skeleton YAML files.
 
 ## Next Steps
 
-- [Configuration Reference](/docs/building/configuration/) - Detailed config options
-- [Content Organization](/docs/content/organization/) - Structuring your content
-- [Theming Guide](/docs/theming/) - Customize appearance
+- [Configuration Reference](/docs/ship/configuration/) - Detailed config options
+- [Content Organization](/docs/build-sites/structure/organization/) - Structuring your content
+- [Theming Guide](/docs/build-sites/customize/) - Customize appearance
 
 ## Troubleshooting
 

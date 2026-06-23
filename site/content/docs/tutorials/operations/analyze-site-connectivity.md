@@ -27,7 +27,7 @@ Use Bengal's graph analysis tools to find orphan pages and improve internal link
 
 :::{note}
 **Do I need this?** Yes for sites with 50+ pages or connectivity issues in CI.
-Skip for small sites — [[docs/content/analysis|Site Analysis]] covers the commands.
+Skip for small sites — [[docs/build-sites/structure/analysis|Site Analysis]] covers the commands.
 :::
 
 **Time:** 15-20 minutes
@@ -175,8 +175,8 @@ bengal graph orphans --level lightly
 #    Score    Path                                          Title
 ------------------------------------------------------------------------------------------
 1    0.50     content/authors/lbliii.md                     Lawrence Lane
-2    0.50     content/docs/content/analysis/graph.md        Graph Analysis
-3    0.50     content/docs/content/component-model.md       The Component Model
+2    0.50     content/docs/build-sites/structure/analysis/graph.md        Graph Analysis
+3    0.50     content/docs/build-sites/component-model.md       The Component Model
 4    0.75     content/docs/about/glossary.md                Glossary
 5    0.75     content/docs/reference/cheatsheet.md          Cheatsheet
 ...
@@ -286,7 +286,7 @@ grep -r "defined in" content/docs/ --include="*.md"
 In related pages, add links:
 
 ```markdown
-<!-- In content/docs/building/configuration/_index.md -->
+<!-- In content/docs/ship/configuration/_index.md -->
 For definitions of these terms, see the [Glossary](/docs/about/glossary/).
 ```
 
@@ -444,9 +444,9 @@ You've learned to:
 
 ## Next Steps
 
-- [Graph Analysis Reference](/docs/content/analysis/graph/) — Full command documentation
-- [Health Check System](/docs/reference/architecture/subsystems/health/) — Automated validation
-- [SEO Best Practices](/docs/building/performance/) — Optimize for search engines
+- [Graph Analysis Reference](/docs/build-sites/structure/analysis/graph/) — Full command documentation
+- [Health Check System](https://github.com/lbliii/bengal/tree/main/docs/architecture/subsystems/health/) — Automated validation
+- [SEO Best Practices](/docs/ship/performance/) — Optimize for search engines
 
 ---
 

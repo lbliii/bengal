@@ -129,10 +129,10 @@ Common frontmatter fields:
 
 ## Next Steps
 
-- **[[docs/tutorials/sites/build-a-blog|Build a Blog]]** — Full tutorial
-- **[[docs/content/authoring|Content Authoring]]** — Markdown features
-- **[[docs/content/organization|Content Organization]]** — Structure your content
-- **[[docs/content/organization/component-model#type|Type System]]** — Content types and templates
-- **[[docs/theming|Theming]]** — Customize appearance
+- **[[docs/examples/sites/build-a-blog|Build a Blog]]** — Full tutorial
+- **[[docs/build-sites/write/authoring|Content Authoring]]** — Markdown features
+- **[[docs/build-sites/structure/organization|Content Organization]]** — Structure your content
+- **[[docs/build-sites/structure/organization/component-model#type|Type System]]** — Content types and templates
+- **[[docs/build-sites/customize|Theming]]** — Customize appearance
 
 Happy writing! 🎉

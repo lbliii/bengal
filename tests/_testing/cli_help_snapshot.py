@@ -14,9 +14,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_SNAPSHOT = (
     _REPO_ROOT / "tests" / "unit" / "docs" / "fixtures" / "cli_root_help_commands.txt"
 )
-_CLI_DOC = (
-    _REPO_ROOT / "site" / "content" / "docs" / "reference" / "architecture" / "tooling" / "cli.md"
-)
+_CLI_DOC = _REPO_ROOT / "docs" / "architecture" / "tooling" / "cli.md"
 
 _VERSION_LINE_RE = re.compile(r"^(?:ᓚᘏᗢ )?bengal \d+\.\d+\.\d+\S*")
 

@@ -61,6 +61,7 @@ def _collect_registrations() -> tuple[dict[str, str], dict[str, str]]:
         pages=[],
         config={},
         baseurl="",
+        theme="default",
     )
 
     from bengal.rendering.template_functions import register_all

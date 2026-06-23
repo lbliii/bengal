@@ -103,7 +103,7 @@ Your docs are consumed by AI agents as much as by humans. Bengal generates machi
 - **Per-page JSON** — metadata, plain text, optional heading-level chunks for RAG
 - **Content Signals** — per-page/section control over search, AI input, and training ([spec](https://contentsignals.org/))
 
-See [AI-Native Output](/docs/building/ai-native-output/) for the full story.
+See [AI-Native Output](/docs/ship/ai-native-output/) for the full story.
 
 ## Getting Started
 
@@ -120,5 +120,5 @@ The docs template creates a ready-to-use structure with getting-started, guides,
 - [Benchmarks](../benchmarks/) — measured build times and scaling curves
 - [Free-Threading](../free-threading/) — how Bengal uses Python 3.14t
 - [The Bengal Ecosystem](../ecosystem/) — the full b-stack architecture
-- [AI-Native Output](/docs/building/ai-native-output/) — machine-readable output formats
+- [AI-Native Output](/docs/ship/ai-native-output/) — machine-readable output formats
 :::

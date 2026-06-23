@@ -342,7 +342,7 @@ bengal serve
 | Custom builders (PDF, ePub) | HTML only | External tools |
 | Domain-specific roles | Not built-in | Use directives |
 | Numbered figures | Manual numbering | CSS counters |
-| Math/LaTeX | Built-in support | Enable `content.math` in theme features; [[docs/content/authoring/math|Math and LaTeX]] |
+| Math/LaTeX | Built-in support | Enable `content.math` in theme features; [[docs/build-sites/write/authoring/math|Math and LaTeX]] |
 
 ### autodoc Alternative
 
@@ -450,5 +450,5 @@ Bengal has built-in autodoc! Configure it in `config/_default/autodoc.yaml` to g
 
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration Reference](/docs/building/configuration/) - Full config options
+- [Configuration Reference](/docs/ship/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

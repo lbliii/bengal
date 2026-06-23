@@ -463,4 +463,4 @@ Data tables render as interactive Tabulator tables with:
 
 - [Layout Directives](/docs/reference/directives/layout/) — Static tabs (`tab-set`) and cards
 - [Formatting Directives](/docs/reference/directives/formatting/) — List tables (static)
-- [Code Blocks](/docs/content/authoring/code-blocks/) — Standard code block syntax
+- [Code Blocks](/docs/build-sites/write/authoring/code-blocks/) — Standard code block syntax

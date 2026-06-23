@@ -24,8 +24,8 @@ New to Bengal? Start here. This section takes you from install to a running site
 in minutes — no theming or Python required for the writer path.
 
 **Sizing it up?** Skim [[docs/about|About]] first. **Already building?** Jump to
-[[docs/building/configuration|Configure]] or [[docs/content/authoring|Author
-content]]. **Shipping to production?** See [[docs/building/deployment|Deploy]].
+[[docs/ship/configuration|Configure]] or [[docs/build-sites/write/authoring|Author
+content]]. **Shipping to production?** See [[docs/ship/deployment|Deploy]].
 
 Read the cards below: pick a quickstart path that matches your role, or follow the install steps first.
 
@@ -74,6 +74,6 @@ Set up your development environment and start contributing.
 ## Next Steps
 
 - [[docs/tutorials|Tutorials]] — Step-by-step guides
-- [[docs/content|Content]] — Writing and organizing content
-- [[docs/theming|Theming]] — Templates and styling
-- [[docs/reference/architecture/tooling/cli|CLI Reference]] — All commands
+- [[docs/build-sites|Content]] — Writing and organizing content
+- [[docs/build-sites/customize|Theming]] — Templates and styling
+- [[docs/reference/architecture|Architecture Overview]] — Contributor orientation

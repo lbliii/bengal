@@ -69,7 +69,7 @@ Use these in templates for language switching:
 ### Limitations
 
 - UI translation (strings) requires separate i18n YAML files
-- See [[docs/content/i18n|i18n documentation]] for full details
+- See [[docs/build-sites/structure/i18n|i18n documentation]] for full details
 
 ---
 
@@ -202,5 +202,5 @@ releases:
 ## Next Steps
 
 - See [[docs/reference/site-templates|Templates Reference]] for template details
-- Read [[docs/content/i18n|Internationalization]] for full i18n workflows
-- Explore [[docs/theming|Theming]] for customization
+- Read [[docs/build-sites/structure/i18n|Internationalization]] for full i18n workflows
+- Explore [[docs/build-sites/customize|Theming]] for customization

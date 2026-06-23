@@ -7,7 +7,7 @@ These tests pin two things the docs must not drift from:
 1. The public registration API is ``bengal.content_types.register_strategy``,
    which takes a content-type name and a strategy *instance* (not a class).
 2. The "Available types" list documented in
-   ``site/content/docs/reference/architecture/core/content-types.md`` matches
+   ``docs/architecture/core/content-types.md`` matches
    the actual keys in ``CONTENT_TYPE_REGISTRY`` exactly.
 """
 
@@ -25,16 +25,7 @@ from bengal.content_types import (
 
 # Repo root: tests/unit/content_types/ -> up three levels.
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_CONTENT_TYPES_DOC = (
-    _REPO_ROOT
-    / "site"
-    / "content"
-    / "docs"
-    / "reference"
-    / "architecture"
-    / "core"
-    / "content-types.md"
-)
+_CONTENT_TYPES_DOC = _REPO_ROOT / "docs" / "architecture" / "core" / "content-types.md"
 
 
 class TestDocumentedRegisterStrategyApi:

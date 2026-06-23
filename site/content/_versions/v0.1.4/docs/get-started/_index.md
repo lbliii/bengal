@@ -68,6 +68,6 @@ Set up your development environment and start contributing.
 ## Next Steps
 
 - [[docs/tutorials|Tutorials]] — Step-by-step guides
-- [[docs/content|Content]] — Writing and organizing content
-- [[docs/theming|Theming]] — Templates and styling
+- [[docs/build-sites|Content]] — Writing and organizing content
+- [[docs/build-sites/customize|Theming]] — Templates and styling
 - [[cli|CLI Reference]] — All commands

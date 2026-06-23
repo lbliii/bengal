@@ -413,8 +413,8 @@ weight = 2
 ---
 
 :::{seealso}
-- [[docs/reference/architecture/tooling/cli|Full CLI Reference]] — All commands and options
+- [[docs/reference/architecture|Architecture Overview]] — All commands and options
 - [[docs/reference/template-functions|Template Functions]] — All template helpers
-- [[docs/content/authoring/linking|Linking Guide]] — Complete linking reference
-- [[docs/reference/architecture/tooling/config|Configuration Reference]] — All config options
+- [[docs/build-sites/write/authoring/linking|Linking Guide]] — Complete linking reference
+- [Configuration Reference](https://github.com/lbliii/bengal/tree/main/docs/architecture/tooling/config/) — All config options
 :::
