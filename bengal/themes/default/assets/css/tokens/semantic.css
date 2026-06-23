@@ -9,6 +9,13 @@
 :root {
   color-scheme: light dark;
 
+  /* Bengal motion signature — named easing/duration scale for branded choreography */
+  --motion-signature-duration: var(--duration-300);
+  --motion-signature-ease: var(--ease-snappy);
+  --motion-signature-enter: var(--motion-signature-duration) var(--motion-signature-ease);
+  --motion-signature-page: var(--duration-500) var(--ease-smooth);
+  --motion-signature-distance: var(--motion-distance-2);
+
   /* ============================================
      SEMANTIC COLORS
      ============================================ */

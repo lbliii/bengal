@@ -80,7 +80,8 @@ Context variables:
         <a href="https://twitter.com/{{ social.twitter.lstrip('@') }}"
            class="social-link"
            aria-label="Twitter">
-          Twitter
+          {{ icon('external', size=16) }}
+          <span class="sr-only">Twitter</span>
         </a>
         {% end %}
 
@@ -88,7 +89,8 @@ Context variables:
         <a href="https://github.com/{{ social.github }}"
            class="social-link"
            aria-label="GitHub">
-          GitHub
+          {{ icon('code', size=16) }}
+          <span class="sr-only">GitHub</span>
         </a>
         {% end %}
 
@@ -96,7 +98,8 @@ Context variables:
         <a href="https://linkedin.com/in/{{ social.linkedin }}"
            class="social-link"
            aria-label="LinkedIn">
-          LinkedIn
+          {{ icon('user', size=16) }}
+          <span class="sr-only">LinkedIn</span>
         </a>
         {% end %}
 
@@ -104,7 +107,8 @@ Context variables:
         <a href="{{ social.website }}"
            class="social-link"
            aria-label="Website">
-          Website
+          {{ icon('link', size=16) }}
+          <span class="sr-only">Website</span>
         </a>
         {% end %}
 
@@ -112,7 +116,8 @@ Context variables:
         <a href="mailto:{{ social.email }}"
            class="social-link"
            aria-label="Email">
-          Email
+          {{ icon('file-text', size=16) }}
+          <span class="sr-only">Email</span>
         </a>
         {% end %}
       </div>
@@ -277,22 +282,4 @@ Context variables:
     </div>
   {% end %}
 </div>
-
-<script>
-// Simple view toggle
-document.querySelectorAll('.view-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const view = btn.dataset.view;
-
-    // Update buttons
-    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    // Update views
-    document.querySelectorAll('[data-view-content]').forEach(v => {
-      v.classList.toggle('hidden', v.dataset.viewContent !== view);
-    });
-  });
-});
-</script>
 {% end %}

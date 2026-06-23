@@ -222,6 +222,47 @@
 
     // Announce section change to screen readers (non-intrusively)
     announceToScreenReader(currentSectionIndex);
+
+    // Sync header step indicator + inline track nav progress
+    updateHeaderProgress(currentSectionIndex);
+  }
+
+  /**
+   * Update the pillar-page header progress indicator and doc-page track nav bar.
+   */
+  function updateHeaderProgress(sectionIndex) {
+    const total = trackSections.length;
+    const current = sectionIndex + 1;
+    const pct = total > 0 ? (current / total) * 100 : 0;
+
+    const label = document.querySelector('#track-header-progress .track-progress__label');
+    if (label) {
+      label.textContent = `Step ${current} of ${total}`;
+    }
+
+    document.querySelectorAll('#track-header-progress .track-progress__step').forEach((stepEl, index) => {
+      const stepNum = index + 1;
+      stepEl.classList.toggle('track-progress__step--current', stepNum === current);
+      stepEl.classList.toggle('track-progress__step--complete', stepNum < current);
+      const numberEl = stepEl.querySelector('.track-progress__number');
+      if (numberEl) {
+        numberEl.textContent = stepNum < current ? '✓' : String(stepNum);
+      }
+    });
+
+    document.querySelectorAll('#track-header-progress .track-progress__connector').forEach((conn, index) => {
+      conn.classList.toggle('track-progress__connector--complete', index < sectionIndex);
+    });
+
+    const navBar = document.getElementById('track-progress-bar');
+    if (navBar) {
+      navBar.style.width = `${pct}%`;
+      navBar.setAttribute('aria-valuenow', String(Math.round(pct)));
+      const progressRoot = navBar.closest('[role="progressbar"]');
+      if (progressRoot) {
+        progressRoot.setAttribute('aria-valuenow', String(Math.round(pct)));
+      }
+    }
   }
 
   // ============================================================================

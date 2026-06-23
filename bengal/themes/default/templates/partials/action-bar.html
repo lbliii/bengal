@@ -19,6 +19,8 @@ USAGE:
 ================================================================================
 #}
 
+{% from 'partials/page-meta-actions.html' import page_meta_toolbar %}
+
 {# =============================================================================
 HELPER: Get page URL with fallback chain
 ============================================================================= #}
@@ -88,6 +90,8 @@ BREADCRUMB ITEM HELPER
 
             {# Right: Actions #}
             <div class="action-bar-actions">
+                {{ page_meta_toolbar(page, show_edit=true, show_feedback=true) }}
+
                 {# LLM Share Button #}
                 <div class="action-bar-share">
                     <button class="action-bar-share-trigger" popovertarget="action-bar-share-menu"

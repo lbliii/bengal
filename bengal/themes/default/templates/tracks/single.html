@@ -98,8 +98,8 @@ Or set `type: track` to auto-select this template
         <span class="admonition-title-text">Content Unavailable</span>
       </p>
       <p>This page has no content available.</p>
-      <p class="mb-0">
-        <a href="{{ item_href }}" class="btn btn-sm btn-primary">
+      <p class="track-section-fallback-link">
+        <a href="{{ item_href }}" class="button button-primary button-sm">
           View Full Page: {{ item_title }} →
         </a>
       </p>
@@ -110,7 +110,7 @@ Or set `type: track` to auto-select this template
   {# Track Complete Badge (only after final section) #}
   {% if is_last %}
   <div class="track-complete">
-    <span class="badge bg-success fs-6 px-3 py-2">✓ Track Complete</span>
+    <span class="badge badge-success track-complete__badge">✓ Track Complete</span>
   </div>
   {% end %}
 </section>
@@ -152,21 +152,23 @@ Or set `type: track` to auto-select this template
     <article class="prose track-article">
       {# Track Header #}
       <header class="page-header track-header">
-        <span class="badge bg-primary mb-3">Learning Track</span>
+        <span class="badge badge-primary track-header__badge">Learning Track</span>
         <h1>{{ track_title }}</h1>
         {% if track_desc %}
-        <p class="lead text-muted mt-3">{{ track_desc }}</p>
+        <p class="lead track-header__lead">{{ track_desc }}</p>
         {% end %}
 
-        {# Progress indicator using {% while %} - shows total sections #}
+        {# Progress indicator — current step updated by tracks.js on scroll #}
         {% if track_items | length > 0 %}
-        {{ track_progress_indicator(track_items | length, 1) }}
+        <div class="track-progress" id="track-header-progress" data-track-total="{{ track_items | length }}">
+          {{ track_progress_indicator(track_items | length, 1) }}
+        </div>
         {% end %}
       </header>
 
       {# Main Page Content (Introduction) #}
       {% if content %}
-      <div class="track-intro mb-5">
+      <div class="track-intro">
         {{ content | safe }}
       </div>
       {% end %}
@@ -187,7 +189,7 @@ Or set `type: track` to auto-select this template
               <span class="admonition-icon-wrapper">{{ icon("warning", size=20, css_class="admonition-icon") }}</span>
               <span class="admonition-title-text">Section {{ loop.index }}: Page Not Found</span>
             </p>
-            <p class="mb-0">Could not find page: <code>{{ item_slug }}</code></p>
+            <p>Could not find page: <code>{{ item_slug }}</code></p>
           </div>
         </section>
         {% end %}
@@ -202,7 +204,7 @@ Or set `type: track` to auto-select this template
         <p>Could not find a track definition with ID <code>{{ track_id }}</code> in
           <code>site/data/tracks.yaml</code>.</p>
         <hr>
-        <p class="mb-0">Please ensure the page slug matches the track key, or set <code>track_id</code> in frontmatter.</p>
+        <p>Please ensure the page slug matches the track key, or set <code>track_id</code> in frontmatter.</p>
       </div>
       {% end %}
     </article>

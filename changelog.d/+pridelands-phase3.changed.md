@@ -1,0 +1,1 @@
+The default theme now surfaces edit-this-page and a feedback widget on docs heroes and the action bar, replaces Bootstrap track navigation with native Bengal components, adds frontmatter status badges in the docs sidebar, and ships motion-signature tokens with default-on view transitions and scroll reveals (site config can still disable transitions).

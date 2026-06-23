@@ -33,7 +33,9 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _footer_menu = get_menu_lang('footer', _current_lang) %}
 
 {% let _doc_app_nav = _doc_app?.navigation ?? {} %}
-{% let _view_transitions = (_doc_app?.enabled ?? false) and (_doc_app_nav?.view_transitions ?? false) %}
+{% let _theme_view_transitions = 'navigation.view_transitions' in (theme.features ?? []) %}
+{% let _vt_enabled = _doc_app_nav?.view_transitions ?? _theme_view_transitions %}
+{% let _view_transitions = (_doc_app?.enabled ?? false) and _vt_enabled %}
 {% let _transition_style = _doc_app_nav?.transition_style ?? none %}
 {% let _llms_txt_url = '/llms.txt' | absolute_url %}
 {% let _cap_wiring = capability_wiring | default({'cache_key': '', 'stylesheets': [], 'scripts': [], 'lazy_loaders': [], 'runtime_globals': []}) %}
@@ -365,7 +367,7 @@ HELPER: Render a menu item (desktop/mobile)
         </nav>
     </header>
 
-    <main id="main-content" role="main">{% block content %}{% end %}</main>
+    <main id="main-content" role="main"{% if 'navigation.scroll_reveals' in (theme.features ?? []) %} class="scroll-reveal-root"{% end %}>{% block content %}{% end %}</main>
 
     {# Search Modal Block — placed after <main> so content starts early in DOM #}
     {% block site_search_modal %}
@@ -546,6 +548,8 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/tracks.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/page-feedback.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/author-view.js') }}"></script>
     {# <bengal-api-catalog> custom element (openapi pages); inert no-op elsewhere #}
     <script defer src="{{ asset_url('js/enhancements/api-catalog.js') }}"></script>
     {% if 'content.lightbox' in theme.features %}

@@ -1,0 +1,50 @@
+{#
+Shared edit-this-page + feedback chrome for docs and editorial layouts.
+#}
+
+{% def page_edit_url(page) -%}
+{% let page_meta = page?.metadata ?? {} %}
+{% let github_edit_base = config?.github_edit_base %}
+{% let source_path = page?.source_path %}
+{{ page_meta?.edit_url ?? (github_edit_base ~ source_path if github_edit_base and source_path else none) }}
+{%- end %}
+
+{% def page_meta_edit_link(page, css_class='page-meta-edit') %}
+{% with page_edit_url(page) as edit_url %}
+{% if edit_url %}
+<a href="{{ edit_url }}" class="{{ css_class }}" target="_blank" rel="noopener noreferrer">
+  {{ icon('pencil', size=14) }}
+  <span>{{ t('toc.edit_page', default='Edit this page') }}</span>
+</a>
+{% end %}
+{% end %}
+{% end %}
+
+{% def page_meta_feedback(page, css_class='page-meta-feedback') %}
+<bengal-page-feedback class="{{ css_class }}" data-page-title="{{ page?.title ?? 'Page' }}">
+  <button type="button" class="page-meta-feedback__trigger" popovertarget="page-feedback-popover"
+    aria-label="{{ t('feedback.open', default='Was this page helpful?') }}">
+    {{ icon('heart', size=14) }}
+    <span>{{ t('feedback.label', default='Feedback') }}</span>
+  </button>
+  <div id="page-feedback-popover" popover class="page-meta-feedback__popover">
+    <p class="page-meta-feedback__question">{{ t('feedback.question', default='Was this page helpful?') }}</p>
+    <div class="page-meta-feedback__actions cluster">
+      <button type="button" class="button button-sm button-primary" data-feedback="yes">
+        {{ t('feedback.yes', default='Yes') }}
+      </button>
+      <button type="button" class="button button-sm button-secondary" data-feedback="no">
+        {{ t('feedback.no', default='No') }}
+      </button>
+    </div>
+    <p class="page-meta-feedback__thanks" hidden>{{ t('feedback.thanks', default='Thanks for the feedback!') }}</p>
+  </div>
+</bengal-page-feedback>
+{% end %}
+
+{% def page_meta_toolbar(page, show_edit=true, show_feedback=true) %}
+<div class="page-meta-toolbar cluster">
+  {% if show_edit %}{{ page_meta_edit_link(page) }}{% end %}
+  {% if show_feedback %}{{ page_meta_feedback(page) }}{% end %}
+</div>
+{% end %}
