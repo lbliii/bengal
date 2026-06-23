@@ -6,6 +6,8 @@ import html as html_mod
 import re
 from urllib.parse import urlparse
 
+from bengal.utils.primitives.code import default_frame_for_language
+
 _COPY_BUTTON = (
     '<button type="button" class="code-copy-button copy-success-burst" aria-label="Copy code to clipboard">'
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
@@ -292,11 +294,29 @@ def _build_frame_chrome(frame: str, lang: str, *, filename: str = "") -> str:
     )
 
 
-def _wrapper_classes(div_attrs: str, *, in_titled_block: bool = False) -> str:
+def _resolve_frame(
+    div_attrs: str,
+    *,
+    in_titled_block: bool = False,
+    lang: str = "",
+) -> str:
+    explicit = _attr_value(div_attrs, "data-frame")
+    if explicit:
+        return explicit
+    if in_titled_block:
+        return "editor"
+    data_lang = _attr_value(div_attrs, "data-language") or lang
+    return default_frame_for_language(data_lang) or ""
+
+
+def _wrapper_classes(
+    div_attrs: str,
+    *,
+    in_titled_block: bool = False,
+    lang: str = "",
+) -> str:
     classes = ["code-block-wrapper"]
-    frame = _attr_value(div_attrs, "data-frame")
-    if not frame and in_titled_block:
-        frame = "editor"
+    frame = _resolve_frame(div_attrs, in_titled_block=in_titled_block, lang=lang)
     if frame in {"terminal", "editor"}:
         classes.append(f"code-block-frame--{frame}")
     if _attr_value(div_attrs, "data-diff") == "true":
@@ -364,8 +384,12 @@ def _wrap_pre_code(
     else:
         body = f"{open_pre}{code_html}{close_pre}"
 
-    wrapper_class = _wrapper_classes(div_attrs, in_titled_block=in_titled_block)
-    frame = _attr_value(div_attrs, "data-frame") or ("editor" if in_titled_block else "")
+    wrapper_class = _wrapper_classes(
+        div_attrs,
+        in_titled_block=in_titled_block,
+        lang=lang.lower(),
+    )
+    frame = _resolve_frame(div_attrs, in_titled_block=in_titled_block, lang=lang.lower())
 
     if frame:
         filename = (

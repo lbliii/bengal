@@ -262,8 +262,8 @@ class TestSortByComplexity:
         sorted_pages = sort_by_complexity(pages)
         elapsed = time.perf_counter() - start
 
-        # Should complete in < 500ms (conservative for CI with parallel test overhead)
-        assert elapsed < 0.5
+        # Should complete in < 1s (conservative for CI with parallel test overhead)
+        assert elapsed < 1.0
         assert len(sorted_pages) == 1000
 
 

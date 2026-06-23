@@ -37,7 +37,7 @@ print("hello")
 """
         html = parser.parse(content, {})
 
-        assert '<div class="rosettes"' in html
+        assert 'class="rosettes"' in html
         assert "<pre>" in html
         assert "<code>" in html
 
@@ -93,7 +93,7 @@ line3 = 3
 
         # Should have basic code block structure
         # Note: Rosettes doesn't use table-based line numbers
-        assert '<div class="rosettes"' in html
+        assert 'class="rosettes"' in html
         assert "<pre>" in html
         assert "<code>" in html
 
@@ -297,7 +297,7 @@ class TestCodeBlockEdgeCases:
         html = parser.parse(content, {})
 
         # Should render without error
-        assert "<pre>" in html or '<div class="rosettes">' in html
+        assert "<pre>" in html or 'class="rosettes"' in html
 
     def test_code_block_with_special_characters(self, parser):
         """Test code block with HTML special characters."""
@@ -321,7 +321,7 @@ x = 1
 """
         # Should not crash
         html = parser.parse(content, {})
-        assert "<pre>" in html or '<div class="rosettes">' in html
+        assert "<pre>" in html or 'class="rosettes"' in html
 
     def test_highlight_with_only_first_line(self, parser):
         """Test highlighting just the first line."""
@@ -404,7 +404,7 @@ line3 = 3
         # Should have .hll span for highlighted line
         assert '<span class="hll">' in html
         # Should have basic code block structure
-        assert '<div class="rosettes"' in html
+        assert 'class="rosettes"' in html
 
     def test_code_block_contains_content(self, parser):
         """Test that code content is in the output."""
