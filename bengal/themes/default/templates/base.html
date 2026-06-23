@@ -236,9 +236,6 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
-    {% if _view_transitions %}
-    <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
-    {% end %}
     {% for sheet in _cap_wiring.stylesheets %}
     {% let _sheet_sri = sheet?.integrity ?? none %}
     <link rel="stylesheet" href="{{ asset_url(sheet.path) }}"{% if _sheet_sri %} integrity="{{ _sheet_sri }}" crossorigin="anonymous"{% end %}>
