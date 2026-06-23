@@ -167,6 +167,7 @@ DYNAMIC_CLASS_PATTERNS = [
     r"^toc-level-",
     r"^tutorial-badge-",
     r"^version-banner--",
+    r"^docs-nav-status--",
     # highlight.js language classes (language-bash, language-python, etc.)
     r"^language-",
 ]
