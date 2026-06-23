@@ -237,6 +237,15 @@ class TestAutoNavItem:
 
         assert item["name"] == "Home"
         assert item["weight"] == 5
+        assert item["href"] == "/"
+        assert item["_path"] == "/"
+
+    def test_href_and_path_properties(self):
+        """Test href/_path aliases for unified URL model."""
+        item = AutoNavItem(name="Docs", url="/docs/")
+
+        assert item.href == "/docs/"
+        assert item._path == "/docs/"
 
     def test_keys_method(self):
         """Test keys() returns all field names."""

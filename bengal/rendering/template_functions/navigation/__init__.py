@@ -143,7 +143,6 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "get_pagination_items": get_pagination_items,
             "get_nav_tree": get_nav_tree,
             "get_nav_context": get_nav_context,
-            "get_auto_nav": lambda: get_auto_nav(site),
             "combine_track_toc": combine_track_toc_with_get_page,
             "get_section": get_section_wrapper,
             "section_pages": section_pages_wrapper,
