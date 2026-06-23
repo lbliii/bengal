@@ -20,6 +20,33 @@ Set `type: tutorial` in frontmatter or use cascade from section
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
+{# Scroll-synced step progress (mirrors track pattern) #}
+{% def tutorial_progress_indicator(total_steps, current_step=1) %}
+<div class="tutorial-progress" role="progressbar" aria-valuenow="{{ current_step }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}">
+  <div class="tutorial-progress__steps">
+    {% let step = 1 %}
+    {% while step <= total_steps %}
+      {% let is_complete = step < current_step %}
+      {% let is_current = step == current_step %}
+      {% let step_class = 'tutorial-progress__step' %}
+      {% if is_complete %}{% let step_class = step_class ~ ' tutorial-progress__step--complete' %}{% end %}
+      {% if is_current %}{% let step_class = step_class ~ ' tutorial-progress__step--current' %}{% end %}
+      <div class="{{ step_class }}" data-step="{{ step }}">
+        <span class="tutorial-progress__number">{% if is_complete %}✓{% else %}{{ step }}{% end %}</span>
+      </div>
+      {% if step < total_steps %}
+      <div class="tutorial-progress__connector{{ ' tutorial-progress__connector--complete' if is_complete else '' }}"></div>
+      {% end %}
+      {% let step = step + 1 %}
+    {% end %}
+  </div>
+  <div class="tutorial-progress__label">Step {{ current_step }} of {{ total_steps }}</div>
+  <div class="tutorial-progress__bar" aria-hidden="true">
+    <div class="tutorial-progress__fill" id="tutorial-progress-bar"></div>
+  </div>
+</div>
+{% end %}
+
 {# =============================================================================
    RELATED TUTORIAL CARD
    ============================================================================= #}
@@ -71,6 +98,9 @@ Set `type: tutorial` in frontmatter or use cascade from section
 {% let tut_objectives = params?.learning_objectives ?? params?.objectives ?? [] %}
 {% let tut_next_steps = params?.next_steps ?? [] %}
 {% let tut_further_reading = params?.further_reading ?? [] %}
+{% let toc_items_list = toc_items ?? [] %}
+{% let tutorial_step_count = toc_items_list | length %}
+{% let tutorial_id = page?.slug ?? page?._path ?? '' %}
 
 <div class="container">
   {# Action Bar: Breadcrumbs + Share #}
@@ -113,6 +143,13 @@ Set `type: tutorial` in frontmatter or use cascade from section
           </span>
           {% end %}
         </div>
+
+        {# Scroll-driven progress — updated by tutorials.js #}
+        {% if tutorial_step_count >= 2 %}
+        <div class="tutorial-progress-host" id="tutorial-header-progress" data-tutorial-total="{{ tutorial_step_count }}">
+          {{ tutorial_progress_indicator(tutorial_step_count, 1) }}
+        </div>
+        {% end %}
 
         {# Prerequisites #}
         {% if tut_prereqs | length > 0 %}
@@ -184,8 +221,9 @@ Set `type: tutorial` in frontmatter or use cascade from section
       {% end %}
     </article>
 
-    {# Right Sidebar: TOC #}
+    {# Right Sidebar: TOC + scroll-synced step nav #}
     {% if toc %}
+    <bengal-tutorial-progress data-tutorial-id="{{ tutorial_id }}">
     <aside class="tutorial-sidebar">
       <nav class="toc" aria-label="Table of contents">
         <h2 class="toc-title">Tutorial Steps</h2>
@@ -194,6 +232,7 @@ Set `type: tutorial` in frontmatter or use cascade from section
         </div>
       </nav>
     </aside>
+    </bengal-tutorial-progress>
     {% end %}
   </div>
 </div>

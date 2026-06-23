@@ -43,7 +43,7 @@
 .features {
   padding: var(--space-16) var(--space-6);
   max-width: var(--container-xl);
-  margin: 0 auto;
+  margin-inline: auto;
 }
 
 .features-grid {
@@ -164,7 +164,7 @@
 .stats {
   padding: var(--space-12) var(--space-6);
   max-width: var(--container-lg);
-  margin: 0 auto;
+  margin-inline: auto;
 }
 
 .stats-grid {
@@ -227,7 +227,7 @@
 .quick-links {
   padding: var(--space-12) var(--space-6);
   max-width: var(--container-xl);
-  margin: 0 auto;
+  margin-inline: auto;
 }
 
 .quick-links h2 {
@@ -497,6 +497,75 @@
 .home .card-grid {
   max-width: var(--container-xl);
   margin: var(--space-8) auto;
+}
+
+/* ============================================
+   SPLASH LANDING (zero-config home)
+   Distinct from generic section index / gallery grids
+   ============================================ */
+
+.home--splash {
+  view-transition-name: landing-splash;
+}
+
+.hero--splash {
+  padding-block: clamp(var(--space-12), 8vw, var(--space-20)) clamp(var(--space-10), 6vw, var(--space-16));
+}
+
+.hero--splash .hero__title {
+  background: linear-gradient(
+    135deg,
+    var(--color-text-primary) 0%,
+    color-mix(in oklab, var(--color-primary) 70%, var(--color-text-primary)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme="dark"] .hero--splash .hero__title {
+  background: linear-gradient(
+    135deg,
+    var(--color-text-primary) 0%,
+    color-mix(in oklab, var(--color-primary) 85%, white) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.home--splash .features-grid {
+  counter-reset: feature;
+}
+
+.home--splash .feature-card {
+  animation: fade-in-up var(--motion-medium) var(--ease-out) both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 30%;
+}
+
+.home--splash .feature-card:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.home--splash .feature-card:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.home--splash .feature-card:nth-child(4) {
+  animation-delay: 240ms;
+}
+
+.home--splash .read-more,
+.home--splash .feature-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home--splash .feature-card {
+    animation: none;
+  }
 }
 
 .home .card {

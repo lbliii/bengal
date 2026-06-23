@@ -46,13 +46,12 @@
 .timeline-item {
     margin-bottom: var(--space-10);
     padding-inline-start: var(--space-6);
-    /* Changed from padding-left */
     border-inline-start: 2px solid var(--color-border-light);
-    /* Changed from border-left */
     position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
     transition: transform var(--transition-fast) var(--ease-out),
         border-color var(--transition-fast) var(--ease-out);
-
 }
 
 .timeline-item:last-child {
@@ -199,6 +198,36 @@
    CHANGELOG CATEGORIES
    ============================================ */
 
+/* Category grid — subgrid when supported, auto-fit fallback */
+.changelog-categories {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+}
+
+@supports (grid-template-columns: subgrid) {
+    .changelog-timeline .timeline {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .changelog-timeline .timeline-item {
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
+    }
+
+    .changelog-categories {
+        grid-column: 1 / -1;
+        grid-template-columns: subgrid;
+    }
+}
+
+@media (min-width: 768px) {
+    .changelog-categories {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
 .changelog-category {
     margin: var(--space-4) 0;
     padding: var(--space-4);
@@ -246,6 +275,19 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
+}
+
+.category-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--color-primary);
+}
+
+.changelog-category--breaking .category-icon,
+.category-title--breaking .category-icon {
+    color: var(--color-danger);
 }
 
 .changelog-breaking .category-title,

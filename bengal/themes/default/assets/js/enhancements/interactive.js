@@ -240,6 +240,50 @@
   }
 
   /**
+   * Persist docs-nav <details> open/closed state per page (localStorage).
+   */
+  function setupDocsNavPersistence(root) {
+    const storageKey = `bengal_docs_nav_${window.location.pathname}`;
+    const detailsList = Array.from(root.querySelectorAll('.docs-nav-details'));
+
+    if (detailsList.length === 0) {
+      return;
+    }
+
+    const groupKey = (details) => {
+      const group = details.closest('.docs-nav-group');
+      const link = group?.querySelector('.docs-nav-group-link[href], .docs-nav-link[href]');
+      return link?.getAttribute('href') || details.closest('.docs-nav-group')?.dataset.depth || '';
+    };
+
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    } catch (_e) {
+      saved = {};
+    }
+
+    detailsList.forEach((details) => {
+      const key = groupKey(details);
+      if (!key) {
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(saved, key)) {
+        details.open = Boolean(saved[key]);
+      }
+      details.addEventListener('toggle', () => {
+        try {
+          const state = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          state[key] = details.open;
+          localStorage.setItem(storageKey, JSON.stringify(state));
+        } catch (_e) {
+          /* storage unavailable */
+        }
+      });
+    });
+  }
+
+  /**
    * Documentation Navigation Enhancement
    *
    * Uses native <details>/<summary> for expand/collapse (no JS required for toggle).
@@ -445,6 +489,7 @@
       init() {
         this._docsNavCleanup = [];
         setupScrollSpy(this, this._docsNavCleanup);
+        setupDocsNavPersistence(this);
         setupDocsNavigation(this);
       }
       teardown() {

@@ -34,21 +34,7 @@ KIDA FEATURES USED:
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
-{# =============================================================================
-   CHANGE CATEGORY COMPONENT
-   ============================================================================= #}
-{% def change_category(title, icon, items, is_breaking=false) %}
-{% if items and items is iterable and items is not string and items | length > 0 %}
-<section class="changelog-category{{ ' changelog-breaking' if is_breaking else '' }}">
-  <h2 class="category-title">{{ icon }} {{ title }}</h2>
-  <ul class="changelog-list">
-    {% for item in items %}
-    <li>{{ item }}</li>
-    {% end %}
-  </ul>
-</section>
-{% end %}
-{% end %}
+{% from 'partials/changelog/_macros.html' import change_category %}
 
 {# =============================================================================
    MAIN TEMPLATE
@@ -107,13 +93,15 @@ KIDA FEATURES USED:
 
   <div class="release-content">
     {# Change Categories #}
-    {{ change_category('Added', '', changes_added) }}
-    {{ change_category('Changed', '', changes_changed) }}
-    {{ change_category('Fixed', '', changes_fixed) }}
-    {{ change_category('Deprecated', '', changes_deprecated) }}
-    {{ change_category('Removed', '', changes_removed) }}
-    {{ change_category('Security', '', changes_security) }}
-    {{ change_category('Breaking Changes', '', changes_breaking, is_breaking=true) }}
+    <div class="changelog-categories">
+    {{ change_category('Added', 'star', changes_added) }}
+    {{ change_category('Changed', 'arrow-clockwise', changes_changed) }}
+    {{ change_category('Fixed', 'bug', changes_fixed) }}
+    {{ change_category('Deprecated', 'warning', changes_deprecated) }}
+    {{ change_category('Removed', 'trash', changes_removed) }}
+    {{ change_category('Security', 'shield', changes_security) }}
+    {{ change_category('Breaking Changes', 'danger', changes_breaking, is_breaking=true) }}
+    </div>
 
     {# Main content (detailed release notes) #}
     {% if content and content.strip() %}

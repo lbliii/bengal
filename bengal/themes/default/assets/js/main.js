@@ -38,6 +38,19 @@
   /**
    * Delegated copy handler for build-time code copy buttons.
    */
+  function announceCopy(message) {
+    let region = document.getElementById('code-copy-live-region');
+    if (!region) {
+      region = document.createElement('div');
+      region.id = 'code-copy-live-region';
+      region.className = 'visually-hidden';
+      region.setAttribute('aria-live', 'polite');
+      region.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(region);
+    }
+    region.textContent = message;
+  }
+
   function setupDelegatedCodeCopy() {
     document.addEventListener('click', function (e) {
       const wrapButton = e.target.closest('.code-wrap-toggle');
@@ -74,6 +87,7 @@
           `;
         button.classList.add('copied');
         button.setAttribute('aria-label', 'Code copied!');
+        announceCopy('Code copied to clipboard');
 
         setTimeout(function () {
           button.innerHTML = `
@@ -84,7 +98,7 @@
               <span>Copy</span>
             `;
           button.classList.remove('copied');
-          button.setAttribute('aria-label', 'Copy');
+          button.setAttribute('aria-label', 'Copy code to clipboard');
         }, 2000);
       }).catch(function (err) {
         log('Failed to copy code:', err);

@@ -572,6 +572,10 @@
   font-size: var(--text-sm);
 }
 
+[dir="rtl"] .content-tiles--minimal li::before {
+  content: '←';
+}
+
 .content-tiles--minimal a {
   color: var(--color-text-primary);
   text-decoration: none;
@@ -586,6 +590,10 @@
 .content-tiles--minimal .content-tile--related::before {
   content: '↗';
   color: var(--color-accent, var(--color-text-muted));
+}
+
+[dir="rtl"] .content-tiles--minimal .content-tile--related::before {
+  content: '↖';
 }
 
 /* Responsive */

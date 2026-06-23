@@ -11,12 +11,32 @@
    ============================================ */
 
 .resume {
+    container-type: inline-size;
+    container-name: resume;
     max-width: 850px;
     margin: 0 auto;
     padding: var(--space-8) var(--space-6);
     font-family: var(--font-sans);
     line-height: var(--leading-relaxed);
     color: var(--color-text-primary);
+}
+
+@container resume (min-width: 720px) {
+    .resume-header {
+        text-align: start;
+    }
+
+    .resume-contact {
+        justify-content: flex-start;
+    }
+
+    .skills-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .timeline-header {
+        flex-direction: row;
+    }
 }
 
 /* ============================================
@@ -74,7 +94,9 @@
   }
 
 .contact-icon {
-    font-size: var(--text-base);
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-text-tertiary);
 }
 
 /* ============================================
@@ -676,29 +698,95 @@
     .resume {
         max-width: 100%;
         padding: 0;
-        font-size: var(--text-body);
+        font-size: 10.5pt;
+        line-height: 1.35;
+        color: #000;
+    }
+
+    .resume-header {
+        border-block-end-color: #ccc;
+        padding-bottom: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .resume-name {
+        font-size: 18pt;
+    }
+
+    .resume-headline {
+        font-size: 11pt;
+        color: #333;
     }
 
     .resume-section {
+        margin: var(--space-6) 0;
         page-break-inside: avoid;
     }
 
-    .timeline-item {
+    .resume-section .section-title {
+        font-size: 12pt;
+        border-block-end-color: #ccc;
+    }
+
+    .timeline-item,
+    .skill-group,
+    .certification-item,
+    .award-item,
+    .language-item {
         page-break-inside: avoid;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 0 var(--space-4) var(--space-4);
+        transform: none !important;
+    }
+
+    .timeline-item::before {
+        box-shadow: none;
+        background: #000;
+        border-color: #fff;
+    }
+
+    .resume-summary {
+        background: transparent !important;
+        box-shadow: none !important;
+        border-inline-start-color: #666;
+        padding: var(--space-3) var(--space-4);
     }
 
     .tech-tag,
     .skill-tag {
-        border: 1px solid var(--color-border);
+        border: 1px solid #999;
+        background: transparent !important;
+        color: #000 !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
     }
 
     .project-link,
     .certification-link {
-        color: var(--color-text-primary) !important;
+        color: #000 !important;
         background: transparent !important;
-        border: 1px solid var(--color-border);
+        border: none !important;
+        padding: 0;
+        text-decoration: underline;
+    }
+
+    .contact-item {
+        color: #333 !important;
+    }
+
+    a[href^="http"]::after,
+    a[href^="mailto"]::after {
+        content: " (" attr(href) ")";
+        font-size: 8pt;
+        color: #555;
+        word-break: break-all;
+    }
+
+    a[href^="http"]:not(.contact-item)::after {
+        display: inline;
     }
 }
 

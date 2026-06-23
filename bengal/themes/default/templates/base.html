@@ -305,6 +305,8 @@ HELPER: Render a menu item (desktop/mobile)
 
     <p class="sr-only" data-agent-directive>For a complete page index, fetch <a href="{{ _llms_txt_url }}">{{ _llms_txt_url }}</a>.</p>
 
+    {% include 'partials/site-announcement.html' %}
+
     {# Header #}
     {% let _header_sticky = theme.header_sticky ?? true %}
     {% let _header_nav_position = theme.header_nav_position ?? 'left' %}
@@ -546,9 +548,11 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/tabs.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/tracks.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/tutorials.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/page-feedback.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/announcement.js') }}"></script>
     <script defer src="{{ asset_url('js/enhancements/author-view.js') }}"></script>
     {# <bengal-api-catalog> custom element (openapi pages); inert no-op elsewhere #}
     <script defer src="{{ asset_url('js/enhancements/api-catalog.js') }}"></script>

@@ -24,21 +24,7 @@ Set `type: changelog` in section _index.md
 ================================================================================
 #}
 
-{# =============================================================================
-CHANGE CATEGORY COMPONENT
-============================================================================= #}
-{% def change_category(title, icon, items, is_breaking=false) %}
-{% if items and items | length > 0 %}
-<div class="{{ ['changelog-category', 'changelog-category--breaking' if is_breaking] | classes }}">
-  <h3 class="{{ ['category-title', 'category-title--breaking' if is_breaking] | classes }}">{{ icon }} {{ title }}</h3>
-  <ul class="changelog-list{{ ' changelog-list--breaking' if is_breaking else '' }}">
-    {% for item in items %}
-    <li class="{{ 'changelog-item--breaking' if is_breaking else '' }}">{{ item }}</li>
-    {% end %}
-  </ul>
-</div>
-{% end %}
-{% end %}
+{% from 'partials/changelog/_macros.html' import change_category %}
 
 {# =============================================================================
 RELEASE ITEM COMPONENT - Unified with ReleaseView
@@ -73,13 +59,15 @@ RELEASE ITEM COMPONENT - Unified with ReleaseView
   <p class="timeline-description">{{ rel_summary }}</p>
   {% end %}
 
-  {{ change_category('Added', '', rel.added) }}
-  {{ change_category('Changed', '', rel.changed) }}
-  {{ change_category('Fixed', '', rel.fixed) }}
-  {{ change_category('Deprecated', '', rel.deprecated) }}
-  {{ change_category('Removed', '', rel.removed) }}
-  {{ change_category('Security', '', rel.security) }}
-  {{ change_category('Breaking Changes', '', rel.breaking, is_breaking=true) }}
+  <div class="changelog-categories">
+  {{ change_category('Added', 'star', rel.added) }}
+  {{ change_category('Changed', 'arrow-clockwise', rel.changed) }}
+  {{ change_category('Fixed', 'bug', rel.fixed) }}
+  {{ change_category('Deprecated', 'warning', rel.deprecated) }}
+  {{ change_category('Removed', 'trash', rel.removed) }}
+  {{ change_category('Security', 'shield', rel.security) }}
+  {{ change_category('Breaking Changes', 'danger', rel.breaking, is_breaking=true) }}
+  </div>
 
   {% if rel.href %}
   <a href="{{ rel.href }}" class="changelog-read-more">View full release notes →</a>
