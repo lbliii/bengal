@@ -296,6 +296,8 @@ def apply_fence_metadata(html: str, fence_attrs: CodeFenceAttrs) -> str:
         additions.append(f'data-annotate="{html_mod.escape(spec)}"')
     if fence_attrs.diff:
         additions.append('data-diff="true"')
+    if fence_attrs.title:
+        additions.append(f'data-title="{html_mod.escape(fence_attrs.title)}"')
 
     if not additions:
         return html

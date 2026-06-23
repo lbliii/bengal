@@ -76,6 +76,29 @@ def test_inject_code_copy_chrome_adds_editor_frame_for_titled_blocks() -> None:
     )
     out = inject_code_copy_chrome(html)
     assert "code-block-frame--editor" in out
+    assert "code-block-chrome--editor" in out
+    assert "code-block-tab--active" in out
+    assert "app.py" in out
+    assert '<div class="code-block-title">' not in out
+
+
+def test_inject_code_copy_chrome_editor_frame_uses_data_title() -> None:
+    html = (
+        '<div class="rosettes" data-language="python" data-frame="editor" '
+        'data-title="config.py"><pre><code>x=1</code></pre></div>'
+    )
+    out = inject_code_copy_chrome(html)
+    assert 'class="code-block-tab__label">config.py</span>' in out
+    assert "code-block-frame--editor" in out
+
+
+def test_inject_code_copy_chrome_editor_frame_without_title_uses_language() -> None:
+    html = (
+        '<div class="rosettes" data-language="python" data-frame="editor">'
+        "<pre><code>x=1</code></pre></div>"
+    )
+    out = inject_code_copy_chrome(html)
+    assert 'class="code-block-tab__label">python</span>' in out
 
 
 def test_inject_code_copy_chrome_adds_annotations() -> None:
