@@ -54,6 +54,9 @@ def make_mock_build_cache(parsed_pages: dict | None = None) -> MagicMock:
 
         build_cache.get_parsed_page.side_effect = get_parsed_page
 
+    # Unchanged by default — callers override when testing change detection.
+    build_cache.is_changed.return_value = False
+
     return build_cache
 
 
@@ -322,3 +325,19 @@ class TestSurgicalDiscoveryExplicitlyChangedFiles:
             assert result is None
         finally:
             discovery._executor.shutdown(wait=True)
+
+    def test_build_cache_is_changed_bypasses_parsed_cache(
+        self, content_dir: Path, mock_cache: MagicMock
+    ) -> None:
+        """When build_cache reports a content change, skip parsed-cache reconstruction."""
+        file_path = content_dir / "docs" / "getting-started.md"
+        mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached")
+        build_cache = make_mock_build_cache({"getting-started": CACHED_PARSED_DATA})
+        build_cache.is_changed.return_value = True
+
+        discovery = ContentDiscovery(content_dir)
+        discovery._build_cache = build_cache
+
+        result = discovery._create_page_surgical(file_path, mock_cache)
+
+        assert result is None
