@@ -33,6 +33,15 @@ def test_performance_evidence_accepts_explicit_not_applicable() -> None:
     assert missing_evidence_fields(_body({"Benchmark matrix row": "not applicable"})) == ()
 
 
+def test_performance_evidence_accepts_prose_not_applicable() -> None:
+    body = (
+        "## Performance Evidence\n\n"
+        "not applicable — CLI-only change with no hot-path performance claim.\n"
+    )
+
+    assert missing_evidence_fields(body) == ()
+
+
 def test_performance_evidence_rejects_blank_template_values() -> None:
     assert missing_evidence_fields(_body({})) == REQUIRED_FIELDS
 

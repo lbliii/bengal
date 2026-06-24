@@ -156,6 +156,16 @@ def changed_files_from_github_event(path: Path) -> tuple[str, ...] | None:
     return tuple(filenames)
 
 
+def section_declares_not_applicable(section: str) -> bool:
+    """Return True when the section explicitly opts out of performance evidence."""
+    stripped = section.strip()
+    if not stripped:
+        return False
+    if stripped.lower().startswith("not applicable"):
+        return True
+    return any(value.lower() == "not applicable" for value in field_values(section).values())
+
+
 def missing_evidence_fields(
     body: str,
     *,
@@ -168,11 +178,11 @@ def missing_evidence_fields(
     section = extract_section(body)
     if not section:
         return (PERFORMANCE_SECTION,)
+    if section_declares_not_applicable(section):
+        return ()
     values = field_values(section)
     if allow_template:
         return tuple(field for field in REQUIRED_FIELDS if field not in values)
-    if any(value.lower() == "not applicable" for value in values.values()):
-        return ()
 
     return tuple(field for field in REQUIRED_FIELDS if not values.get(field))
 

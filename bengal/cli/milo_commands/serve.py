@@ -33,6 +33,9 @@ def serve(
     traceback: Annotated[
         str, Description("Traceback verbosity: full | compact | minimal | off")
     ] = "",
+    yes: Annotated[
+        bool, Description("Skip free-threading confirmation (for CI/automation)")
+    ] = False,
     config: Annotated[str, Description("Path to config file (default: bengal.toml)")] = "",
 ) -> dict:
     """Start development server with hot reload.
@@ -46,6 +49,7 @@ def serve(
         get_cli_output,
         load_site_from_cli,
     )
+    from bengal.cli.utils.free_threading import ensure_free_threading_or_confirm
 
     source = source or "."
     config_path = config or None
@@ -73,6 +77,7 @@ def serve(
         raise SystemExit(2)
 
     with cli.output_mode(style_val):
+        ensure_free_threading_or_confirm(cli, command="serve", yes=yes)
         configure_cli_logging(
             source=source,
             debug=debug,

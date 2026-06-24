@@ -101,31 +101,11 @@ def _hint_dev_server_container(
     )
 
 
-def _hint_gil(
-    *,
-    context: str = "",
-    **_: object,
-) -> Hint | None:
-    from bengal.utils.concurrency.gil import get_gil_status_message
-
-    result = get_gil_status_message()
-    if result is None:
-        return None
-    _, tip = result
-    return Hint(
-        id="gil",
-        message=tip,
-        priority=30,
-        context=frozenset({"build", "serve"}),
-    )
-
-
 _HINT_FUNCTIONS: list[Callable[..., Hint | None]] = [
     _hint_docker_baseurl,
     _hint_kubernetes_baseurl,
     _hint_wsl_watchfiles,
     _hint_dev_server_container,
-    _hint_gil,
 ]
 
 

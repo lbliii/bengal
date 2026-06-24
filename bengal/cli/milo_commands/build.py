@@ -105,6 +105,9 @@ def build(
     all_versions: Annotated[
         bool, Description("[Versioning] Build all versions in parallel (git mode)")
     ] = False,
+    yes: Annotated[
+        bool, Description("Skip free-threading confirmation (for CI/automation)")
+    ] = False,
 ) -> dict:
     """Build the static site.
 
@@ -123,6 +126,7 @@ def build(
         get_cli_output,
         load_site_from_cli,
     )
+    from bengal.cli.utils.free_threading import ensure_free_threading_or_confirm
     from bengal.config.build_options_resolver import CLIFlags, resolve_build_options
     from bengal.orchestration.stats import display_build_stats, show_building_indicator
     from bengal.utils.observability.logger import close_all_loggers, print_all_summaries
@@ -244,6 +248,7 @@ def build(
     output_mode = cli.output_mode(style_val)
     output_mode.__enter__()
     try:
+        ensure_free_threading_or_confirm(cli, command="build", yes=yes)
         if memory_optimized and incremental_val is True:
             cli.warning("--memory-optimized with --incremental may not fully utilize cache")
             cli.blank()
