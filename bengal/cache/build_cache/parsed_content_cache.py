@@ -175,6 +175,15 @@ class ParsedContentCacheMixin:
             "target_anchors": list(cached.get("target_anchors") or []),
         }
 
+    def get_cached_template(self, file_path: Path) -> str | None:
+        """Return the template name stored with a parsed cache entry, if any."""
+        key = self._cache_key(file_path)
+        cached = self.parsed_content.get(key)
+        if not cached:
+            return None
+        template = cached.get("template")
+        return str(template) if template else None
+
     def get_parsed_content(
         self, file_path: Path, metadata: dict[str, Any], template: str, parser_version: str
     ) -> dict[str, Any] | Any:

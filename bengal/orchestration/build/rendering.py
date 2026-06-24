@@ -528,6 +528,16 @@ def phase_render(
     """
     quiet_mode = quiet and not verbose
 
+    # Pages selected for incremental rebuild must bypass rendered/parsed caches even
+    # when their source file hash is unchanged (e.g. data file or template deps).
+    if incremental and pages_to_build:
+        render_changed = set(changed_sources or ())
+        for page in pages_to_build:
+            source_path = getattr(page, "source_path", None)
+            if source_path is not None:
+                render_changed.add(source_path)
+        changed_sources = render_changed
+
     # Log template introspection insights (verbose mode, Kida only)
     _log_template_introspection(orchestrator, verbose)
 

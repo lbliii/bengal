@@ -460,6 +460,10 @@ class ContentDiscovery:
             # pipeline retrieves it from the build cache if needed.
             apply_parsed_page_to_page(page, parsed_page, seed_ast=False)
 
+            cached_template = build_cache.get_cached_template(file_path)
+            if cached_template:
+                page.metadata["template"] = cached_template
+
             facts = build_cache.get_parsed_discovery_facts(file_path)
             if facts is not None:
                 if facts["target_anchors"]:
