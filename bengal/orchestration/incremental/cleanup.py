@@ -29,6 +29,19 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _resolve_tracked_source_path(source_path_str: str, site_root: Path) -> Path:
+    """Resolve a tracked source path to an absolute filesystem path.
+
+    ``output_sources`` stores canonical cache keys (e.g. ``content/page.md``)
+    relative to the site root. Cleanup must resolve those keys before checking
+    whether the source file still exists on disk.
+    """
+    source_path = Path(source_path_str)
+    if source_path.is_absolute():
+        return source_path
+    return site_root / source_path
+
+
 def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
     """
     Clean up output files for deleted source files.
@@ -56,8 +69,9 @@ def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
     # Build set of current source paths from output_sources
     deleted_sources = []
 
+    site_root = site.root_path
     for output_path_str, source_path_str in cache.output_sources.items():
-        source_path = Path(source_path_str)
+        source_path = _resolve_tracked_source_path(source_path_str, site_root)
         # Check if source file still exists on disk
         if not source_path.exists():
             deleted_sources.append((output_path_str, source_path_str))

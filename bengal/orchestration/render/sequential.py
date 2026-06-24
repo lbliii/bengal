@@ -64,6 +64,12 @@ class SequentialRenderMixin:
 
         token = build_context.cancellation_token if build_context else None
 
+        build_cache = (
+            build_context.cache
+            if build_context is not None and build_context.cache is not None
+            else getattr(self.site, "_cache", None)
+        )
+
         if progress_manager:
             import time
 
@@ -75,6 +81,7 @@ class SequentialRenderMixin:
                 changed_sources=changed_sources,
                 block_cache=self._block_cache,
                 highlight_cache=self._highlight_cache,
+                build_cache=build_cache,
             )
             last_update_time = time.time()
             update_interval = 0.1
@@ -106,6 +113,7 @@ class SequentialRenderMixin:
             changed_sources=changed_sources,
             block_cache=self._block_cache,
             highlight_cache=self._highlight_cache,
+            build_cache=build_cache,
         )
         for i, page in enumerate(pages):
             if token and token.is_cancelled:

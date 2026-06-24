@@ -335,9 +335,21 @@ class CacheChecker:
             meta_description = getattr(page, "_meta_description", None) or ""
             cached_ast = getattr(page, "_ast_cache", None) if persist_tokens else None
 
+        from bengal.content.discovery_facts import collect_parsed_discovery_facts
+
+        discovery_facts = collect_parsed_discovery_facts(page)
+        detected_features = discovery_facts["detected_features"]
+        target_anchors = discovery_facts["target_anchors"]
+
         if parsed_page is not None and hasattr(cache, "store_parsed_page"):
             cache.store_parsed_page(
-                page.source_path, parsed_page, page.metadata, template, parser_version
+                page.source_path,
+                parsed_page,
+                page.metadata,
+                template,
+                parser_version,
+                detected_features=detected_features,
+                target_anchors=target_anchors,
             )
         else:
             cache.store_parsed_content(
@@ -352,6 +364,8 @@ class CacheChecker:
                 ast=cached_ast,
                 excerpt=excerpt,
                 meta_description=meta_description,
+                detected_features=detected_features,
+                target_anchors=target_anchors,
             )
 
     def cache_rendered_output(

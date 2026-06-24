@@ -23,10 +23,21 @@ from .parallel import thread_local as _thread_local
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bengal.cache.build_cache import BuildCache
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.protocols.core import PageLike
+
+
+def _resolve_build_cache(
+    build_context: BuildContext | None,
+    site: Site,
+) -> BuildCache | None:
+    """Resolve the build cache from context or the site warm-build slot."""
+    if build_context is not None and build_context.cache is not None:
+        return build_context.cache
+    return getattr(site, "_cache", None)
 
 
 def process_page_with_pipeline(
@@ -83,6 +94,7 @@ def process_page_with_pipeline(
             block_cache=block_cache,
             highlight_cache=highlight_cache,
             write_behind=write_behind,
+            build_cache=_resolve_build_cache(build_context, site),
         )
         if current_generation is not None:
             _thread_local.pipeline_generation = current_generation

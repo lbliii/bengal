@@ -139,6 +139,27 @@ class TestCleanupDeletedFiles:
         assert output_path.exists()
         assert count == 0
 
+    def test_no_cleanup_for_relative_cache_key_when_source_exists(
+        self, mock_site, mock_cache, tmp_path
+    ):
+        """Canonical content keys (content/page.md) must resolve against site root."""
+        output_path = mock_site.output_dir / "page" / "index.html"
+        output_path.parent.mkdir(parents=True)
+        output_path.write_text("<html></html>")
+
+        source_path = tmp_path / "content" / "page.md"
+        source_path.parent.mkdir(parents=True)
+        source_path.write_text("Content")
+
+        mock_cache.output_sources = {
+            "page/index.html": "content/page.md",
+        }
+
+        count = cleanup_deleted_files(mock_site, mock_cache)
+
+        assert output_path.exists()
+        assert count == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

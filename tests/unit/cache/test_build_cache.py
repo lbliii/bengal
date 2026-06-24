@@ -1083,6 +1083,35 @@ class TestInvalidationMethods:
         assert result is True
         assert str(test_file) not in cache.parsed_content
 
+    def test_get_parsed_discovery_facts_returns_cached_features(self, tmp_path):
+        """Warm discovery can reuse per-page CSS features and target anchors."""
+        cache = BuildCache(site_root=tmp_path)
+
+        test_file = tmp_path / "content" / "page.md"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("# Page")
+        cache.update_file(test_file)
+
+        cache.store_parsed_content(
+            test_file,
+            html="<p>Content</p>",
+            toc="",
+            toc_items=[],
+            links=[],
+            metadata={"title": "Page"},
+            template="default.html",
+            parser_version="1.0",
+            detected_features=["mermaid"],
+            target_anchors=["install-guide"],
+        )
+
+        facts = cache.get_parsed_discovery_facts(test_file)
+
+        assert facts == {
+            "detected_features": ["mermaid"],
+            "target_anchors": ["install-guide"],
+        }
+
     def test_get_excerpt_for_path_returns_excerpt_from_cache(self, tmp_path):
         """Test get_excerpt_for_path returns excerpt without full validation."""
         cache = BuildCache(site_root=tmp_path)

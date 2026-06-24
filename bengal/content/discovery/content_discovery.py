@@ -396,6 +396,10 @@ class ContentDiscovery:
                 if not is_explicitly_changed:
                     # CACHE HIT: Reconstruct full Page from cache (Sprint 5)
                     build_cache = getattr(self, "_build_cache", None)
+                    if build_cache is not None and build_cache.is_changed(file_path):
+                        # Source changed since last build — stale parsed content must
+                        # not be seeded onto the Page or rendering skips re-parse.
+                        return None
                     if build_cache is not None:
                         page = self._create_page_from_cache(
                             file_path,
@@ -455,6 +459,17 @@ class ContentDiscovery:
             # AST is intentionally NOT loaded — it can be large and the rendering
             # pipeline retrieves it from the build cache if needed.
             apply_parsed_page_to_page(page, parsed_page, seed_ast=False)
+
+            cached_template = build_cache.get_cached_template(file_path)
+            if cached_template:
+                page.metadata["template"] = cached_template
+
+            facts = build_cache.get_parsed_discovery_facts(file_path)
+            if facts is not None:
+                if facts["target_anchors"]:
+                    page._target_anchors_cache = facts["target_anchors"]  # type: ignore[attr-defined]
+                if facts["detected_features"]:
+                    page._detected_features_cache = facts["detected_features"]  # type: ignore[attr-defined]
 
             return page
         except Exception:

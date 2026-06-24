@@ -418,6 +418,7 @@ class BuildOrchestrator:
             stats=self.stats,
             cancellation_token=CancellationToken(timeout=300.0),
         )
+        early_ctx.cache = self.incremental.cache
 
         # Create output collector for hot reload tracking
         # This collector tracks all written files (HTML, CSS, assets) for typed reload decisions.
