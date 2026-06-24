@@ -27,9 +27,13 @@ from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.concurrency.context_propagation import submit_with_context
 from bengal.utils.concurrency.executor import CancellationError, CancellationToken, managed_executor
 from bengal.utils.concurrency.gil import (
+    FreeThreadingState,
+    FreeThreadingStatus,
     format_gil_tip_for_cli,
+    get_free_threading_status,
     get_gil_status_message,
     has_free_threading_support,
+    is_free_threading_build,
     is_gil_disabled,
 )
 from bengal.utils.concurrency.retry import (
@@ -55,6 +59,8 @@ __all__ = [
     "CancellationError",
     "CancellationToken",
     "Environment",
+    "FreeThreadingState",
+    "FreeThreadingStatus",
     "PerKeyLockManager",
     "ThreadLocalCache",
     "ThreadSafeSet",
@@ -67,11 +73,13 @@ __all__ = [
     "detect_environment",
     "estimate_page_weight",
     "format_gil_tip_for_cli",
+    "get_free_threading_status",
     "get_gil_status_message",
     "get_optimal_workers",
     "get_profile",
     "has_free_threading_support",
     "install_uvloop",
+    "is_free_threading_build",
     "is_gil_disabled",
     "managed_executor",
     "order_by_complexity",
