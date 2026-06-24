@@ -396,6 +396,10 @@ class ContentDiscovery:
                 if not is_explicitly_changed:
                     # CACHE HIT: Reconstruct full Page from cache (Sprint 5)
                     build_cache = getattr(self, "_build_cache", None)
+                    if build_cache is not None and build_cache.is_changed(file_path):
+                        # Source changed since last build — stale parsed content must
+                        # not be seeded onto the Page or rendering skips re-parse.
+                        return None
                     if build_cache is not None:
                         page = self._create_page_from_cache(
                             file_path,
