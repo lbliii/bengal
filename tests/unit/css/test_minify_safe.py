@@ -143,3 +143,131 @@ class TestFailSafe:
     def test_garbage_does_not_crash(self) -> None:
         for junk in ["}}}{{{", "@@@", "a{b", '"unterminated', "/* unclosed"]:
             assert isinstance(minify_css(junk), str)
+
+    def test_comment_only_is_empty(self) -> None:
+        assert minify_css("/* only a comment */") == ""
+
+    def test_whitespace_only_is_empty(self) -> None:
+        assert minify_css("   \n\t   ") == ""
+
+    def test_empty_rule_kept_at_safe_level(self) -> None:
+        assert minify_css("body { }") == "body{}"
+
+    def test_non_string_input_stringifies(self) -> None:
+        assert minify_css(123) == "123"  # type: ignore[arg-type]
+
+
+class TestCommentRemoval:
+    """Moved from the legacy utils twin; single-line comments are in TestSafeCorrectness."""
+
+    def test_multiline_comment_removed(self) -> None:
+        css = """/*
+         * Multi-line
+         * comment
+         */
+        body { color: red; }
+        """
+        assert minify_css(css) == "body{color:red}"
+
+    def test_multiple_comments_removed(self) -> None:
+        css = "/* first */ body { /* second */ color: red; /* third */ }"
+        assert minify_css(css) == "body{color:red}"
+
+
+class TestStringPreservation:
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            ('body { content: "hello world"; }', 'body{content:"hello world"}'),
+            ("body { content: 'hello world'; }", "body{content:'hello world'}"),
+            (r'body { content: "say \"hello\""; }', r'body{content:"say \"hello\""}'),
+            ('body { background: url("image.png"); }', 'body{background:url("image.png")}'),
+        ],
+    )
+    def test_quoted_values_kept(self, source: str, expected: str) -> None:
+        assert minify_css(source) == expected
+
+
+class TestSelectorCompoundStarts:
+    """Descendant space vs same-element compaction (legacy twin)."""
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            (".a :where(h1, h2) { color: red; }", ".a :where(h1,h2){color:red}"),
+            (".a :is(h1, h2) { color: red; }", ".a :is(h1,h2){color:red}"),
+            (".a :not(pre) > code { color: red; }", ".a :not(pre)>code{color:red}"),
+            (".a :has(> img) { color: red; }", ".a :has(>img){color:red}"),
+            (".a :hover { color: red; }", ".a :hover{color:red}"),
+            (".a ::before { content: ''; }", ".a ::before{content:''}"),
+            (".a [data-x] { color: red; }", ".a [data-x]{color:red}"),
+            (".a * { color: red; }", ".a *{color:red}"),
+            (".a #b { color: red; }", ".a #b{color:red}"),
+            (".a button { color: red; }", ".a button{color:red}"),
+        ],
+    )
+    def test_descendant_space_before_compound_start(self, source: str, expected: str) -> None:
+        assert minify_css(source) == expected
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            (".a:where(h1, h2) { color: red; }", ".a:where(h1,h2){color:red}"),
+            (".a:is(h1, h2) { color: red; }", ".a:is(h1,h2){color:red}"),
+            (".a:not(pre) > code { color: red; }", ".a:not(pre)>code{color:red}"),
+            (".a:has(> img) { color: red; }", ".a:has(>img){color:red}"),
+            (".a:hover { color: red; }", ".a:hover{color:red}"),
+            (".a::before { content: ''; }", ".a::before{content:''}"),
+            (".a[data-x] { color: red; }", ".a[data-x]{color:red}"),
+        ],
+    )
+    def test_same_element_selectors_stay_compact(self, source: str, expected: str) -> None:
+        assert minify_css(source) == expected
+
+
+class TestCalcVariants:
+    def test_addition_keeps_operator_spaces(self) -> None:
+        assert minify_css("div { width: calc(10px + 20px); }") == "div{width:calc(10px + 20px)}"
+
+    def test_nested_calc(self) -> None:
+        css = "div { width: calc(100% - calc(20px + 10px)); }"
+        assert minify_css(css) == "div{width:calc(100% - calc(20px + 10px))}"
+
+
+class TestMultiValueAndSlash:
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            (
+                "div { box-shadow: 10px 10px 5px rgba(0,0,0,0.5); }",
+                "div{box-shadow:10px 10px 5px rgba(0,0,0,0.5)}",
+            ),
+            (
+                "div { background: #fff url('img.png') no-repeat center; }",
+                "div{background:#fff url('img.png') no-repeat center}",
+            ),
+            (
+                "div { transform: rotate(45deg) scale(1.5); }",
+                "div{transform:rotate(45deg) scale(1.5)}",
+            ),
+            ("div { border-radius: 10px / 20px; }", "div{border-radius:10px/20px}"),
+        ],
+    )
+    def test_multi_value_and_slash_properties(self, source: str, expected: str) -> None:
+        assert minify_css(source) == expected
+
+
+class TestAtImport:
+    def test_import_preserved(self) -> None:
+        css = '@import "other.css"; body { color: red; }'
+        assert minify_css(css) == '@import "other.css";body{color:red}'
+
+
+class TestColorFunctions:
+    """rgb() is covered by TestPreludeFunctionDistinction; rgba/hsl were twin-only."""
+
+    def test_rgba(self) -> None:
+        assert minify_css("div { color: rgba(255, 0, 0, 0.5); }") == "div{color:rgba(255,0,0,0.5)}"
+
+    def test_hsl(self) -> None:
+        assert minify_css("div { color: hsl(0, 100%, 50%); }") == "div{color:hsl(0,100%,50%)}"
