@@ -18,10 +18,10 @@ on:
     - cron: '0 3 * * 0'
   workflow_dispatch:
     inputs:
-      paths:
-        description: 'Paths to mutate (comma-separated, e.g., "bengal/orchestration/")'
+      note:
+        description: "Targets come from [tool.mutmut] in pyproject.toml (mutmut 3)."
         required: false
-        default: 'bengal/orchestration/,bengal/cache/'
+        default: ""
 
 concurrency:
   group: mutation-${{ github.workflow }}-${{ github.ref }}
@@ -63,15 +63,7 @@ jobs:
     - name: Install dependencies
       run: |
         uv sync --no-sources --group dev
-        uv pip install mutmut
-
-    - name: Configure mutation targets
-      id: targets
-      run: |
-        # Use input if provided, otherwise use defaults
-        PATHS="${{ github.event.inputs.paths || 'bengal/orchestration/,bengal/cache/' }}"
-        echo "paths=$PATHS" >> $GITHUB_OUTPUT
-        echo "Mutation paths: $PATHS"
+        uv pip install "mutmut>=3.3,<4"
 
     - name: Run mutation testing
       env:
@@ -80,18 +72,10 @@ jobs:
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        echo "Running mutation testing on: ${{ steps.targets.outputs.paths }}"
-
-        # Run mutmut with targeted paths
-        # --runner: Use pytest with fast options
-        # --paths-to-mutate: Only mutate critical paths
-        # --tests-dir: Only run relevant tests
-        uv run mutmut run \
-          --paths-to-mutate "${{ steps.targets.outputs.paths }}" \
-          --tests-dir "tests/unit/orchestration/,tests/unit/cache/" \
-          --runner "pytest -x -q --tb=line" \
-          --no-progress \
-          || true  # Don't fail workflow on mutant survival
+        echo "Running mutation testing (config: [tool.mutmut] in pyproject.toml)"
+        # mutmut 3 dropped --paths-to-mutate; config lives in pyproject.toml.
+        # Do not || true — a CLI/config error must fail the job.
+        uv run mutmut run
 
     - name: Generate mutation report
       run: |
