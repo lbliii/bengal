@@ -89,8 +89,9 @@ def minimal_mock_site(tmp_path):
     site.root_path = tmp_path
     site.output_dir = tmp_path / "public"
     site.output_dir.mkdir()
-    site.content_dir = tmp_path / "content"
-    site.content_dir.mkdir()
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    site.config_service.content_dir = content_dir
 
     # Create paths object
     site.config_service.paths = MagicMock()
@@ -208,7 +209,7 @@ class TestValidatorRobustnessContracts:
         site.root_path = tmp_path
         site.output_dir = tmp_path / "public"
         site.output_dir.mkdir()
-        site.content_dir = tmp_path / "content"
+        site.config_service.content_dir = tmp_path / "content"
         site.config_service.paths = MagicMock()
         site.config_service.paths.build_cache = tmp_path / ".bengal" / "cache.json"
         site.config = {"output_dir": "public", "theme": "default"}

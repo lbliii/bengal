@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
     from bengal.config.types import SiteConfig as SiteConfigType
     from bengal.core.page.frontmatter import Frontmatter
+    from bengal.core.page_cache import PageCacheManager
     from bengal.core.theme import Theme
     from bengal.core.version import VersionConfig
     from bengal.parsing.base import BaseMarkdownParser
@@ -438,11 +439,6 @@ class SiteConfig(Protocol):
         ...
 
     @property
-    def content_dir(self) -> Path:
-        """Path to the content directory."""
-        ...
-
-    @property
     def version_config(self) -> VersionConfig:
         """Site versioning configuration."""
         ...
@@ -519,8 +515,9 @@ class SiteContent(Protocol):
         """Available documentation versions."""
         ...
 
-    def get_page_path_map(self) -> dict[str, PageLike]:
-        """Get cached page path lookup map for O(1) page resolution."""
+    @property
+    def page_cache(self) -> PageCacheManager:
+        """Page lookup caches (filtered views and string-keyed path map)."""
         ...
 
     def get_section_by_path(self, path: Path | str) -> SectionLike | None:

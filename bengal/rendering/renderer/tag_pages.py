@@ -72,7 +72,7 @@ def get_resolved_tag_pages(renderer: Any, tag_slug: str) -> list[PageLike]:
         tag_snapshots = snapshot.taxonomy.tag_pages.get(tag_slug, ())
         if not tag_snapshots:
             return []
-        str_page_map = renderer.site.get_page_path_map()
+        str_page_map = renderer.site.page_cache.get_page_path_map()
         resolved: list[PageLike] = []
         for tax_page in tag_snapshots:
             live_page = str_page_map.get(str(tax_page.source_path))
@@ -102,7 +102,7 @@ def build_all_tag_pages_cache(renderer: Any) -> dict[str, list[PageLike]]:
     - Resolves stale Page references via site's page path map
     """
     cache: dict[str, list[PageLike]] = {}
-    str_page_map = renderer.site.get_page_path_map()
+    str_page_map = renderer.site.page_cache.get_page_path_map()
     tags_data = renderer.site.taxonomies.get("tags", {})
 
     for tag_slug, tag_info in tags_data.items():
@@ -152,7 +152,7 @@ def add_tag_generated_page_context(renderer: Any, page: PageLike, context: dict[
     if not all_posts and page.metadata is not None:
         stored_posts = page.metadata.get("_posts", [])
         if stored_posts:
-            str_page_map = renderer.site.get_page_path_map()
+            str_page_map = renderer.site.page_cache.get_page_path_map()
             for stored_item in stored_posts:
                 resolved_page = None
                 if hasattr(stored_item, "source_path"):
@@ -188,7 +188,7 @@ def add_tag_generated_page_context(renderer: Any, page: PageLike, context: dict[
             pagination = renderer._default_pagination(f"/tags/{tag_slug}/")
     elif paginator and hasattr(paginator, "items") and paginator.items:
         resolved_items = []
-        str_page_map = renderer.site.get_page_path_map()
+        str_page_map = renderer.site.page_cache.get_page_path_map()
         for item in paginator.items:
             if hasattr(item, "source_path"):
                 resolved = str_page_map.get(str(item.source_path))

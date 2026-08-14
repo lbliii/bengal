@@ -592,7 +592,7 @@ def resolve_pages(page_paths: list[str], site: SiteLike) -> list[Any]:
         {% set blog_paths = site.indexes.section.get('blog') %}
         {% set blog_pages = blog_paths | resolve_pages %}
 
-    PERFORMANCE: Uses cached page path map from Site for O(1) lookups.
+    PERFORMANCE: Uses cached page path map from ``site.page_cache`` for O(1) lookups.
     The cache is automatically invalidated when pages are added/removed.
 
     Args:
@@ -613,8 +613,8 @@ def resolve_pages(page_paths: list[str], site: SiteLike) -> list[Any]:
     if not page_paths:
         return []
 
-    # Use cached lookup map from Site (O(1) per lookup after first call)
-    page_map = site.get_page_path_map()
+    # Use cached lookup map from page_cache (O(1) per lookup after first call)
+    page_map = site.page_cache.get_page_path_map()
 
     # Resolve paths to pages
     pages = []

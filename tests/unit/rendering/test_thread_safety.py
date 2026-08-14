@@ -307,7 +307,7 @@ class TestRendererCacheThreadSafety:
                 "rust": {"name": "Rust", "slug": "rust", "pages": []},
             }
         }
-        mock_site.get_page_path_map.return_value = {}
+        mock_site.page_cache.get_page_path_map.return_value = {}
         mock_engine.site = mock_site
 
         renderer = Renderer(mock_engine, build_stats=None)

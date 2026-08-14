@@ -211,7 +211,7 @@ class TestTagPageURLConstruction:
         mock_engine = MagicMock()
         mock_site = MagicMock()
         mock_site.taxonomies = {"tags": {}}
-        mock_site.get_page_path_map.return_value = {}
+        mock_site.page_cache.get_page_path_map.return_value = {}
         mock_engine.site = mock_site
 
         renderer = Renderer(mock_engine, build_stats=None)
@@ -242,7 +242,7 @@ class TestTagPageURLConstruction:
         mock_engine = MagicMock()
         mock_site = MagicMock()
         mock_site.taxonomies = {"tags": {}}
-        mock_site.get_page_path_map.return_value = {}
+        mock_site.page_cache.get_page_path_map.return_value = {}
         mock_engine.site = mock_site
 
         renderer = Renderer(mock_engine, build_stats=None)

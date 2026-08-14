@@ -262,7 +262,7 @@ def get_series_neighbor(
         return None
 
     # Get page lookup map
-    page_map = site.get_page_path_map()
+    page_map = site.page_cache.get_page_path_map()
 
     # Find the page with the target part number
     for path in page_paths:

@@ -19,7 +19,7 @@ class TestContentTypeDetection:
     @pytest.fixture
     def site(self, tmp_path):
         """Create a minimal test site."""
-        # Create the content directory that Site.content_dir property expects
+        # Create the content directory that config_service.content_dir expects
         (tmp_path / "content").mkdir(exist_ok=True)
         site = Site(root_path=tmp_path, output_dir=tmp_path / "output")
         return site
@@ -202,7 +202,7 @@ class TestTemplateSelection:
     @pytest.fixture
     def site(self, tmp_path):
         """Create a minimal test site."""
-        # Create the content directory that Site.content_dir property expects
+        # Create the content directory that config_service.content_dir expects
         (tmp_path / "content").mkdir(exist_ok=True)
         site = Site(root_path=tmp_path, output_dir=tmp_path / "output")
         return site
@@ -249,7 +249,7 @@ class TestPaginationDecision:
     @pytest.fixture
     def site(self, tmp_path):
         """Create a minimal test site."""
-        # Create the content directory that Site.content_dir property expects
+        # Create the content directory that config_service.content_dir expects
         (tmp_path / "content").mkdir(exist_ok=True)
         site = Site(
             root_path=tmp_path,

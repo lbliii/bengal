@@ -316,7 +316,7 @@ class TestBuildStabilizationTiming:
     def mock_site(self) -> MagicMock:
         """Create a mock site for testing."""
         site = MagicMock()
-        site.content_dir = Path("/test/site/content")
+        site.config_service.content_dir = Path("/test/site/content")
         site.output_dir = Path("/test/site/public")
         site.config = {}
         site.theme = None
