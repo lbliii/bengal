@@ -18,6 +18,7 @@ from bengal.icons import resolver as icon_resolver
 from bengal.icons.svg import clear_icon_cache, flush_missing_icon_warnings, warn_missing_icon
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 pytestmark = pytest.mark.parallel_unsafe
@@ -525,3 +526,184 @@ class TestInitializeWithSite:
         # Default path should be included
         path_strs = [str(p) for p in paths]
         assert any("default" in p for p in path_strs)
+
+
+class _BlockingIconDir:
+    """Search-path stand-in that can pause during exists() or read_text()."""
+
+    def __init__(
+        self,
+        real: Path,
+        started: threading.Event,
+        release: threading.Event,
+        *,
+        block_on: str,
+    ) -> None:
+        self._real = real
+        self._started = started
+        self._release = release
+        self._block_on = block_on
+
+    def __truediv__(self, other: str) -> _BlockingIconPath:
+        return _BlockingIconPath(
+            self._real / other,
+            self._started,
+            self._release,
+            block_on=self._block_on,
+        )
+
+
+class _BlockingIconPath:
+    def __init__(
+        self,
+        real: Path,
+        started: threading.Event,
+        release: threading.Event,
+        *,
+        block_on: str,
+    ) -> None:
+        self._real = real
+        self._started = started
+        self._release = release
+        self._block_on = block_on
+
+    def exists(self) -> bool:
+        if self._block_on == "exists":
+            self._started.set()
+            assert self._release.wait(timeout=2)
+        return self._real.exists()
+
+    def read_text(self, encoding: str = "utf-8") -> str:
+        if self._block_on == "read_text":
+            self._started.set()
+            assert self._release.wait(timeout=2)
+        return self._real.read_text(encoding=encoding)
+
+
+def _run_blocked_load[T](
+    load: Callable[[], T],
+    started: threading.Event,
+    release: threading.Event,
+    inject: Callable[[], None],
+) -> T:
+    result_box: list[T] = []
+
+    def _load() -> None:
+        result_box.append(load())
+
+    worker = threading.Thread(target=_load)
+    worker.start()
+    assert started.wait(timeout=2)
+    inject()
+    release.set()
+    worker.join(timeout=2)
+    assert not worker.is_alive()
+    assert result_box
+    return result_box[0]
+
+
+class TestCacheWriteDoubleCheck:
+    """After I/O, re-check under _icon_lock and return any concurrent winner."""
+
+    def _legacy_setup(
+        self, tmp_path: Path, *, block_on: str
+    ) -> tuple[
+        _BlockingIconDir,
+        threading.Event,
+        threading.Event,
+    ]:
+        icons_dir = tmp_path / "icons"
+        icons_dir.mkdir()
+        started = threading.Event()
+        release = threading.Event()
+        blocking = _BlockingIconDir(icons_dir, started, release, block_on=block_on)
+        icon_resolver._search_paths = [blocking]  # type: ignore[list-item]
+        icon_resolver._initialized = True
+        icon_resolver.clear_cache()
+        return blocking, started, release
+
+    @pytest.mark.parallel_unsafe
+    def test_legacy_store_returns_existing_icon(self, tmp_path: Path) -> None:
+        """A store that lands while we read wins; we return that object."""
+        _blocking, started, release = self._legacy_setup(tmp_path, block_on="read_text")
+        (tmp_path / "icons" / "race.svg").write_text("<svg><!-- disk --></svg>")
+        winner = "<svg><!-- winner --></svg>"
+
+        def _inject() -> None:
+            with icon_resolver._icon_lock:
+                icon_resolver._icon_cache["race"] = winner
+
+        result = _run_blocked_load(
+            lambda: icon_resolver.load_icon("race"),
+            started,
+            release,
+            _inject,
+        )
+        assert result is winner
+
+    @pytest.mark.parallel_unsafe
+    def test_legacy_not_found_returns_existing_icon(self, tmp_path: Path) -> None:
+        """A found entry that lands during a miss wins over not_found_cache."""
+        _blocking, started, release = self._legacy_setup(tmp_path, block_on="exists")
+        winner = "<svg><!-- winner --></svg>"
+
+        def _inject() -> None:
+            with icon_resolver._icon_lock:
+                icon_resolver._icon_cache["missing"] = winner
+
+        result = _run_blocked_load(
+            lambda: icon_resolver.load_icon("missing"),
+            started,
+            release,
+            _inject,
+        )
+        assert result is winner
+        assert "missing" not in icon_resolver._not_found_cache
+
+    @pytest.mark.parallel_unsafe
+    def test_scoped_store_returns_existing_icon(self, tmp_path: Path) -> None:
+        """Scoped icon_cache write returns a concurrent winner."""
+        icons_dir = tmp_path / "icons"
+        icons_dir.mkdir()
+        (icons_dir / "race.svg").write_text("<svg><!-- disk --></svg>")
+        started = threading.Event()
+        release = threading.Event()
+        blocking = _BlockingIconDir(icons_dir, started, release, block_on="read_text")
+        state = icon_resolver._IconResolverState(search_paths=(blocking,))  # type: ignore[arg-type]
+        winner = "<svg><!-- scoped-winner --></svg>"
+
+        def _inject() -> None:
+            with icon_resolver._icon_lock:
+                state.icon_cache["race"] = winner
+
+        result = _run_blocked_load(
+            lambda: icon_resolver._load_icon_from_state("race", state),
+            started,
+            release,
+            _inject,
+        )
+        assert result is winner
+
+    @pytest.mark.parallel_unsafe
+    def test_scoped_not_found_returns_existing_icon(self, tmp_path: Path) -> None:
+        """Scoped not_found write returns a concurrent icon_cache winner."""
+        icons_dir = tmp_path / "icons"
+        icons_dir.mkdir()
+        started = threading.Event()
+        release = threading.Event()
+        blocking = _BlockingIconDir(icons_dir, started, release, block_on="exists")
+        state = icon_resolver._IconResolverState(search_paths=(blocking,))  # type: ignore[arg-type]
+        winner = "<svg><!-- scoped-winner --></svg>"
+
+        def _inject() -> None:
+            with icon_resolver._icon_lock:
+                state.icon_cache["missing"] = winner
+
+        result = _run_blocked_load(
+            lambda: icon_resolver._load_icon_from_state("missing", state),
+            started,
+            release,
+            _inject,
+        )
+        assert result is winner
+        assert "missing" not in state.not_found_cache
