@@ -6,7 +6,10 @@ Supports free-threaded Python for true parallelism and falls back to
 sequential rendering on standard Python.
 
 Key Modules:
-    - orchestrator: Main RenderOrchestrator class
+    - orchestrator: Thin RenderOrchestrator.process() facade
+    - coordinator: process() internals (write-behind, dispatch)
+    - parallel_render: Snapshot / live-progress / simple parallel paths
+    - parallel_batches: Shared ThreadPoolExecutor batch runner
     - parallel: Free-threaded detection and thread-local pipelines
     - tracking: Active render tracking and build generation management
 
