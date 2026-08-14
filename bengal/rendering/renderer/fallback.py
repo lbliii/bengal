@@ -1,8 +1,10 @@
 """
 Template-error fallback and overlay helpers for Renderer.
 
-Strict-undefined / Kida error behavior is unchanged: collect into BuildStats,
-re-raise in strict mode, else render the overlay or a minimal HTML page.
+Collect into BuildStats. Re-raise in strict mode during ``bengal build``.
+In the dev server (``BENGAL_DEV_SERVER=1``), render the browser overlay so a
+developer hitting the failed URL sees the error. Otherwise write a small
+fallback HTML page.
 """
 
 from __future__ import annotations
@@ -90,6 +92,57 @@ def render_fallback(renderer: Any, page: PageLike, content: str) -> str:
 """
 
 
+def _truthy_flag(obj: Any, key: str) -> bool:
+    """Read a boolean flag from a Config, ConfigSection, or dict."""
+    if obj is None:
+        return False
+    getter = getattr(obj, "get", None)
+    if callable(getter):
+        return bool(getter(key, False))
+    return bool(getattr(obj, key, False))
+
+
+def _build_section(config: Any) -> Any:
+    """Return the ``build`` config section, or None."""
+    if config is None:
+        return None
+    if not isinstance(config, dict) and hasattr(config, "build"):
+        return config.build
+    getter = getattr(config, "get", None)
+    if callable(getter):
+        return getter("build", {})
+    return None
+
+
+def resolve_strict_mode(renderer: Any) -> bool:
+    """True when template errors must fail the current build.
+
+    ``BuildOptions.strict`` is stored on ``renderer.build_stats.strict_mode``.
+    Config may set ``build.strict_mode`` (canonical) or top-level
+    ``strict_mode`` (legacy / test callers). Any of these is sufficient.
+    """
+    stats = getattr(renderer, "build_stats", None)
+    if stats is not None and getattr(stats, "strict_mode", False):
+        return True
+    config = renderer.site.config
+    if _truthy_flag(config, "strict_mode"):
+        return True
+    return _truthy_flag(_build_section(config), "strict_mode")
+
+
+def resolve_debug_mode(renderer: Any) -> bool:
+    """True when config requests debug / traceback on template errors."""
+    config = renderer.site.config
+    if _truthy_flag(config, "debug"):
+        return True
+    return _truthy_flag(_build_section(config), "debug")
+
+
+def in_dev_server() -> bool:
+    """True when this process is ``bengal serve`` (overlay is appropriate)."""
+    return os.environ.get("BENGAL_DEV_SERVER") == "1"
+
+
 def handle_render_error(
     renderer: Any,
     page: PageLike,
@@ -97,29 +150,16 @@ def handle_render_error(
     template_name: str,
     exc: Exception,
 ) -> str:
-    """Collect a template error, re-raise in strict mode, or return overlay HTML."""
+    """Collect a template error, re-raise in strict builds, or return HTML."""
     rich_error = TemplateRenderError.from_jinja2_error(
         exc, template_name, page.source_path, renderer.template_engine
     )
 
-    config = renderer.site.config
-    if hasattr(config, "build"):
-        strict_mode = config.build.strict_mode
-        debug_mode = config.build.debug
-    else:
-        build_section = config.get("build", {})
-        strict_mode = (
-            build_section.get("strict_mode", False)
-            if isinstance(build_section, dict)
-            else config.get("strict_mode", False)
-        )
-        debug_mode = (
-            build_section.get("debug", False)
-            if isinstance(build_section, dict)
-            else config.get("debug", False)
-        )
+    strict_mode = resolve_strict_mode(renderer)
+    debug_mode = resolve_debug_mode(renderer)
+    serving = in_dev_server()
 
-    show_traceback = debug_mode or (os.environ.get("BENGAL_DEV_SERVER") == "1")
+    show_traceback = debug_mode or serving
     rich_error._show_traceback = show_traceback
     rich_error._original_exception = exc
 
@@ -130,19 +170,22 @@ def handle_render_error(
         if dedup.should_display(rich_error):
             renderer.build_stats.add_template_error(rich_error)
 
-    if strict_mode:
+    # Overlay is a serve-time developer aid. Strict ``bengal build`` must still
+    # fail loudly; non-strict builds keep the small fallback HTML.
+    if strict_mode and not serving:
         raise rich_error from exc
 
-    # Render the error overlay in place of the page so a developer
-    # hitting the URL in the dev server lands on a useful page.
-    try:
-        from bengal.errors.overlay import render_error_page
+    if serving:
+        try:
+            from bengal.errors.overlay import render_error_page
 
-        return render_error_page(
-            rich_error,
-            page_title=f"Build Error — {page.title}",
-        )
-    except Exception:
-        # Defensive: never let the overlay renderer mask the
-        # original error path. Fall back to the legacy minimal HTML.
-        return renderer._render_fallback(page, content)
+            return render_error_page(
+                rich_error,
+                page_title=f"Build Error — {page.title}",
+            )
+        except Exception:
+            # Defensive: never let the overlay renderer mask the
+            # original error path. Fall back to the legacy minimal HTML.
+            return renderer._render_fallback(page, content)
+
+    return renderer._render_fallback(page, content)
