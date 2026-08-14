@@ -82,6 +82,7 @@ raw config today, so the worker does no more than the main process:
 from __future__ import annotations
 
 import dataclasses
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -185,18 +186,21 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 _WORKER_PAGE_CONTENT: dict[Path, str] = {}
+_WORKER_PAGE_CONTENT_LOCK = threading.Lock()
 
 
 def set_worker_page_content(content_by_path: dict[Path, str]) -> None:
     """Install the cross-shard content registry in the parent BEFORE forking shard workers."""
     global _WORKER_PAGE_CONTENT
-    _WORKER_PAGE_CONTENT = content_by_path
+    with _WORKER_PAGE_CONTENT_LOCK:
+        _WORKER_PAGE_CONTENT = content_by_path
 
 
 def clear_worker_page_content() -> None:
     """Drop the cross-shard content registry (parent cleanup after the shard render)."""
     global _WORKER_PAGE_CONTENT
-    _WORKER_PAGE_CONTENT = {}
+    with _WORKER_PAGE_CONTENT_LOCK:
+        _WORKER_PAGE_CONTENT = {}
 
 
 # ---------------------------------------------------------------------------
@@ -283,7 +287,8 @@ class PageView:
         byte-identically. Returns ``""`` outside a worker (the parent/thread path renders live
         Pages, never PageViews) and on spawn (no COW inheritance — deferred backend).
         """
-        return _WORKER_PAGE_CONTENT.get(self.source_path, "")
+        with _WORKER_PAGE_CONTENT_LOCK:
+            return _WORKER_PAGE_CONTENT.get(self.source_path, "")
 
     def __hash__(self) -> int:
         # Identity hash (cheap, body-free); structural __eq__ still discriminates.
