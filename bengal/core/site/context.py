@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.cascade_snapshot import CascadeSnapshot
+    from bengal.core.page_cache import PageCacheManager
     from bengal.core.version import VersionConfig
     from bengal.protocols.core import PageLike, SectionLike
 
@@ -103,8 +104,9 @@ class SiteContext(Protocol):
         """Look up a section by its URL."""
         ...
 
-    def get_page_path_map(self) -> dict[str, PageLike]:
-        """String-keyed page lookup map for O(1) resolution."""
+    @property
+    def page_cache(self) -> PageCacheManager:
+        """Page lookup caches including the string-keyed path map."""
         ...
 
     # --- Registry epoch (for memo invalidation) ------------------------

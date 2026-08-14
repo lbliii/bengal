@@ -35,6 +35,13 @@ def test_site_satisfies_site_context_protocol(site):
     assert isinstance(site, SiteContext)
 
 
+def test_site_context_excludes_how_forwarders():
+    """SiteContext must not re-expose vestigial Site HOW forwarders."""
+    assert not hasattr(SiteContext, "content_dir")
+    assert not hasattr(SiteContext, "get_page_path_map")
+    assert hasattr(SiteContext, "page_cache")
+
+
 def test_content_registry_satisfies_registry_context_protocol():
     """ContentRegistry exposes the registry surface Page consumes (epoch + page_index)."""
     registry = ContentRegistry()

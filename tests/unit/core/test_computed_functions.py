@@ -454,7 +454,7 @@ def _make_mock_site(
     indexes = SimpleNamespace(series=series_index)
     return SimpleNamespace(
         indexes=indexes,
-        get_page_path_map=lambda: page_map,
+        page_cache=SimpleNamespace(get_page_path_map=lambda: page_map),
     )
 
 

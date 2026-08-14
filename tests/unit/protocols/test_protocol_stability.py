@@ -223,6 +223,7 @@ class TestSiteLikeStability:
         "baseurl",
         "config",
         "config_service",
+        "page_cache",
         "pages",
         "sections",
         "root_section",
@@ -233,6 +234,11 @@ class TestSiteLikeStability:
         """SiteLike must have these properties."""
         for prop in self.REQUIRED_PROPERTIES:
             assert hasattr(SiteLike, prop), f"SiteLike missing property: {prop}"
+
+    def test_excludes_how_forwarders(self) -> None:
+        """SiteLike must not re-expose vestigial config/page-cache forwarders."""
+        assert not hasattr(SiteLike, "content_dir")
+        assert not hasattr(SiteLike, "get_page_path_map")
 
 
 class TestTemplateProtocolsStability:

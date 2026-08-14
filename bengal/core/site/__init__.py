@@ -592,19 +592,6 @@ class Site:
         """
         return self.page_cache.listable_pages
 
-    def get_page_path_map(self) -> dict[str, PageLike]:
-        """
-        Cached string-keyed page lookup map for O(1) resolution.
-
-        When to use:
-            Use when you have a string path (e.g., from config, CLI args,
-            URL resolution) and want O(1) page lookup. Prefer
-            ``page_by_source_path`` when you already hold a ``Path`` — that
-            variant avoids the stringification and is shared across
-            orchestrators without re-materializing.
-        """
-        return self.page_cache.get_page_path_map()
-
     @property
     def page_by_source_path(self) -> dict[Path, PageLike]:
         """
@@ -612,9 +599,9 @@ class Site:
 
         When to use:
             Use this whenever the caller already has a ``Path`` object.
-            Prefer ``get_page_path_map()`` when your key is a ``str``. The
-            map is shared across the build so reads are safe and cheap; do
-            not mutate it.
+            Prefer ``page_cache.get_page_path_map()`` when your key is a
+            ``str``. The map is shared across the build so reads are safe
+            and cheap; do not mutate it.
         """
         return self.page_cache.page_by_source_path
 
@@ -696,11 +683,6 @@ class Site:
     def author(self) -> str | None:
         """Site author from configuration."""
         return self.config_service.author
-
-    @property
-    def content_dir(self) -> Path:
-        """Path to the content directory."""
-        return self.config_service.content_dir
 
     @property
     def params(self) -> dict[str, Any]:

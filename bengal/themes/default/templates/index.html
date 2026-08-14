@@ -94,13 +94,13 @@ related: false # disable related entirely
             <div class="empty-help">
                 <p><strong>To add content:</strong></p>
                 <ul>
-                    <li>Create a page: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-page.md</code>
+                    <li>Create a page: <code>content/{{ section.path.relative_to(site.config_service.content_dir) }}/my-page.md</code>
                     </li>
                     <li>Add a custom index:
-                        <code>content/{{ section.path.relative_to(site.content_dir) }}/_index.md</code>
+                        <code>content/{{ section.path.relative_to(site.config_service.content_dir) }}/_index.md</code>
                     </li>
                     <li>Create a subsection:
-                        <code>content/{{ section.path.relative_to(site.content_dir) }}/subsection/</code>
+                        <code>content/{{ section.path.relative_to(site.config_service.content_dir) }}/subsection/</code>
                     </li>
                 </ul>
             </div>

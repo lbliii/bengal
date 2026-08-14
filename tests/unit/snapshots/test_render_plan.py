@@ -787,7 +787,9 @@ def test_walk_order_diverges_from_path_parts(site_factory):
     site = site_factory("test-navigation")
     site.build(BuildOptions(quiet=True, force_sequential=True))
 
-    discovered = [cf.source_path for cf in discover_content_files(site.content_dir, site=site)]
+    discovered = [
+        cf.source_path for cf in discover_content_files(site.config_service.content_dir, site=site)
+    ]
     discover_set = set(discovered)
     live_filebacked = [p.source_path for p in site.pages if p.source_path in discover_set]
 
@@ -800,7 +802,7 @@ def test_walk_order_diverges_from_path_parts(site_factory):
     )
     # The signature divergence: a section's own _index sorts AFTER its subsections' pages
     # in the live walk, but BEFORE them in Path.parts order (fewer path components first).
-    rp = site.content_dir
+    rp = site.config_service.content_dir
     rel = lambda p: p.relative_to(rp)  # noqa: E731
     docs_index = next(p for p in live_filebacked if rel(p).as_posix() == "docs/_index.md")
     gs_index = next(

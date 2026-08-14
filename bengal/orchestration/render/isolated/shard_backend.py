@@ -243,7 +243,7 @@ class ShardRenderBackend:
         plan = RenderPlan.from_site(site, snapshot)
         immortalize_snapshot(snapshot)  # COW-free reads in forked workers
 
-        content_dir = site.content_dir
+        content_dir = site.config_service.content_dir
         files = discover_content_files(content_dir, site=site)
         content_set = {f.source_path for f in files}
         content_pages = [p for p in pages if p.source_path in content_set]
