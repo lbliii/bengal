@@ -68,6 +68,7 @@ See Also:
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING
 
 from bengal.errors import BengalConfigError, ErrorCode
@@ -85,6 +86,7 @@ if TYPE_CHECKING:
 
 # Third-party engine registry (for plugins)
 _ENGINES: dict[str, type[TemplateEngineProtocol]] = {}
+_ENGINES_LOCK = threading.Lock()
 
 
 def register_engine(name: str, engine_class: type[TemplateEngineProtocol]) -> None:
@@ -96,7 +98,8 @@ def register_engine(name: str, engine_class: type[TemplateEngineProtocol]) -> No
         engine_class: Class implementing TemplateEngineProtocol
 
     """
-    _ENGINES[name] = engine_class
+    with _ENGINES_LOCK:
+        _ENGINES[name] = engine_class
 
 
 def create_engine(
@@ -158,10 +161,14 @@ def create_engine(
             ) from e
         return PatitasTemplateEngine(site)
 
-    if engine_name in _ENGINES:
-        return _ENGINES[engine_name](site)
+    with _ENGINES_LOCK:
+        engine_cls = _ENGINES.get(engine_name)
+        available_keys = list(_ENGINES.keys())
 
-    available = ["kida", "mako", "patitas", *_ENGINES.keys()]
+    if engine_cls is not None:
+        return engine_cls(site)
+
+    available = ["kida", "mako", "patitas", *available_keys]
     raise BengalConfigError(
         f"Unknown template engine: '{engine_name}'. Available: {', '.join(sorted(available))}",
         code=ErrorCode.C003,
