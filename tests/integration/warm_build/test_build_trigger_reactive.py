@@ -30,11 +30,11 @@ class TestBuildTriggerReactivePath:
         """Create a mock executor (warm builds use site.build directly)."""
         return MagicMock()
 
-    @patch("bengal.server.build_trigger.run_pre_build_hooks")
-    @patch("bengal.server.build_trigger.run_post_build_hooks")
-    @patch("bengal.server.build_trigger.show_building_indicator")
-    @patch("bengal.server.build_trigger.get_cli_output")
-    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.execute.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.execute.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.execute.show_building_indicator")
+    @patch("bengal.server.build_trigger.execute.get_cli_output")
+    @patch("bengal.server.build_trigger.reload.display_build_stats")
     @patch("bengal.server.build_trigger.default_reload_controller")
     @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_trigger_build_uses_reactive_path_after_first_build(
@@ -102,11 +102,11 @@ This is the home page with updated body.
             )
             assert len(build_calls) == 1, "Reactive path should skip site.build()"
 
-    @patch("bengal.server.build_trigger.run_pre_build_hooks")
-    @patch("bengal.server.build_trigger.run_post_build_hooks")
-    @patch("bengal.server.build_trigger.show_building_indicator")
-    @patch("bengal.server.build_trigger.get_cli_output")
-    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.execute.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.execute.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.execute.show_building_indicator")
+    @patch("bengal.server.build_trigger.execute.get_cli_output")
+    @patch("bengal.server.build_trigger.reload.display_build_stats")
     @patch("bengal.server.build_trigger.default_reload_controller")
     @patch("bengal.server.live_reload.notification.send_fragment_payload")
     def test_reactive_path_sends_fragment_payload(
@@ -255,11 +255,11 @@ class TestDevServerStyleFirstEdit:
     seeds content hash cache. First user edit must use reactive path.
     """
 
-    @patch("bengal.server.build_trigger.run_pre_build_hooks")
-    @patch("bengal.server.build_trigger.run_post_build_hooks")
-    @patch("bengal.server.build_trigger.show_building_indicator")
-    @patch("bengal.server.build_trigger.get_cli_output")
-    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.execute.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.execute.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.execute.show_building_indicator")
+    @patch("bengal.server.build_trigger.execute.get_cli_output")
+    @patch("bengal.server.build_trigger.reload.display_build_stats")
     @patch("bengal.server.build_trigger.default_reload_controller")
     @patch("bengal.server.live_reload.notification.send_fragment_payload")
     def test_first_edit_after_dev_server_init_uses_reactive_path(
