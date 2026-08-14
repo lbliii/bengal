@@ -12,6 +12,8 @@ See: plan/rfc-incremental-build-dependency-gaps.md
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from tests.integration.warm_build.conftest import WarmBuildTestSite
@@ -535,6 +537,38 @@ cascade:
         )
 
 
+class TestGeneratedTrackAssetIndexProducers:
+    """Generated, track, and asset kinds persist in the dependency read-index."""
+
+    def test_taxonomy_build_persists_generated_index_entries(
+        self, site_with_taxonomy_tracking: WarmBuildTestSite
+    ) -> None:
+        site_with_taxonomy_tracking.full_build()
+        generated = _index_entries_of_kind(site_with_taxonomy_tracking, "generated")
+        assert generated, "taxonomy pages should produce generated-kind index entries"
+        assert all(entry.get("producer") for entry in generated)
+
+    def test_track_build_persists_track_index_entries(
+        self, site_with_track_tracking: WarmBuildTestSite
+    ) -> None:
+        site_with_track_tracking.full_build()
+        tracks = _index_entries_of_kind(site_with_track_tracking, "track")
+        assert tracks, "track pages/items should produce track-kind index entries"
+        assert all(entry.get("producer") for entry in tracks)
+        keys = {entry["dependency_key"] for entry in tracks}
+        assert "getting-started" in keys
+
+
+def _index_entries_of_kind(site: WarmBuildTestSite, kind: str) -> list[dict]:
+    index_path = site.cache_dir / "provenance" / "dependency-index.json"
+    payload = json.loads(index_path.read_text(encoding="utf-8"))
+    return [
+        entry
+        for entry in payload.get("dependencies", {}).values()
+        if isinstance(entry, dict) and entry.get("dependency_kind") == kind
+    ]
+
+
 # =============================================================================
 # FIXTURES
 # =============================================================================
@@ -849,6 +883,71 @@ Guide content here.
 </body>
 </html>
 """)
+
+
+def create_track_tracking_site_structure(site_dir) -> None:
+    """Create a site with a learning track so track-kind producers have facts."""
+    (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Track Tracking Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+incremental = true
+generate_sitemap = false
+generate_rss = false
+""")
+
+    data_dir = site_dir / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "tracks.yaml").write_text("""
+getting-started:
+  title: Getting Started
+  items:
+    - guides/step1.md
+""")
+
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
+    (content_dir / "_index.md").write_text("""---
+title: Home
+---
+
+# Welcome
+""")
+    tracks_dir = content_dir / "tracks"
+    tracks_dir.mkdir()
+    (tracks_dir / "_index.md").write_text("""---
+title: Tracks
+---
+
+# Tracks
+""")
+    (tracks_dir / "intro.md").write_text("""---
+title: Getting Started
+track_id: getting-started
+---
+
+# Getting Started
+""")
+    guides_dir = content_dir / "guides"
+    guides_dir.mkdir()
+    (guides_dir / "step1.md").write_text("""---
+title: Step One
+---
+
+# Step One
+""")
+
+
+@pytest.fixture
+def site_with_track_tracking(tmp_path) -> WarmBuildTestSite:
+    """Create a test site with track definitions for index-producer proof."""
+    site_dir = tmp_path / "track_tracking_site"
+    site_dir.mkdir()
+    create_track_tracking_site_structure(site_dir)
+    return WarmBuildTestSite(site_dir=site_dir)
 
 
 @pytest.fixture
