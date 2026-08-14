@@ -228,6 +228,7 @@ def create_detector_from_build(
     site: Site,
     old_snapshot: SiteSnapshot | None = None,
     new_snapshot: SiteSnapshot | None = None,
+    dependency_index: DependencyReadIndex | None = None,
 ) -> EffectBasedDetector:
     """
     Create detector from a build's effect tracer.
@@ -238,6 +239,7 @@ def create_detector_from_build(
         site: Site instance
         old_snapshot: Previous build's snapshot
         new_snapshot: Current snapshot
+        dependency_index: Live provenance dependency read index, when available
 
     Returns:
         EffectBasedDetector ready for change detection
@@ -250,4 +252,5 @@ def create_detector_from_build(
         tracer=tracer,
         old_snapshot=old_snapshot,
         new_snapshot=new_snapshot,
+        dependency_index=dependency_index,
     )
