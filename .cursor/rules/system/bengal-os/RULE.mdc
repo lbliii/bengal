@@ -40,6 +40,11 @@ Central command interface for Bengal development. Routes commands to specialized
 "::help": commands/help              # Full command reference
 "::auto": system/bengal-os           # Intelligent routing (AI decides)
 
+# Backlog drive (process; see plan/BACKLOG.md)
+"drive": plan/BACKLOG.md
+"board": plan/BACKLOG.md
+"claim": plan/BACKLOG.md
+
 # Workflow Chains
 "::workflow-feature": workflows/feature   # research → RFC → plan
 "::workflow-fix": workflows/fix           # research → plan → implement → validate
@@ -49,6 +54,16 @@ Central command interface for Bengal development. Routes commands to specialized
 ---
 
 ## Natural Language Routing
+
+### Backlog drive
+```yaml
+triggers: [drive, board, "claim #", orchestrate, burndown]
+examples:
+  - "drive"
+  - "board"
+  - "claim #712"
+routing: read plan/BACKLOG.md + plan/issue-lifecycle.md (not ::implement)
+```
 
 ### Research Intent
 ```yaml

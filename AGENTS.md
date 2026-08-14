@@ -153,9 +153,11 @@ Check in before doing any of these:
 ## Steward System
 
 Read this root file plus the closest scoped `AGENTS.md` before editing a tree.
-The root is the constitution, routing guide, and swarm protocol. Scoped files
-are domain stewards for concrete trees, public contracts, product surfaces,
-safety boundaries, docs, tests, examples, fixtures, and checks.
+The root is the constitution, routing guide, and **steward** swarm protocol.
+Backlog drive (`drive` / `board` / `claim`) lives in `plan/BACKLOG.md` — do not
+embed the orchestrator here. Scoped files are domain stewards for concrete
+trees, public contracts, product surfaces, safety boundaries, docs, tests,
+examples, fixtures, and checks.
 
 Every steward uses this operating model:
 
@@ -218,6 +220,9 @@ Trigger phrases:
 - Implementation review: `ask stewards`, `bugbash`, `review swarm`,
   `steward synthesis`.
 - Content audit: `audit docs`, `content audit`, `accuracy pass`.
+- Backlog burn-down: `drive`, `board`, `claim #N` — see `plan/BACKLOG.md`.
+  Bare `swarm` is ambiguous; prefer `drive` for workers and `review swarm`
+  for stewards.
 
 When delegation is available:
 
@@ -244,8 +249,9 @@ commits, changelog fragments, or final plan updates.
 - The goal objective should name the active plan slice, expected proof, commit
   discipline, and required plan/archive update.
 - Do not create a goal for open-ended discovery. First answer "what should we
-  work on next?" from `plan/ROADMAP.md` and steward consultation, then start the
-  goal once the user accepts or asks to begin.
+  work on next?" from `plan/BACKLOG.md` (`board`) plus `plan/ROADMAP.md` and
+  steward consultation, then start the goal once the user accepts or asks to
+  begin. For a long delegated burn-down, the user says `drive`.
 - Keep the goal active until the saga is genuinely closed: code/docs/tests or
   explicit no-impact notes are done, commits are scoped, proof is recorded, and
   planning state is refreshed.

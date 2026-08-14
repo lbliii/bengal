@@ -1,0 +1,42 @@
+name: Investigation
+description: Planner-only freeze of one decision before Tasks may assume it
+title: "Investigation: "
+labels:
+  - investigation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Investigations are not worker leases. Close with a decision, then triage
+        child Tasks to `lifecycle-ready`. See `plan/issue-lifecycle.md`.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent epic or saga
+      placeholder: "343"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question being frozen
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options, decision, consequences
+    validations:
+      required: true
+  - type: textarea
+    id: tasks_may_assume
+    attributes:
+      label: What Tasks may assume after close
+    validations:
+      required: true
+  - type: textarea
+    id: stewards
+    attributes:
+      label: Affected stewards
+      description: Paths / AGENTS.md maps.
+      placeholder: core Site, orchestration, protocols
