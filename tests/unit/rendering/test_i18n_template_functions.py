@@ -382,8 +382,8 @@ class TestCatalogNgettext:
         assert cat.ngettext("1 thing", "{n} things", 2) == "{n} things"
 
 
-def test_alternate_links(tmp_path: Path) -> None:
-    # Build a minimal site with two translated pages
+def _translated_pair(tmp_path: Path) -> tuple[Site, object, object]:
+    """Minimal site with one English and one French page sharing a translation key."""
     config = {
         "i18n": {
             "strategy": "prefix",
@@ -411,12 +411,15 @@ def test_alternate_links(tmp_path: Path) -> None:
     fr.translation_key = "docs/a"
     site.pages = [en, fr]
 
-    # Output paths set with prefix
     from bengal.utils.paths.url_strategy import URLStrategy
 
     en.output_path = URLStrategy.compute_regular_page_output_path(en, site)
     fr.output_path = URLStrategy.compute_regular_page_output_path(fr, site)
+    return site, en, fr
 
+
+def test_alternate_links(tmp_path: Path) -> None:
+    site, en, _fr = _translated_pair(tmp_path)
     engine = TemplateEngine(site)
     tmpl = engine.env.from_string(
         "{% for l in alternate_links(page) %}{{ l.hreflang }}|{{ l.href }}\n{% endfor %}"
@@ -424,3 +427,45 @@ def test_alternate_links(tmp_path: Path) -> None:
     out = tmpl.render(page=en, site=site)
     assert "en|" in out
     assert "fr|" in out
+
+
+def test_translation_key_index_stores_immutable_tuples(tmp_path: Path) -> None:
+    """Cached translation-key index values are tuples, not shared mutable lists."""
+    from bengal.rendering.template_functions.i18n import (
+        _alternate_links,
+        _get_translation_key_index,
+    )
+
+    site, en, fr = _translated_pair(tmp_path)
+    index = _get_translation_key_index(site)
+    pages = index.get("docs/a", ())
+
+    assert isinstance(pages, tuple)
+    assert pages == (en, fr)
+    assert index.get("missing-key", ()) == ()
+
+    links = _alternate_links(site, en)
+    assert isinstance(links, list)
+    assert all(isinstance(item, dict) for item in links)
+    assert {item["hreflang"] for item in links} >= {"en", "fr"}
+
+
+def test_alternate_links_missing_key_returns_empty_list(tmp_path: Path) -> None:
+    """Unknown translation keys use an empty tuple default; public return stays a list."""
+    from bengal.rendering.template_functions.i18n import _alternate_links
+
+    site, _en, _fr = _translated_pair(tmp_path)
+    orphan = make_test_page(
+        source_path=tmp_path / "content" / "en" / "orphan.md",
+        raw_content="x",
+        metadata={},
+    )
+    orphan.lang = "en"
+    orphan.translation_key = "docs/missing"
+    from bengal.utils.paths.url_strategy import URLStrategy
+
+    orphan.output_path = URLStrategy.compute_regular_page_output_path(orphan, site)
+
+    links = _alternate_links(site, orphan)
+    assert links == []
+    assert isinstance(links, list)

@@ -401,12 +401,13 @@ def _make_nt(
     return nt
 
 
-# PERF: Cache for translation_key -> list[Page] index.
+# PERF: Cache for translation_key -> tuple[Page, ...] index.
 # Built once per build, keyed by site id and page count for auto-invalidation.
-_translation_key_index_cache: dict[int, tuple[int, dict[str, list[Any]]]] = {}
+# Values are tuples so parallel render cannot mutate a shared list.
+_translation_key_index_cache: dict[int, tuple[int, dict[str, tuple[Any, ...]]]] = {}
 
 
-def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
+def _get_translation_key_index(site: SiteLike) -> dict[str, tuple[Any, ...]]:
     """
     Get or build translation_key -> pages index.
 
@@ -414,7 +415,7 @@ def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
     Cache is invalidated when page count changes (e.g., dev server rebuild).
 
     Returns:
-        Dict mapping translation_key to list of pages with that key.
+        Dict mapping translation_key to tuple of pages with that key.
 
     """
     site_id = id(site)
@@ -428,13 +429,15 @@ def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
                 return index
 
     # Build fresh index outside lock (read-only access to site.pages)
-    index: dict[str, list[Any]] = {}
+    buckets: dict[str, list[Any]] = {}
     for p in site.pages:
         key = getattr(p, "translation_key", None)
         if key and p.output_path:
-            if key not in index:
-                index[key] = []
-            index[key].append(p)
+            if key not in buckets:
+                buckets[key] = []
+            buckets[key].append(p)
+
+    index: dict[str, tuple[Any, ...]] = {key: tuple(pages) for key, pages in buckets.items()}
 
     with _i18n_lock:
         _translation_key_index_cache[site_id] = (current_page_count, index)
@@ -452,7 +455,7 @@ def _alternate_links(site: SiteLike, page: PageLike | None) -> list[dict[str, st
 
     # PERF: Use indexed lookup instead of scanning all pages
     index = _get_translation_key_index(site)
-    pages_with_key = index.get(key, [])
+    pages_with_key = index.get(key, ())
 
     alternates: list[dict[str, str]] = []
     for p in pages_with_key:
