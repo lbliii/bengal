@@ -7,11 +7,13 @@ enabling instant navigation without 404 errors.
 
 from __future__ import annotations
 
+import threading
 from unittest.mock import MagicMock
 
 import pytest
 
 from bengal.core.version import Version, VersionConfig
+from bengal.rendering.template_functions import version_url as version_url_mod
 from bengal.rendering.template_functions.version_url import (
     _build_version_page_index,
     _construct_version_url,
@@ -83,6 +85,23 @@ def v2_dict():
 def v1_dict():
     """Version 1 (older) as dict for template."""
     return {"id": "v1", "label": "1.0", "latest": False, "url_prefix": "/v1"}
+
+
+def _site_with_blocking_pages(
+    pages: list[object], started: threading.Event, release: threading.Event
+) -> MagicMock:
+    """Site whose ``pages`` iteration blocks until ``release`` is set."""
+
+    class BlockingPages:
+        def __iter__(self):
+            started.set()
+            if not release.wait(timeout=2):
+                raise TimeoutError("builder was not released")
+            yield from pages
+
+    site = MagicMock()
+    site.pages = BlockingPages()
+    return site
 
 
 class TestGetVersionTargetUrl:
@@ -339,6 +358,59 @@ class TestBuildVersionPageIndex:
         # Verify the rebuilt index has expected structure
         assert "v2" in result
         assert "v1" in result
+
+    @pytest.mark.parallel_unsafe
+    def test_write_double_check_returns_existing_entry(self, mock_site):
+        """A store that lands while we build wins; we return that object."""
+        started = threading.Event()
+        release = threading.Event()
+        winner: dict[str, set[str]] = {"v2": {"/docs/"}}
+        site = _site_with_blocking_pages(mock_site.pages, started, release)
+        result_box: list[dict[str, set[str]]] = []
+
+        def _build() -> None:
+            result_box.append(_build_version_page_index(site))
+
+        builder = threading.Thread(target=_build)
+        builder.start()
+        assert started.wait(timeout=2)
+
+        with version_url_mod._version_cache_lock:
+            version_url_mod._version_page_index_cache[id(site)] = winner
+
+        release.set()
+        builder.join(timeout=2)
+        assert not builder.is_alive()
+        assert result_box[0] is winner
+
+    @pytest.mark.parallel_unsafe
+    def test_eviction_waits_for_write_lock(self, mock_site):
+        """Miss-path must not evict, drop the lock, then write later."""
+        started = threading.Event()
+        release = threading.Event()
+        sentinel_keys = list(range(version_url_mod._VERSION_INDEX_CACHE_MAX_SIZE))
+        site = _site_with_blocking_pages(mock_site.pages, started, release)
+
+        with version_url_mod._version_cache_lock:
+            for key in sentinel_keys:
+                version_url_mod._version_page_index_cache[key] = {str(key): set()}
+
+        builder = threading.Thread(target=_build_version_page_index, args=(site,))
+        builder.start()
+        assert started.wait(timeout=2)
+
+        with version_url_mod._version_cache_lock:
+            assert list(version_url_mod._version_page_index_cache) == sentinel_keys
+
+        release.set()
+        builder.join(timeout=2)
+        assert not builder.is_alive()
+
+        with version_url_mod._version_cache_lock:
+            cached = version_url_mod._version_page_index_cache
+            assert id(site) in cached
+            assert sentinel_keys[0] not in cached
+            assert all(key in cached for key in sentinel_keys[1:])
 
 
 class TestIntegration:
