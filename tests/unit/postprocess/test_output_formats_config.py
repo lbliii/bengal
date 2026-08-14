@@ -713,7 +713,7 @@ class TestConfigNormalizationEdgeCases:
         ]
 
         with patch(
-            "bengal.postprocess.output_formats._fingerprint_page_artifact",
+            "bengal.postprocess.output_formats.paths._fingerprint_page_artifact",
             return_value={"uri": "/b/"},
         ) as fingerprint_page:
             fingerprint = generator._site_wide_input_fingerprint(

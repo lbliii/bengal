@@ -85,7 +85,7 @@ class TestAiInputEnforcement:
             json_gen_mock = MagicMock()
             json_gen_mock.generate.return_value = 1
             with patch(
-                "bengal.postprocess.output_formats.PageJSONGenerator",
+                "bengal.postprocess.output_formats.generator.PageJSONGenerator",
                 return_value=json_gen_mock,
             ):
                 gen.generate()
@@ -114,7 +114,7 @@ class TestAiInputEnforcement:
             txt_gen_mock = MagicMock()
             txt_gen_mock.generate.return_value = 1
             with patch(
-                "bengal.postprocess.output_formats.PageTxtGenerator",
+                "bengal.postprocess.output_formats.generator.PageTxtGenerator",
                 return_value=txt_gen_mock,
             ):
                 gen.generate()
@@ -146,7 +146,7 @@ class TestAiTrainEnforcement:
         with patch.object(gen, "_filter_pages", return_value=[no_train, yes_train]):
             llm_gen_mock = MagicMock()
             with patch(
-                "bengal.postprocess.output_formats.SiteLlmTxtGenerator",
+                "bengal.postprocess.output_formats.site_wide.SiteLlmTxtGenerator",
                 return_value=llm_gen_mock,
             ):
                 gen.generate()
@@ -179,7 +179,7 @@ class TestSearchEnforcement:
             index_gen_mock = MagicMock()
             index_gen_mock.generate.return_value = Path("/tmp/index.json")
             with patch(
-                "bengal.postprocess.output_formats.SiteIndexGenerator",
+                "bengal.postprocess.output_formats.site_wide.SiteIndexGenerator",
                 return_value=index_gen_mock,
             ):
                 gen.generate()
@@ -214,11 +214,11 @@ class TestAllSignalsPermissive:
             llm_gen_mock = MagicMock()
             with (
                 patch(
-                    "bengal.postprocess.output_formats.PageJSONGenerator",
+                    "bengal.postprocess.output_formats.generator.PageJSONGenerator",
                     return_value=json_gen_mock,
                 ),
                 patch(
-                    "bengal.postprocess.output_formats.SiteLlmTxtGenerator",
+                    "bengal.postprocess.output_formats.site_wide.SiteLlmTxtGenerator",
                     return_value=llm_gen_mock,
                 ),
             ):
