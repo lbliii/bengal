@@ -2,7 +2,7 @@
 
 # Bengal Plan Index
 
-Updated: 2026-06-17
+Updated: 2026-08-14
 
 ## Start here
 
@@ -11,6 +11,7 @@ Updated: 2026-06-17
 | **What should we work on?** | [GitHub Issues](https://github.com/lbliii/bengal/issues) — `gh issue list --label saga --state open` |
 | **How do we plan work?** | [`ROADMAP.md`](ROADMAP.md) — planning handbook (epic/saga/task, labels, templates) |
 | **How do I execute a saga?** | [`AGENTS.md`](AGENTS.md) — branch hygiene, proof rings, close checklist |
+| **How do agents work in parallel?** | [`agent-parallelization.md`](agent-parallelization.md) — edit-magnet serialize list + safe-parallel pairs |
 | **Why was this designed this way?** | Root `plan/<rfc>.md` or `plan/complete/` |
 
 **The issue tracker is the living roadmap.** This directory holds design memory and
