@@ -558,6 +558,126 @@ class TestGeneratedTrackAssetIndexProducers:
         keys = {entry["dependency_key"] for entry in tracks}
         assert "getting-started" in keys
 
+    def test_asset_build_persists_asset_index_entries(
+        self, site_with_asset_tracking: WarmBuildTestSite
+    ) -> None:
+        site_with_asset_tracking.full_build()
+        assets = _index_entries_of_kind(site_with_asset_tracking, "asset")
+        assert assets, "literalincluded CSS should produce asset-kind index entries"
+        assert all(entry.get("producer") for entry in assets)
+        keys = {entry["dependency_key"] for entry in assets}
+        assert any(key.endswith("brand.css") for key in keys)
+
+
+class TestGeneratedTrackAssetIndexHits:
+    """Index edges with a producer cause the expected warm rebuilds."""
+
+    def test_generated_edge_rebuilds_taxonomy_listing(
+        self, site_with_taxonomy_tracking: WarmBuildTestSite
+    ) -> None:
+        site_with_taxonomy_tracking.full_build()
+        generated = _index_entries_of_kind(site_with_taxonomy_tracking, "generated")
+        assert generated
+        assert all(entry.get("producer") for entry in generated)
+
+        site_with_taxonomy_tracking.modify_file(
+            "content/blog/post1.md",
+            """---
+title: Advanced Python Techniques
+date: 2026-01-01
+tags: [python, tutorial]
+categories: [tutorials]
+---
+
+An advanced Python tutorial.
+""",
+        )
+        site_with_taxonomy_tracking.wait_for_fs()
+        stats = site_with_taxonomy_tracking.incremental_build()
+
+        site_with_taxonomy_tracking.assert_output_contains(
+            "tags/python/index.html", "Advanced Python Techniques"
+        )
+        assert stats.cache_misses >= 1
+
+    def test_track_edge_rebuilds_track_page(
+        self, site_with_track_tracking: WarmBuildTestSite
+    ) -> None:
+        site_with_track_tracking.full_build()
+        tracks = _index_entries_of_kind(site_with_track_tracking, "track")
+        assert tracks
+        assert all(entry.get("producer") for entry in tracks)
+        assert any(entry["dependency_key"] == "getting-started" for entry in tracks)
+
+        site_with_track_tracking.assert_output_contains(
+            "tracks/intro/index.html", "Getting Started"
+        )
+
+        site_with_track_tracking.modify_file(
+            "data/tracks.yaml",
+            """
+getting-started:
+  title: Getting Started Revised
+  items:
+    - guides/step1.md
+""",
+        )
+        site_with_track_tracking.wait_for_fs()
+        stats = site_with_track_tracking.incremental_build()
+
+        site_with_track_tracking.assert_output_contains(
+            "tracks/intro/index.html", "Getting Started Revised"
+        )
+        assert stats.cache_misses >= 1
+
+    def test_asset_edge_rebuilds_including_page(
+        self, site_with_asset_tracking: WarmBuildTestSite
+    ) -> None:
+        site_with_asset_tracking.full_build()
+        assets = _index_entries_of_kind(site_with_asset_tracking, "asset")
+        assert assets
+        assert all(entry.get("producer") for entry in assets)
+
+        site_with_asset_tracking.assert_output_contains("brand/index.html", "brand-v1")
+
+        site_with_asset_tracking.modify_file(
+            "templates/brand.css",
+            "/* brand-v2 */\nbody { color: navy; }\n",
+        )
+        site_with_asset_tracking.wait_for_fs()
+        stats = site_with_asset_tracking.incremental_build()
+
+        site_with_asset_tracking.assert_output_contains("brand/index.html", "brand-v2")
+        site_with_asset_tracking.assert_output_not_contains("brand/index.html", "brand-v1")
+        assert stats.cache_misses >= 1
+
+    def test_incomplete_index_still_rebuilds_via_fallback(
+        self, site_with_data_tracking: WarmBuildTestSite
+    ) -> None:
+        """A missing dependency index must not skip the existing fallback scan."""
+        site_with_data_tracking.full_build()
+        index_path = site_with_data_tracking.cache_dir / "provenance" / "dependency-index.json"
+        assert index_path.exists()
+        index_path.unlink()
+
+        site_with_data_tracking.modify_file(
+            "data/team.yaml",
+            """
+members:
+  - name: Alice
+    role: Senior Developer
+  - name: Bob
+    role: Designer
+""",
+        )
+        site_with_data_tracking.wait_for_fs()
+        stats = site_with_data_tracking.incremental_build()
+
+        site_with_data_tracking.assert_output_contains("about/index.html", "Senior Developer")
+        assert stats.cache_misses >= 1, (
+            "incomplete-index miss should still rebuild via fallback scan"
+        )
+
 
 def _index_entries_of_kind(site: WarmBuildTestSite, kind: str) -> list[dict]:
     index_path = site.cache_dir / "provenance" / "dependency-index.json"
@@ -927,9 +1047,23 @@ title: Tracks
     (tracks_dir / "intro.md").write_text("""---
 title: Getting Started
 track_id: getting-started
+template: track.html
 ---
 
 # Getting Started
+""")
+    templates_dir = site_dir / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    (templates_dir / "track.html").write_text("""<!DOCTYPE html>
+<html>
+<head><title>{{ page.title }}</title></head>
+<body>
+<main>
+<p class="track-title">{{ site.data.tracks['getting-started'].title }}</p>
+{{ content }}
+</main>
+</body>
+</html>
 """)
     guides_dir = content_dir / "guides"
     guides_dir.mkdir()
@@ -941,12 +1075,66 @@ title: Step One
 """)
 
 
+def create_asset_tracking_site_structure(site_dir) -> None:
+    """Create a site whose template includes a CSS file so asset producers have facts."""
+    (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Asset Tracking Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+incremental = true
+generate_sitemap = false
+generate_rss = false
+""")
+
+    templates_dir = site_dir / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    (templates_dir / "brand.css").write_text("/* brand-v1 */\nbody { color: crimson; }\n")
+    (templates_dir / "brand.html").write_text("""<!DOCTYPE html>
+<html>
+<head><title>{{ page.title }}</title>
+<style>{% include "brand.css" %}</style>
+</head>
+<body>
+<main>{{ content }}</main>
+</body>
+</html>
+""")
+
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
+    (content_dir / "_index.md").write_text("""---
+title: Home
+---
+
+# Welcome
+""")
+    (content_dir / "brand.md").write_text("""---
+title: Brand
+template: brand.html
+---
+
+# Brand
+""")
+
+
 @pytest.fixture
 def site_with_track_tracking(tmp_path) -> WarmBuildTestSite:
     """Create a test site with track definitions for index-producer proof."""
     site_dir = tmp_path / "track_tracking_site"
     site_dir.mkdir()
     create_track_tracking_site_structure(site_dir)
+    return WarmBuildTestSite(site_dir=site_dir)
+
+
+@pytest.fixture
+def site_with_asset_tracking(tmp_path) -> WarmBuildTestSite:
+    """Create a test site with a CSS include for asset-index proof."""
+    site_dir = tmp_path / "asset_tracking_site"
+    site_dir.mkdir()
+    create_asset_tracking_site_structure(site_dir)
     return WarmBuildTestSite(site_dir=site_dir)
 
 
