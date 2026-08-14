@@ -129,7 +129,9 @@ def test_parsed_content_cache_invalidation():
 title: Test Page
 ---
 
-# Original Content
+# Test Page
+
+Original Content
 
 This is the original content.
 """)
@@ -153,7 +155,9 @@ title = "Test Site"
 title: Test Page
 ---
 
-# Modified Content
+# Test Page
+
+Modified Content
 
 This is the MODIFIED content.
 """)

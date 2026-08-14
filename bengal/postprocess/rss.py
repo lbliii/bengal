@@ -101,22 +101,23 @@ class RSSGenerator:
         Filters pages with dates, sorts by date (newest first), limits to 20 items,
         and writes RSS feed atomically to prevent corruption.
 
-        If no pages with dates exist, logs info and skips generation.
+        When no dated, visible pages exist, still writes a valid empty channel so
+        ``rss.xml`` is present whenever RSS generation is enabled.
 
         Raises:
             Exception: If RSS generation or file writing fails
         """
-        # Check for any pages with dates first (also filter by visibility)
-        # in_rss checks visibility.rss AND not draft
+        # Dated, visible pages populate <item> entries. An empty channel is still
+        # a valid RSS 2.0 document: generate_rss (default True) promises rss.xml
+        # so incremental no-op builds can skip instead of repairing a missing feed.
         pages_with_dates = [p for p in self.site.pages if p.date and p.in_rss]
         if not pages_with_dates:
             self.logger.info(
-                "rss_skipped",
+                "rss_empty_feed",
                 reason="no_pages_with_dates",
                 total_pages=len(self.site.pages),
-                hint="No pages have dates set. Add 'date:' to frontmatter to include in RSS feed.",
+                hint="No pages have dates set. Add 'date:' to frontmatter to include items in the RSS feed.",
             )
-            return
 
         # Per-locale generation (prefix strategy) or single feed
         i18n = self.site.config.get("i18n", {}) or {}
