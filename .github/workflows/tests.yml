@@ -391,7 +391,12 @@ jobs:
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m "(slow or known_gap) and not stateful and not performance" --dist loadgroup --max-worker-restart=3
+        # Serial: -n auto OOM'd memory-intensive tests. Ignore tests/performance
+        # because package-level pytestmark there does not apply to modules, so
+        # @pytest.mark.slow memory tests leaked into this job.
+        uv run pytest -n 0 -q --tb=short \
+          -m "(slow or known_gap) and not stateful and not performance" \
+          --ignore=tests/performance
 
   # Stateful workflows (weekly/manual)
   stateful:
@@ -416,14 +421,15 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-sources --group dev
 
-    - name: Run stateful tests (xdist hardened)
+    - name: Run stateful tests
       timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m stateful --dist worksteal --max-worker-restart=2 -p pytest_forked --forked
+        # Serial: xdist + --forked + PYTHON_GIL=0 SIGKILL'd Hypothesis machines.
+        uv run pytest -n 0 -q --tb=short -m stateful
 
   # Performance suite (weekly/manual)
   performance:
@@ -468,6 +474,9 @@ jobs:
       - integration
       - warm-build
       - render-output-regression
+      - stateful
+      - slow-tests
+      - performance
     runs-on: ubuntu-latest
     steps:
       - name: Decide status
@@ -477,13 +486,17 @@ jobs:
             echo "Docs-only change — all tests skipped, CI passes"
             exit 0
           fi
-          # Otherwise, check that no test job failed
+          # Skipped jobs (docs-only, or weekly jobs on PR/push) are not failures.
+          # Schedule/dispatch runs stateful/slow-tests/performance; those must pass.
           if [ "${{ needs.fast-check.result }}" = "failure" ] || \
              [ "${{ needs.baseurl.result }}" = "failure" ] || \
              [ "${{ needs.e2e.result }}" = "failure" ] || \
              [ "${{ needs.integration.result }}" = "failure" ] || \
              [ "${{ needs.warm-build.result }}" = "failure" ] || \
-             [ "${{ needs.render-output-regression.result }}" = "failure" ]; then
+             [ "${{ needs.render-output-regression.result }}" = "failure" ] || \
+             [ "${{ needs.stateful.result }}" = "failure" ] || \
+             [ "${{ needs.slow-tests.result }}" = "failure" ] || \
+             [ "${{ needs.performance.result }}" = "failure" ]; then
             echo "One or more test jobs failed"
             exit 1
           fi

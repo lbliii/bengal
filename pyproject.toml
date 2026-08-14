@@ -505,3 +505,12 @@ rm -rf dist build .pytest_cache .coverage htmlcov .ruff_cache .bengal public .ty
 find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 """
 clean.help = "Remove build artifacts and caches"
+
+# mutmut 3 — config file only (CLI --paths-to-mutate was removed).
+[tool.mutmut]
+source_paths = ["bengal/orchestration/", "bengal/cache/"]
+pytest_add_cli_args_test_selection = [
+    "tests/unit/orchestration/",
+    "tests/unit/cache/",
+]
+pytest_add_cli_args = ["-x", "-q", "--tb=line"]
