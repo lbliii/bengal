@@ -2,11 +2,29 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.build.contracts import DependencyIndexEntry, DependencyReadIndex
-from bengal.orchestration.incremental.effect_detector import EffectBasedDetector
+from bengal.cache.paths import BengalPaths
+from bengal.orchestration.incremental.effect_detector import (
+    EffectBasedDetector,
+    create_detector_from_build,
+)
+from bengal.orchestration.incremental.orchestrator import IncrementalOrchestrator
+
+
+def _sample_index() -> DependencyReadIndex:
+    return DependencyReadIndex(
+        [
+            DependencyIndexEntry(
+                dependency_kind="data",
+                dependency_key="data/team.yaml",
+                page_keys=("content/about.md",),
+            )
+        ]
+    )
 
 
 def _detector_with_index(index: DependencyReadIndex) -> EffectBasedDetector:
@@ -16,6 +34,30 @@ def _detector_with_index(index: DependencyReadIndex) -> EffectBasedDetector:
     site = Mock()
     site.pages = []
     return EffectBasedDetector(site=site, tracer=tracer, dependency_index=index)
+
+
+def _site_with_provenance_index(tmp_path: Path, index: DependencyReadIndex) -> Mock:
+    provenance_dir = tmp_path / ".bengal" / "provenance"
+    provenance_dir.mkdir(parents=True)
+    (provenance_dir / "dependency-index.json").write_text(
+        json.dumps({"version": 1, "dependencies": index.to_cache_dict()}),
+        encoding="utf-8",
+    )
+
+    site = Mock()
+    site.root_path = tmp_path
+    site.output_dir = tmp_path / "public"
+    site.config_service.paths = BengalPaths(tmp_path)
+    site.config = Mock()
+    site.config.path = tmp_path / "bengal.toml"
+    site.theme = None
+    site.sections = []
+    site.pages = []
+    site.assets = []
+    site.regular_pages = []
+    site.generated_pages = []
+    site.page_by_source_path = {}
+    return site
 
 
 def test_detect_changes_uses_dependency_index_for_data_file() -> None:
@@ -54,3 +96,41 @@ def test_detect_changes_uses_dependency_index_for_template() -> None:
     pages = detector.detect_changes({Path("templates/page.html")})
 
     assert pages == {Path("content/about.md")}
+
+
+def test_create_detector_from_build_forwards_dependency_index() -> None:
+    """Factory accepts a live index and stores it on the detector."""
+    index = _sample_index()
+    detector = create_detector_from_build(Mock(), dependency_index=index)
+
+    assert detector.dependency_index is index
+
+
+def test_initialize_passes_live_dependency_index(tmp_path: Path) -> None:
+    """initialize() loads the provenance cache index into the detector."""
+    index = _sample_index()
+    site = _site_with_provenance_index(tmp_path, index)
+    orchestrator = IncrementalOrchestrator(site)
+
+    orchestrator.initialize(enabled=False)
+
+    assert orchestrator._detector is not None
+    live = orchestrator._detector.dependency_index
+    assert live is orchestrator._dependency_index
+    assert live is not None
+    assert live.affected_page_keys("data", "data/team.yaml") == ("content/about.md",)
+
+
+def test_detect_changes_refresh_reuses_live_dependency_index(tmp_path: Path) -> None:
+    """Detector refresh after initialize reuses the same live index object."""
+    index = _sample_index()
+    site = _site_with_provenance_index(tmp_path, index)
+    orchestrator = IncrementalOrchestrator(site)
+    orchestrator.initialize(enabled=False)
+    live = orchestrator._detector.dependency_index
+    orchestrator._detector = None
+
+    orchestrator._detect_changes(set())
+
+    assert orchestrator._detector is not None
+    assert orchestrator._detector.dependency_index is live

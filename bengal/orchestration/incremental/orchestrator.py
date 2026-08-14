@@ -42,6 +42,7 @@ from bengal.utils.paths.normalize import to_posix
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from bengal.build.contracts import DependencyReadIndex
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.site import Site
@@ -99,6 +100,7 @@ class IncrementalOrchestrator:
         # Component instances
         self._cache_manager = CacheManager(site)
         self._detector: EffectBasedDetector | None = None
+        self._dependency_index: DependencyReadIndex | None = None
 
     def initialize(self, enabled: bool = False) -> BuildCache:
         """
@@ -118,8 +120,19 @@ class IncrementalOrchestrator:
         # Expose EffectTracer for dependency tracking
         self.effect_tracer = self._cache_manager.effect_tracer
         # Create unified detector from effect tracer
-        self._detector = create_detector_from_build(self.site)
+        self._detector = create_detector_from_build(
+            self.site, dependency_index=self._live_dependency_index()
+        )
         return self.cache
+
+    def _live_dependency_index(self) -> DependencyReadIndex:
+        """Return the live provenance dependency read index (one object)."""
+        if self._dependency_index is None:
+            from bengal.build.provenance import ProvenanceCache
+
+            provenance_cache = ProvenanceCache(self.site.root_path / ".bengal" / "provenance")
+            self._dependency_index = provenance_cache.get_dependency_index()
+        return self._dependency_index
 
     def check_config_changed(self) -> bool:
         """
@@ -374,7 +387,9 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_rebuild, content_changed, all_changed)
         """
         if self._detector is None:
-            self._detector = create_detector_from_build(self.site)
+            self._detector = create_detector_from_build(
+                self.site, dependency_index=self._live_dependency_index()
+            )
 
         # Also check for cache-based changes (files modified since last build)
         all_changed: set[Path] = set(changed_paths)
