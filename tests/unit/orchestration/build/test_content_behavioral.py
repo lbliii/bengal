@@ -243,11 +243,11 @@ class TestSectionsBehavior:
             contains=["Home"],
         )
 
-        # Verify docs section
+        # Verify docs section (frontmatter title, not the markdown H1)
         assert_page_rendered(
             site.output_dir,
             "docs/index.html",
-            contains=["Documentation"],
+            contains=["Docs"],
         )
 
         # Verify blog section
