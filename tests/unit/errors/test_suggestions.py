@@ -22,6 +22,23 @@ from bengal.errors.suggestions import (
 )
 
 
+class TestPublicContract:
+    """Package-level imports and catalog split stay stable."""
+
+    def test_package_level_helpers_still_work(self) -> None:
+        import bengal.errors as errors
+
+        assert errors.get_suggestion("template", "not_found") is not None
+        assert errors.get_suggestion_dict("template", "not_found") is not None
+        assert errors.search_suggestions("template")
+        assert errors.format_suggestion("template", "not_found") is not None
+
+    def test_actionable_suggestion_reexported_from_helpers(self) -> None:
+        from bengal.errors.suggestion_catalog import ActionableSuggestion as CatalogType
+
+        assert ActionableSuggestion is CatalogType
+
+
 class TestGetSuggestion:
     """Tests for get_suggestion function."""
 
