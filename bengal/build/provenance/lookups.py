@@ -111,6 +111,42 @@ def get_pages_for_data_file(
     return pages
 
 
+def get_pages_for_generated(
+    dependency_index: DependencyReadIndex | None,
+    generated_keys: tuple[str, ...],
+) -> set[Path]:
+    """Return pages indexed under generated-kind keys, or empty for fallback."""
+    return get_pages_from_dependency_index(dependency_index, ("generated",), generated_keys)
+
+
+def get_pages_for_track(
+    dependency_index: DependencyReadIndex | None,
+    track_keys: tuple[str, ...],
+) -> set[Path]:
+    """Return pages indexed under track-kind keys, or empty for fallback."""
+    return get_pages_from_dependency_index(dependency_index, ("track",), track_keys)
+
+
+def get_pages_for_asset(
+    cache: BuildCache,
+    asset_path: Path,
+    dependency_index: DependencyReadIndex | None = None,
+) -> set[Path]:
+    """Return pages that reference an asset, preferring the read index."""
+    index_pages = get_pages_from_dependency_index(
+        dependency_index,
+        ("asset",),
+        dependency_key_candidates(cache, asset_path),
+    )
+    if index_pages:
+        logger.debug(
+            "dependency_index_asset_hit",
+            asset=str(asset_path),
+            affected_pages=len(index_pages),
+        )
+    return index_pages
+
+
 def get_pages_for_template(
     cache: BuildCache,
     template_path: Path,

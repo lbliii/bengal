@@ -40,6 +40,11 @@ from bengal.build.provenance.inputs import (
     resolve_template_path,
     template_names_for_page,
 )
+from bengal.build.provenance.producers import (
+    add_asset_inputs,
+    add_generated_inputs,
+    add_track_inputs,
+)
 from bengal.build.provenance.types import (
     ContentHash,
     Provenance,
@@ -490,6 +495,15 @@ class ProvenanceFilter:
     def _add_data_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
         return add_data_inputs(self, provenance, page)
 
+    def _add_generated_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
+        return add_generated_inputs(self, provenance, page)
+
+    def _add_track_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
+        return add_track_inputs(self, provenance, page)
+
+    def _add_asset_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
+        return add_asset_inputs(self, provenance, page)
+
     def _compute_provenance_fast(self, page: PageLike) -> Provenance | None:
         """
         Fast-path provenance computation for simple content pages.
@@ -547,6 +561,9 @@ class ProvenanceFilter:
 
         provenance = self._add_template_inputs(provenance, page)
         provenance = self._add_data_inputs(provenance, page)
+        provenance = self._add_generated_inputs(provenance, page)
+        provenance = self._add_track_inputs(provenance, page)
+        provenance = self._add_asset_inputs(provenance, page)
 
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
 
@@ -686,6 +703,9 @@ class ProvenanceFilter:
         # 3. Render-time dependencies observed while rendering this page.
         provenance = self._add_template_inputs(provenance, page)
         provenance = self._add_data_inputs(provenance, page)
+        provenance = self._add_generated_inputs(provenance, page)
+        provenance = self._add_track_inputs(provenance, page)
+        provenance = self._add_asset_inputs(provenance, page)
 
         # 4. Site config (affects all pages)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)

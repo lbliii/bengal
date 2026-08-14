@@ -286,7 +286,7 @@ def extract_input_paths_for_mtime(pf: Any, record: ProvenanceRecord) -> list[str
     """
     result: list[str] = []
     for inp in record.provenance.inputs:
-        if inp.input_type in ("content", "autodoc_source", "cli_source", "data"):
+        if inp.input_type in ("content", "autodoc_source", "cli_source", "data", "asset", "track"):
             path_str = str(inp.path)
         elif inp.input_type.startswith("cascade_"):
             path_str = str(inp.path).replace("cascade:", "", 1)
