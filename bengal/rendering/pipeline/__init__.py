@@ -11,7 +11,9 @@ Public API:
 - TOC_EXTRACTION_VERSION: Version for cache invalidation
 
 The pipeline is composed of focused modules:
-- core.py: Main RenderingPipeline class
+- core.py: RenderingPipeline coordinator facade
+- parse_stage.py: Markdown parse, TOC, plugin links
+- render_stage.py: Template render, assets, variable context
 - thread_local.py: Thread-local parser management
 - toc.py: TOC extraction utilities
 - transforms.py: Content transformations
