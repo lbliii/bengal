@@ -407,7 +407,9 @@ class TestPhaseRelatedPosts:
             mock_related = MagicMock()
             MockRelated.return_value = mock_related
 
-            phase_related_posts(orchestrator, incremental=False, parallel=True, pages_to_build=[])
+            phase_related_posts(
+                orchestrator, incremental=False, force_sequential=False, pages_to_build=[]
+            )
 
         MockRelated.assert_called_once()
         mock_related.build_index.assert_called_once()
@@ -418,7 +420,9 @@ class TestPhaseRelatedPosts:
         orchestrator.site.taxonomies = {"tags": {"python": {}}}
         orchestrator.site.pages = [MagicMock() for _ in range(5001)]
 
-        phase_related_posts(orchestrator, incremental=False, parallel=True, pages_to_build=[])
+        phase_related_posts(
+            orchestrator, incremental=False, force_sequential=False, pages_to_build=[]
+        )
 
         # Should set empty related_posts, not build index
         for page in orchestrator.site.pages:
@@ -430,7 +434,9 @@ class TestPhaseRelatedPosts:
         orchestrator.site.taxonomies = {}  # No tags
         orchestrator.site.pages = [MagicMock() for _ in range(10)]
 
-        phase_related_posts(orchestrator, incremental=False, parallel=True, pages_to_build=[])
+        phase_related_posts(
+            orchestrator, incremental=False, force_sequential=False, pages_to_build=[]
+        )
 
         # Should set empty related_posts
         for page in orchestrator.site.pages:
@@ -444,14 +450,20 @@ class TestPhaseRelatedPosts:
         orchestrator.site.regular_pages = orchestrator.site.pages
         affected_pages = [MagicMock()]
 
-        with patch("bengal.orchestration.related_posts.RelatedPostsOrchestrator") as MockRelated:
+        with (
+            patch("bengal.orchestration.related_posts.RelatedPostsOrchestrator") as MockRelated,
+            patch(
+                "bengal.utils.concurrency.workers.should_parallelize",
+                return_value=True,
+            ),
+        ):
             mock_related = MagicMock()
             MockRelated.return_value = mock_related
 
             phase_related_posts(
                 orchestrator,
                 incremental=True,
-                parallel=True,
+                force_sequential=False,
                 pages_to_build=affected_pages,
             )
 
@@ -505,9 +517,11 @@ class TestPhaseUpdatePagesList:
         tag_page = MagicMock()
         tag_page.metadata = {"type": "tag", "_tag_slug": "python"}
         orchestrator.site.generated_pages = [tag_page]
+        cache = MagicMock()
 
         result = phase_update_pages_list(
             orchestrator,
+            cache,
             incremental=False,
             pages_to_build=pages_to_build,
             affected_tags=set(),
@@ -534,9 +548,11 @@ class TestPhaseUpdatePagesList:
         tag_index.metadata = {"type": "tag-index"}
 
         orchestrator.site.generated_pages = [python_tag, rust_tag, tag_index]
+        cache = MagicMock()
 
         result = phase_update_pages_list(
             orchestrator,
+            cache,
             incremental=True,
             pages_to_build=pages_to_build,
             affected_tags={"python"},  # Only python affected
@@ -551,9 +567,11 @@ class TestPhaseUpdatePagesList:
         """Invalidates page caches before accessing generated_pages."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         orchestrator.site.generated_pages = []
+        cache = MagicMock()
 
         phase_update_pages_list(
             orchestrator,
+            cache,
             incremental=False,
             pages_to_build=[],
             affected_tags=set(),
@@ -570,9 +588,11 @@ class TestPhaseUpdatePagesList:
         pages_to_build = [page, page]  # Duplicate
 
         orchestrator.site.generated_pages = []
+        cache = MagicMock()
 
         result = phase_update_pages_list(
             orchestrator,
+            cache,
             incremental=False,
             pages_to_build=pages_to_build,
             affected_tags=set(),
