@@ -7,10 +7,15 @@ list_backends, and highlight.
 
 from __future__ import annotations
 
+import inspect
+import threading
+
 import pytest
 
 from bengal.errors import BengalConfigError
 from bengal.rendering.highlighting import (
+    _HIGHLIGHT_BACKENDS,
+    _HIGHLIGHT_BACKENDS_LOCK,
     get_highlighter,
     highlight,
     list_backends,
@@ -153,3 +158,100 @@ class TestAutoMode:
         assert isinstance(result, str)
         assert "hello" in result
         assert "<" in result  # Should have HTML tags
+
+
+class _LockProbeBackend:
+    """Minimal backend used to exercise registry locking."""
+
+    @property
+    def name(self) -> str:
+        return "lock-probe"
+
+    def highlight(
+        self,
+        code: str,
+        language: str,
+        hl_lines: list[int] | None = None,
+        show_linenos: bool = False,
+    ) -> str:
+        return code
+
+    def supports_language(self, language: str) -> bool:
+        return True
+
+
+def _unregister_backends(names: list[str]) -> None:
+    with _HIGHLIGHT_BACKENDS_LOCK:
+        for name in names:
+            _HIGHLIGHT_BACKENDS.pop(name, None)
+
+
+class TestRegistryLock:
+    """Module-level registry dict is locked on every read and write."""
+
+    def test_registry_lock_is_threading_lock(self) -> None:
+        assert type(_HIGHLIGHT_BACKENDS_LOCK) is type(threading.Lock())
+
+    def test_public_signatures_unchanged(self) -> None:
+        register_params = inspect.signature(register_backend).parameters
+        assert list(register_params) == ["name", "backend_class"]
+
+        get_params = inspect.signature(get_highlighter).parameters
+        assert list(get_params) == ["name"]
+        assert get_params["name"].default is None
+
+        list_params = inspect.signature(list_backends).parameters
+        assert list(list_params) == []
+        assert inspect.signature(list_backends).return_annotation in {list[str], "list[str]"}
+
+    def test_list_backends_returns_snapshot(self) -> None:
+        backends = list_backends()
+        backends.append("mutated-snapshot")
+        assert "mutated-snapshot" not in list_backends()
+
+    @pytest.mark.parallel_unsafe
+    def test_concurrent_register_list_and_get(self) -> None:
+        names = [f"lock-probe-{i}" for i in range(16)]
+        errors: list[BaseException] = []
+
+        def _register(name: str) -> None:
+            try:
+                register_backend(name, _LockProbeBackend)
+            except Exception as exc:
+                errors.append(exc)
+
+        def _list_loop() -> None:
+            try:
+                for _ in range(40):
+                    listed = list_backends()
+                    assert isinstance(listed, list)
+                    assert listed == sorted(listed)
+            except Exception as exc:
+                errors.append(exc)
+
+        def _get_rosettes() -> None:
+            try:
+                for _ in range(20):
+                    backend = get_highlighter("rosettes")
+                    assert backend.name == "rosettes"
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=_register, args=(name,)) for name in names]
+        threads.extend(threading.Thread(target=_list_loop) for _ in range(4))
+        threads.extend(threading.Thread(target=_get_rosettes) for _ in range(4))
+
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        try:
+            assert errors == []
+            listed = list_backends()
+            for name in names:
+                assert name in listed
+            backend = get_highlighter(names[0])
+            assert backend.name == "lock-probe"
+        finally:
+            _unregister_backends(names)

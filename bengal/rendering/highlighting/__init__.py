@@ -30,6 +30,7 @@ Usage:
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING
 
 # Import from canonical location
@@ -96,6 +97,7 @@ def __getattr__(name: str) -> object:
 
 # Registry pattern matching other Bengal systems
 _HIGHLIGHT_BACKENDS: dict[str, type[HighlightService]] = {}
+_HIGHLIGHT_BACKENDS_LOCK = threading.Lock()
 
 
 def register_backend(name: str, backend_class: type[HighlightService]) -> None:
@@ -120,7 +122,8 @@ def register_backend(name: str, backend_class: type[HighlightService]) -> None:
         msg = f"backend_class must be a class, got {type(backend_class).__name__}"
         raise TypeError(msg)
 
-    _HIGHLIGHT_BACKENDS[name.lower()] = backend_class
+    with _HIGHLIGHT_BACKENDS_LOCK:
+        _HIGHLIGHT_BACKENDS[name.lower()] = backend_class
 
 
 def get_highlighter(name: str | None = None) -> HighlightService:
@@ -145,16 +148,19 @@ def get_highlighter(name: str | None = None) -> HighlightService:
     if name == "auto":
         name = _select_best_backend()
 
-    if name not in _HIGHLIGHT_BACKENDS:
+    with _HIGHLIGHT_BACKENDS_LOCK:
+        backend_cls = _HIGHLIGHT_BACKENDS.get(name)
+        available = list(_HIGHLIGHT_BACKENDS.keys()) if backend_cls is None else None
+
+    if backend_cls is None:
         from bengal.errors import BengalConfigError, ErrorCode
 
-        available = list(_HIGHLIGHT_BACKENDS.keys())
         raise BengalConfigError(
             f"Unknown highlighting backend: {name!r}. Available: {available}",
             code=ErrorCode.C003,
         )
 
-    return _HIGHLIGHT_BACKENDS[name]()
+    return backend_cls()
 
 
 def _select_best_backend() -> str:
@@ -164,9 +170,10 @@ def _select_best_backend() -> str:
         Backend name to use (currently always 'rosettes').
 
     """
-    # Rosettes is the default and only built-in backend
-    if "rosettes" in _HIGHLIGHT_BACKENDS:
-        return "rosettes"
+    with _HIGHLIGHT_BACKENDS_LOCK:
+        # Rosettes is the default and only built-in backend
+        if "rosettes" in _HIGHLIGHT_BACKENDS:
+            return "rosettes"
 
     # Should never reach here - rosettes is always available
     msg = "No highlighting backend available"
@@ -181,7 +188,8 @@ def list_backends() -> list[str]:
         Sorted list of backend names
 
     """
-    return sorted(_HIGHLIGHT_BACKENDS.keys())
+    with _HIGHLIGHT_BACKENDS_LOCK:
+        return sorted(_HIGHLIGHT_BACKENDS.keys())
 
 
 def get_default_backend() -> str:
@@ -301,7 +309,8 @@ def _register_rosettes_backend() -> None:
     """
     from bengal.rendering.highlighting.rosettes import RosettesBackend
 
-    _HIGHLIGHT_BACKENDS["rosettes"] = RosettesBackend
+    with _HIGHLIGHT_BACKENDS_LOCK:
+        _HIGHLIGHT_BACKENDS["rosettes"] = RosettesBackend
 
 
 # Register built-in backends on module import
