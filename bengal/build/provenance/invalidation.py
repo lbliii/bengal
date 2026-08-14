@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.build.provenance.lookups import (
+    consult_dependency_index,
     dependency_key_candidates,
     get_pages_for_data_file,
     get_pages_from_dependency_index,
@@ -33,6 +34,27 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
 
 logger = get_logger(__name__)
+
+_INDEX_REASON_PREFIX = {
+    "generated": "generated_changed",
+    "track": "track_changed",
+    "asset": "asset_changed",
+    "template": "template_changed",
+    "data": "data_file",
+}
+
+
+def _add_expanded_pages(
+    expanded: set[Path],
+    reasons: dict[str, list[str]],
+    pages: set[Path],
+    reason: str,
+) -> None:
+    """Add newly discovered dependents to the expanded set."""
+    for page_path in pages:
+        if page_path not in expanded:
+            expanded.add(page_path)
+            reasons.setdefault(str(page_path), []).append(reason)
 
 
 def detect_changed_data_files(
@@ -148,6 +170,10 @@ def expand_forced_changed(
 
     This is the core integration for RFC: rfc-incremental-build-dependency-gaps.
 
+    Queries ``DependencyReadIndex`` for generated/track/asset/template/data
+    hits before fallback scans. A hit skips the scan for that kind; a miss
+    keeps the existing EffectTracer / cache-graph / full-rebuild path.
+
     Gap 1: Data file changes → dependent pages
     Gap 2: Member page changes → taxonomy term pages
     Gap 3: Template changes → dependent pages
@@ -164,15 +190,31 @@ def expand_forced_changed(
     """
     expanded = set(forced_changed)
     reasons: dict[str, list[str]] = {}
+    resolved_keys: set[tuple[str, str]] = set()
 
-    # Gap 1: Detect data file changes
+    # Index first: live filter consults the read model before any scan.
+    for path in forced_changed:
+        pages_by_kind, keys = consult_dependency_index(cache, (path,), dependency_index)
+        resolved_keys.update(keys)
+        for kind, index_pages in pages_by_kind.items():
+            logger.debug(
+                "dependency_index_hit",
+                kind=kind,
+                path=str(path),
+                affected_pages=len(index_pages),
+            )
+            prefix = _INDEX_REASON_PREFIX[kind]
+            _add_expanded_pages(expanded, reasons, index_pages, f"{prefix}:{path.name}")
+
+    # Gap 1: Detect data file changes. Skip the page-finding scan when the
+    # index already resolved this file from forced_changed.
     changed_data_files = detect_changed_data_files(cache, site)
     for data_file in changed_data_files:
+        data_keys = dependency_key_candidates(cache, data_file)
+        if any(("data", key) in resolved_keys for key in data_keys):
+            continue
         affected_pages = get_pages_for_data_file(cache, data_file, dependency_index)
-        for page_path in affected_pages:
-            if page_path not in expanded:
-                expanded.add(page_path)
-                reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
+        _add_expanded_pages(expanded, reasons, affected_pages, f"data_file:{data_file.name}")
 
     # Gap 3: Detect template changes
     # Use per-page template dependency tracking when available.
@@ -186,8 +228,19 @@ def expand_forced_changed(
         template_names_str = ", ".join(
             template_name_for_path(t, template_dirs) for t in changed_templates
         )
-        index_template_hits: dict[str, set[Path]] = {}
+        unresolved_templates: list[Path] = []
         for changed_template in changed_templates:
+            template_name = template_name_for_path(changed_template, template_dirs)
+            template_keys = (
+                *dependency_key_candidates(cache, changed_template),
+                template_name,
+            )
+            if any(("template", key) in resolved_keys for key in template_keys):
+                continue
+            unresolved_templates.append(changed_template)
+
+        index_template_hits: dict[str, set[Path]] = {}
+        for changed_template in unresolved_templates:
             template_name = template_name_for_path(changed_template, template_dirs)
             affected = get_pages_from_dependency_index(
                 dependency_index,
@@ -199,33 +252,32 @@ def expand_forced_changed(
                 break
             index_template_hits[template_name] = affected
 
-        if index_template_hits:
+        if unresolved_templates and index_template_hits:
             for template_name, affected_paths in index_template_hits.items():
                 logger.debug(
                     "dependency_index_template_hit",
                     template=template_name,
                     affected_pages=len(affected_paths),
                 )
-                for page_path in affected_paths:
-                    if page_path not in expanded:
-                        expanded.add(page_path)
-                        reasons.setdefault(str(page_path), []).append(
-                            f"template_changed:{template_name}"
-                        )
-        elif cache.template_dependencies:
+                _add_expanded_pages(
+                    expanded,
+                    reasons,
+                    affected_paths,
+                    f"template_changed:{template_name}",
+                )
+        elif unresolved_templates and cache.template_dependencies:
             # Selective rebuild: only rebuild pages that depend on changed templates
             needs_full_rebuild = False
-            for changed_template in changed_templates:
+            for changed_template in unresolved_templates:
                 template_name = template_name_for_path(changed_template, template_dirs)
                 affected_paths = cache.get_pages_for_template(template_name)
                 if affected_paths:
-                    for page_path_str in affected_paths:
-                        page_path = Path(page_path_str)
-                        if page_path not in expanded:
-                            expanded.add(page_path)
-                            reasons.setdefault(str(page_path), []).append(
-                                f"template_changed:{template_name}"
-                            )
+                    _add_expanded_pages(
+                        expanded,
+                        reasons,
+                        {Path(page_path_str) for page_path_str in affected_paths},
+                        f"template_changed:{template_name}",
+                    )
                 else:
                     # No dependency data for this template (first build or cache miss)
                     # Fall back to full rebuild for safety
@@ -237,25 +289,25 @@ def expand_forced_changed(
                     changed_templates=template_names_str,
                     reason="Some changed templates have no dependency data — rebuilding all pages",
                 )
-                for page in pages:
-                    if page.source_path not in expanded:
-                        expanded.add(page.source_path)
-                        reasons.setdefault(str(page.source_path), []).append(
-                            f"template_changed:{template_names_str}"
-                        )
-        else:
+                _add_expanded_pages(
+                    expanded,
+                    reasons,
+                    {page.source_path for page in pages},
+                    f"template_changed:{template_names_str}",
+                )
+        elif unresolved_templates:
             # No template dependency data yet — fall back to rebuilding ALL pages
             logger.info(
                 "template_dependency_full_miss",
                 changed_templates=template_names_str,
                 reason="No template dependency data cached — rebuilding all pages (first build after cache clear)",
             )
-            for page in pages:
-                if page.source_path not in expanded:
-                    expanded.add(page.source_path)
-                    reasons.setdefault(str(page.source_path), []).append(
-                        f"template_changed:{template_names_str}"
-                    )
+            _add_expanded_pages(
+                expanded,
+                reasons,
+                {page.source_path for page in pages},
+                f"template_changed:{template_names_str}",
+            )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Check which changed pages have tags - their taxonomy term pages need rebuilding

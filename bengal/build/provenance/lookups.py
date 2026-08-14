@@ -9,11 +9,21 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from bengal.build.contracts import DependencyReadIndex
     from bengal.cache.build_cache import BuildCache
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
+
+INDEX_DEPENDENCY_KINDS: tuple[str, ...] = (
+    "generated",
+    "track",
+    "asset",
+    "template",
+    "data",
+)
 
 
 def dependency_key_candidates(cache: BuildCache, path: Path) -> tuple[str, ...]:
@@ -23,7 +33,64 @@ def dependency_key_candidates(cache: BuildCache, path: Path) -> tuple[str, ...]:
         candidates.append(str(cache._cache_key(path)))
     candidates.append(path.as_posix())
     candidates.append(path.name)
-    return tuple(dict.fromkeys(candidates))
+
+    parts = path.parts
+    if "content" in parts:
+        rel = Path(*parts[parts.index("content") + 1 :])
+        posix = rel.as_posix()
+        if posix and posix != ".":
+            candidates.append(posix)
+            if rel.suffix:
+                candidates.append(rel.with_suffix("").as_posix())
+    if "generated" in parts:
+        rel = Path(*parts[parts.index("generated") + 1 :])
+        if rel.name in {"index.md", "index.html"}:
+            rel = rel.parent
+        posix = rel.as_posix()
+        if posix and posix != ".":
+            candidates.append(posix)
+
+    return tuple(
+        dict.fromkeys(candidate for candidate in candidates if candidate and candidate != ".")
+    )
+
+
+def consult_dependency_index(
+    cache: BuildCache,
+    paths: Iterable[Path],
+    dependency_index: DependencyReadIndex | None,
+    *,
+    kinds: tuple[str, ...] = INDEX_DEPENDENCY_KINDS,
+) -> tuple[dict[str, set[Path]], frozenset[tuple[str, str]]]:
+    """Query the read index for affected pages before fallback scans.
+
+    Returns ``(pages_by_kind, resolved_keys)``. ``pages_by_kind`` contains only
+    kinds that had at least one hit. ``resolved_keys`` is the ``(kind, key)``
+    pairs that produced pages so callers can skip the scan for that kind.
+    """
+    if dependency_index is None or dependency_index.is_empty:
+        return {}, frozenset()
+
+    pages_by_kind: dict[str, set[Path]] = {}
+    resolved: set[tuple[str, str]] = set()
+    for path in paths:
+        keys = dependency_key_candidates(cache, path)
+        for kind in kinds:
+            if kind == "generated":
+                pages = get_pages_for_generated(dependency_index, keys)
+            elif kind == "track":
+                pages = get_pages_for_track(dependency_index, keys)
+            elif kind == "asset":
+                pages = get_pages_for_asset(cache, path, dependency_index)
+            else:
+                pages = get_pages_from_dependency_index(dependency_index, (kind,), keys)
+            if not pages:
+                continue
+            pages_by_kind.setdefault(kind, set()).update(pages)
+            resolved.update(
+                (kind, key) for key in keys if dependency_index.affected_page_keys(kind, key)
+            )
+    return pages_by_kind, frozenset(resolved)
 
 
 def get_pages_from_dependency_index(
