@@ -210,6 +210,19 @@ class CacheManager:
         config_hash = self.site.config_service.config_hash
         is_valid = self.cache.validate_config(config_hash)
 
+        # Always fingerprint the config file, including first/full builds and
+        # after validate_config() clears the cache on a real config change.
+        # Hash comparison is authoritative for invalidation; the file fingerprint
+        # is what subsequent incremental runs and cache-contract tests look up.
+        config_files = [
+            self.site.root_path / "bengal.toml",
+            self.site.root_path / "bengal.yaml",
+            self.site.root_path / "bengal.yml",
+        ]
+        config_file = next((f for f in config_files if f.exists()), None)
+        if config_file:
+            self._fingerprint_config_file(config_file)
+
         if not is_valid:
             logger.info(
                 "config_changed_via_hash",
@@ -217,17 +230,6 @@ class CacheManager:
                 reason="effective_config_modified",
             )
             return True
-
-        # Track config files for logging (hash is authoritative for invalidation)
-        config_files = [
-            self.site.root_path / "bengal.toml",
-            self.site.root_path / "bengal.yaml",
-            self.site.root_path / "bengal.yml",
-        ]
-        config_file = next((f for f in config_files if f.exists()), None)
-
-        if config_file:
-            self.cache.update_file(config_file)
 
         return False
 
@@ -450,6 +452,23 @@ class CacheManager:
             return bundled_theme_dir
 
         return None
+
+    def _fingerprint_config_file(self, config_file: Path) -> None:
+        """Record the site config file in file_fingerprints.
+
+        Stores the canonical content_key plus the unresolved path string so
+        lookups that probe ``str(config_file)`` (full-build cache contracts,
+        first-incremental "config not in cache" messaging) find the entry.
+        """
+        if not self.cache:
+            return
+
+        self.cache.update_file(config_file)
+        canonical = str(self.cache._cache_key(config_file))
+        path_str = str(config_file)
+        fingerprint = self.cache.file_fingerprints.get(self.cache._cache_key(config_file))
+        if fingerprint is not None and path_str != canonical:
+            self.cache.file_fingerprints[path_str] = fingerprint
 
     def _update_data_file_fingerprints(self) -> None:
         """
