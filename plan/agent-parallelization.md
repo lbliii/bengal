@@ -2,11 +2,14 @@
 
 # Agent Parallelization Harness
 
-**Status**: Active (Wave 1 inventory complete — review before peels)
+**Status**: Inventory archive (Waves 1–4 on `main` through #707). Canonical
+magnet list + `drive`/`board`/`claim` is [`BACKLOG.md`](BACKLOG.md).
 **Created**: 2026-08-14
-**Baseline**: `main` @ `ec656b36e` (v0.5.1)
+**Baseline**: `main` @ `ec656b36e` (v0.5.1); inventory closed at `c8788f9a1`
+(#707)
 **Model**: DORI `plan/BACKLOG.md` — edit-magnet serialize list + usually-safe
-parallel pairs. This file is process harness, not shipped product behavior.
+parallel pairs. This file is process harness history, not shipped product
+behavior.
 
 ## Goal
 
@@ -28,15 +31,16 @@ peel explicitly proves otherwise.
   (`plan/epic-delete-forwarding-wrappers.md`)
 - Mass-deleting local branches that still hold unique commits
 
-## Waves
+## Waves (historical)
 
-| Wave | What | Who |
-|------|------|-----|
-| **1** | Inventory: magnets, peel candidates, brittleness, CI rot, worktree hygiene | Parallel read-mostly agents |
-| **2** | Peel magnets under ~400 lines; one magnet per PR; serialize on this list | Workers, after Wave 1 lands |
-| **3** | Only then: disjoint feature work using the safe-parallel pairs | Workers |
+Waves 1–4 landed on `main` through #707. Do **not** treat the magnet table
+below as current — use [`BACKLOG.md`](BACKLOG.md). This file keeps the
+inventory that justified those peels.
 
-Do not start Wave 2 peels until the serialize list below is reviewed.
+| Wave | What | Outcome |
+|------|------|---------|
+| **1** | Inventory: magnets, peel candidates, brittleness, CI rot | This file |
+| **2–4** | Peel magnets; one magnet per PR; serialize | #698–#707 on `main` |
 
 ## Caps
 

@@ -3,3 +3,6 @@ contact_links:
   - name: Planning handbook
     url: https://github.com/lbliii/bengal/blob/main/plan/ROADMAP.md
     about: Epic/saga taxonomy, labels, and how issues relate to plan/ RFCs
+  - name: Backlog drive
+    url: https://github.com/lbliii/bengal/blob/main/plan/BACKLOG.md
+    about: drive / board / claim, edit magnets, worker caps

@@ -29,19 +29,27 @@ the agenda. When an RFC and an open issue disagree on status, **the issue wins**
 ```text
 Epic (GitHub issue, label: epic)
  └── Saga (GitHub issue, label: saga) — one thematic PR / branch
-      └── Task (commit) — one proof step; not usually its own issue
+      ├── Investigation (label: investigation) — planner freeze; not claimable
+      └── Task (label: task + lifecycle-ready) — Path scope + machine Acceptance
+           └── Commit — one proof step inside the Task
 ```
 
 | Level | GitHub? | Scope | Typical proof |
 |-------|---------|-------|---------------|
-| **Epic** | Yes — `epic` label | Multi-saga umbrella; tracks child checklist | All child sagas closed; epic acceptance criteria met |
-| **Saga** | Yes — `saga` label | One branch, one PR, days–weeks | Focused gates → domain gates → acceptance criteria in issue body |
-| **Task** | No (commits) | One reviewable commit inside a saga | Single test/lint/proof step; referenced in commit message |
-| **Bug** | Yes — `bug` label | User-visible defect or regression | Repro + fix + regression test; no saga ceremony unless large |
+| **Epic** | Yes — `epic` | Multi-saga umbrella; tracks child checklist | All child sagas closed; epic acceptance criteria met |
+| **Saga** | Yes — `saga` | One branch, one PR, days–weeks | Focused gates → domain gates → acceptance criteria in issue body |
+| **Investigation** | Yes — `investigation` | One frozen decision | Options + decision; Tasks may assume the close note |
+| **Task** | Yes — `task` | Path allowlist; worker lease when `lifecycle-ready` | Named pytest / `lint-imports` / `poe proof-pr` |
+| **Commit** | No | One reviewable commit inside a Task or saga | Single test/lint/proof step |
+| **Bug** | Yes — `bug` | User-visible defect or regression | Repro + fix + regression test |
 
 **Rule of thumb:** if you cannot describe the proof in one PR description, it is an
-epic. If it fits one PR with scoped commits, it is a saga. If it fits one commit,
-it is a task inside that saga.
+epic. If it fits one PR with scoped commits, it is a saga. If agents will work
+in parallel inside that saga, split **Task** issues with Path scope. If it fits
+one commit, it may be a Task or a commit inside the saga.
+
+Workers **do not** claim epics or sagas. They claim `task` + `lifecycle-ready`.
+See [`BACKLOG.md`](BACKLOG.md) and [`issue-lifecycle.md`](issue-lifecycle.md).
 
 ### Effort (in issue bodies)
 
@@ -56,6 +64,9 @@ Optional suffix on saga/epic issues: `s` (hours), `m` (days), `l` (week), `xl`
 |-------|---------|
 | `epic` | Umbrella issue; body lists child sagas as `- [ ] #NNN` |
 | `saga` | Shippable workstream; body links `Part of epic #NNN` when applicable |
+| `investigation` | Planner-only decision freeze; not a worker lease |
+| `task` | Path-scoped claimable work; add `lifecycle-ready` when Path + Acceptance are filled |
+| `lifecycle-ready` | Worker lease — never implied by `saga` / `enhancement` alone |
 | `bug` | Defect — fix and regression test |
 | `enhancement` | New capability or improvement |
 | `performance` | Build/runtime perf (often paired with `epic` or `saga`) |
@@ -130,16 +141,17 @@ gh issue list --label epic --state open
 # Open sagas (pick one whose epic is unblocked)
 gh issue list --label saga --state open
 
+# Ready worker leases
+gh issue list --label task --label lifecycle-ready --state open
+
 # Release blockers
 gh issue list --label bug --state open
-
-# Perf track
-gh issue list --label performance --state open
 ```
 
-**Pick order:** bugs blocking release → unblocked saga with clearest proof gate →
-epic whose child sagas are ready. Do not start a saga without a matching open
-issue.
+**Pick order:** bugs blocking release → `lifecycle-ready` Tasks (`drive` /
+`board`) → unblocked saga with clearest proof gate → epic whose child sagas
+are ready. Do not start a saga without a matching open issue. Long delegated
+sessions start with **`drive`** (`plan/BACKLOG.md`), not bare `swarm`.
 
 ---
 

@@ -60,15 +60,17 @@ reviewable.
 
 When a session asks what to work on next:
 
-1. Read root `AGENTS.md`, this file, `plan/README.md`, and `plan/ROADMAP.md`.
-2. Check **open GitHub issues** for in-flight work; each saga maps to one issue.
-3. Use `plan/ROADMAP.md` for sequencing order and proof gates.
-4. Select the highest-priority open issue whose stop-and-ask triggers are cleared.
-5. Consult the scoped stewards for the paths the saga will touch.
-6. Record the saga brief in the thread or PR description: selected plan,
-   affected stewards, accepted findings, not-now items, commit slices, proof
-   commands, collateral, and changelog decision.
-7. If the user explicitly asks to start the saga as a goal, create an active
+1. If the user said `drive` / `board` / `claim`, follow [`BACKLOG.md`](BACKLOG.md)
+   and [`issue-lifecycle.md`](issue-lifecycle.md). Do not invent a parallel board
+   in chat.
+2. Read root `AGENTS.md`, this file, `plan/README.md`, and `plan/ROADMAP.md`.
+3. Check **open GitHub issues** for in-flight work; each saga maps to one issue.
+   Workers claim only `task` + `lifecycle-ready`.
+4. Use `plan/ROADMAP.md` for sequencing order and proof gates.
+5. Select the highest-priority ready Task (or saga whose Stop & Ask is cleared).
+6. Consult the scoped stewards for the paths the work will touch.
+7. Record Path scope + Acceptance on the Task (or triage first).
+8. If the user explicitly asks to start the saga as a goal, create an active
    goal whose objective names the plan slice, commit cadence, proof commands,
    collateral updates, and archive/roadmap closure criteria.
 

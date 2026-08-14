@@ -1,0 +1,63 @@
+name: Task
+description: Claimable Path-scoped work for drive/claim (not a whole saga PR)
+title: "Task: "
+labels:
+  - task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A Task is the worker lease. Add the `lifecycle-ready` label only after Path
+        scope and Acceptance are filled. See `plan/issue-lifecycle.md` and `plan/BACKLOG.md`.
+        Do not overlap an in-flight Task on the same edit magnet.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent saga or epic
+      description: Issue number
+      placeholder: "343"
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: One sentence.
+    validations:
+      required: true
+  - type: textarea
+    id: path_scope
+    attributes:
+      label: Path scope
+      description: Repo-relative allowlist. Workers must not expand it.
+      placeholder: |
+        - bengal/orchestration/content.py
+        - tests/unit/orchestration/test_content*.py
+    validations:
+      required: true
+  - type: input
+    id: magnet
+    attributes:
+      label: Magnet overlap
+      description: Name from plan/BACKLOG.md, or none
+      placeholder: bengal/orchestration/content.py
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: At least one machine check.
+      placeholder: |
+        - [ ] `uv run pytest -n0 -q tests/unit/orchestration/test_content*.py`
+        - [ ] `uv run lint-imports --config .importlinter`
+    validations:
+      required: true
+  - type: textarea
+    id: frozen
+    attributes:
+      label: Decisions frozen
+      description: Cite an investigation issue. Do not re-decide here.
+  - type: textarea
+    id: not_now
+    attributes:
+      label: Not now
+      description: Adjacent work that must not sneak into this Task.

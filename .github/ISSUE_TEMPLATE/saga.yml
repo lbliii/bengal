@@ -8,8 +8,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        A saga is one PR with scoped commits. Tasks inside the PR are commits, not issues.
-        See `plan/AGENTS.md` for proof workflow.
+        A saga is one PR with scoped commits. Split it into `task` issues (Path
+        scope + Acceptance) when agents will `drive` it in parallel.
+        See `plan/AGENTS.md` and `plan/issue-lifecycle.md`.
   - type: input
     id: epic
     attributes:
