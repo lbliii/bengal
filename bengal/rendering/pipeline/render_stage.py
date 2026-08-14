@@ -24,13 +24,12 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
-    from bengal.rendering.pipeline.core import RenderingPipeline
     from bengal.rendering.pipeline.profiler import RenderProfiler
 
 logger = get_logger(__name__)
 
 
-def enhance_api_docs(pipeline: RenderingPipeline, page: PageLike) -> None:
+def enhance_api_docs(pipeline: Any, page: PageLike) -> None:
     """Enhance API documentation with badges."""
     enhancer = pipeline._api_doc_enhancer
     page_type = page.metadata.get("type")
@@ -47,7 +46,7 @@ def enhance_api_docs(pipeline: RenderingPipeline, page: PageLike) -> None:
 
 
 def render_and_write(
-    pipeline: RenderingPipeline,
+    pipeline: Any,
     page: PageLike,
     template: str,
     _prof: RenderProfiler | None = None,
@@ -294,7 +293,7 @@ def accumulate_asset_deps(
         pipeline.build_context.accumulate_page_assets(page.source_path, assets)
 
 
-def build_variable_context(pipeline: RenderingPipeline, page: PageLike) -> dict[str, Any]:
+def build_variable_context(pipeline: Any, page: PageLike) -> dict[str, Any]:
     """Build variable context for {{ variable }} substitution in markdown."""
     from bengal.rendering.context import (
         ParamsContext,

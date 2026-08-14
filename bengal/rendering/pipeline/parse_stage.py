@@ -25,25 +25,24 @@ from bengal.utils.observability.logger import get_logger, truncate_error
 if TYPE_CHECKING:
     from bengal.parsing.protocols import RichMarkdownParser
     from bengal.protocols import PageLike
-    from bengal.rendering.pipeline.core import RenderingPipeline
 
 logger = get_logger(__name__)
 
 
-def set_links_collector_for_parse(pipeline: RenderingPipeline) -> None:
+def set_links_collector_for_parse(pipeline: Any) -> None:
     """Set links collector on xref plugin before parse (Patitas only)."""
     if hasattr(pipeline.parser, "_xref_plugin") and pipeline.parser._xref_plugin:
         pipeline.parser._xref_plugin.set_links_collector([])
 
 
-def get_plugin_collected_links(pipeline: RenderingPipeline) -> list[str]:
+def get_plugin_collected_links(pipeline: Any) -> list[str]:
     """Get and clear links collected by xref plugin during parse (Patitas only)."""
     if hasattr(pipeline.parser, "_xref_plugin") and pipeline.parser._xref_plugin:
         return pipeline.parser._xref_plugin.get_collected_links()
     return []
 
 
-def parse_content(pipeline: RenderingPipeline, page: PageLike) -> None:
+def parse_content(pipeline: Any, page: PageLike) -> None:
     """Parse page content through markdown parser.
 
     Uses deferred (parallel) syntax highlighting on Python 3.14t for
@@ -155,7 +154,7 @@ def should_generate_toc(page: PageLike) -> bool:
 
 
 def parse_with_context_aware_parser(
-    pipeline: RenderingPipeline, page: PageLike, need_toc: bool
+    pipeline: Any, page: PageLike, need_toc: bool
 ) -> tuple[ParsedPage, list[str]]:
     """Parse content using a context-aware parser (Mistune, Patitas)."""
 
@@ -306,7 +305,7 @@ def parse_with_context_aware_parser(
     )
 
 
-def parse_with_legacy(pipeline: RenderingPipeline, page: PageLike, need_toc: bool) -> ParsedPage:
+def parse_with_legacy(pipeline: Any, page: PageLike, need_toc: bool) -> ParsedPage:
     """Parse content using legacy python-markdown parser."""
     content = preprocess_content(pipeline, page)
     if need_toc and hasattr(pipeline.parser, "parse_with_toc"):
@@ -345,7 +344,7 @@ def build_parsed_page(page: PageLike) -> ParsedPage:
     return parsed_page_from_page_state(page, toc_items=toc_items)
 
 
-def preprocess_content(pipeline: RenderingPipeline, page: PageLike) -> str:
+def preprocess_content(pipeline: Any, page: PageLike) -> str:
     """Pre-process page content through configured template engine (legacy parser only)."""
 
     def parse_markdown(s: str) -> str:
