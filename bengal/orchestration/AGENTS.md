@@ -20,7 +20,7 @@ and domain logic drifting into coordinators.
 
 - **Phase clarity.** Build phases are hardcoded in `bengal/orchestration/build/`;
   new phases require a design conversation.
-- **Plugin timing.** `bengal/orchestration/build/__init__.py` loads plugins and
+- **Plugin timing.** `bengal/orchestration/build/runner.py` loads plugins and
   applies phase hooks around lifecycle points; hook timing is a public contract.
 - **Atomic outputs.** Output writes use collectors and atomic write helpers; do
   not write generated files directly.
