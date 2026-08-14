@@ -294,6 +294,12 @@ def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
     oldest entries are evicted (FIFO). This prevents unbounded growth when Site
     objects are recreated frequently (e.g., in dev server).
 
+    The index is built outside the lock. Before storing, the lock is re-acquired
+    and any existing ``site_id`` entry is returned so a concurrent builder
+    cannot overwrite a winner (including a rebuild after
+    ``invalidate_version_page_index``). Eviction happens under that same
+    write-side lock.
+
     Returns:
         Dict mapping version_id to set of relative URLs
 
@@ -302,12 +308,6 @@ def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
     with _version_cache_lock:
         if site_id in _version_page_index_cache:
             return _version_page_index_cache[site_id]
-
-        # Evict oldest entry if cache is full (prevent memory leak)
-        if len(_version_page_index_cache) >= _VERSION_INDEX_CACHE_MAX_SIZE:
-            # Remove first (oldest) entry
-            oldest_key = next(iter(_version_page_index_cache))
-            _version_page_index_cache.pop(oldest_key, None)
 
     # Build index outside lock (read-only access to site.pages)
     index: dict[str, set[str]] = {}
@@ -328,6 +328,11 @@ def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
                 index[version].add(url.rstrip("/"))
 
     with _version_cache_lock:
+        if site_id in _version_page_index_cache:
+            return _version_page_index_cache[site_id]
+        if len(_version_page_index_cache) >= _VERSION_INDEX_CACHE_MAX_SIZE:
+            oldest_key = next(iter(_version_page_index_cache))
+            _version_page_index_cache.pop(oldest_key, None)
         _version_page_index_cache[site_id] = index
     return index
 
