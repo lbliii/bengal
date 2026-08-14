@@ -11,34 +11,46 @@ Thread Safety:
 
 from __future__ import annotations
 
-import contextlib
 import os
 import threading
 import time
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import CacheKey, content_key
+from bengal.build.provenance.assets import (
+    get_asset_key,
+    get_file_hash,
+    is_asset_changed,
+    is_forced_by_dependency,
+    load_asset_hashes,
+    record_asset_hash,
+    save_asset_hashes,
+)
+from bengal.build.provenance.inputs import (
+    add_data_inputs,
+    add_template_inputs,
+    collect_affected,
+    extract_input_paths_for_mtime,
+    get_cascade_sources,
+    looks_like_template_name,
+    render_dependencies_for_page,
+    resolve_data_dependency,
+    resolve_template_path,
+    template_names_for_page,
+)
 from bengal.build.provenance.types import (
     ContentHash,
     Provenance,
     ProvenanceRecord,
     hash_content,
     hash_dict,
-    hash_file,
 )
 from bengal.core.section.utils import get_page_section
-from bengal.utils.io.json_compat import JSONDecodeError
-from bengal.utils.io.json_compat import dump as json_dump
-from bengal.utils.io.json_compat import load as json_load
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
-
-_TEMPLATE_SUFFIXES = frozenset({".html", ".j2", ".jinja", ".jinja2", ".xml"})
-_DATA_SUFFIXES = frozenset({".yaml", ".yml", ".json", ".toml"})
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -46,7 +58,6 @@ if TYPE_CHECKING:
     from bengal.build.provenance.store import ProvenanceCache
     from bengal.core.asset import Asset
     from bengal.core.site import Site
-    from bengal.protocols import SiteLike
     from bengal.protocols.core import PageLike
 
 
@@ -447,284 +458,37 @@ class ProvenanceFilter:
         self._save_asset_hashes()
 
     def _load_asset_hashes(self) -> None:
-        """Load asset hashes from disk. Accepts legacy str or new dict format."""
-        asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
-        try:
-            data = json_load(asset_cache_path)
-            result: dict[CacheKey, ContentHash | dict[str, Any]] = {}
-            for k, v in data.items():
-                if isinstance(v, dict):
-                    result[CacheKey(k)] = v
-                else:
-                    result[CacheKey(k)] = ContentHash(str(v))
-            self._asset_hashes = result
-        except FileNotFoundError, JSONDecodeError, KeyError:
-            self._asset_hashes = {}
+        load_asset_hashes(self)
 
     def _save_asset_hashes(self) -> None:
-        """Save asset hashes to disk (atomic write for crash safety)."""
-        asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
-        json_dump(dict(self._asset_hashes), asset_cache_path)
+        save_asset_hashes(self)
 
     def _get_file_hash(self, path: Path) -> ContentHash:
-        """Get file hash from session cache or compute it (thread-safe)."""
-        # Fast path: protect reads as well as writes for free-threaded builds.
-        with self._session_lock:
-            cached = self._file_hashes.get(path)
-        if cached is not None:
-            return cached
-
-        # Compute hash (outside lock - I/O)
-        computed = hash_file(path)
-
-        # Store in cache with lock
-        with self._session_lock:
-            # Double-check in case another thread computed it
-            if path not in self._file_hashes:
-                self._file_hashes[path] = computed
-            return self._file_hashes[path]
+        return get_file_hash(self, path)
 
     def _get_cascade_sources(self, page: PageLike) -> list[Path]:
-        """
-        Get all _index.md files that contribute cascade metadata to this page.
-
-        Traverses from the page's section up through parent sections, collecting
-        index page source paths. When any cascade source changes, the page's
-        provenance hash changes, triggering an incremental rebuild.
-
-        Args:
-            page: The page to find cascade sources for
-
-        Returns:
-            List of _index.md source paths, ordered from immediate parent to root
-        """
-        sources: list[Path] = []
-        section = get_page_section(page)
-
-        # Fallback: If _section is None but we have a section path in page.core, look it up
-        if section is None:
-            core = getattr(page, "core", None)
-            if core is not None:
-                section_path = getattr(core, "section", None)
-                if section_path and self.site:
-                    with contextlib.suppress(
-                        AttributeError, KeyError, TypeError
-                    ):  # silent: best-effort provenance extraction
-                        section = self.site.get_section_by_path(section_path)
-
-        # Safety guard: prevent infinite loops from circular references or mock objects
-        # Real hierarchies are never deeper than ~50 levels
-        max_depth = 100
-        depth = 0
-        seen_ids: set[int] = set()
-
-        while section is not None and depth < max_depth:
-            # Detect circular references by tracking object ids
-            section_id = id(section)
-            if section_id in seen_ids:
-                break  # Circular reference detected
-            seen_ids.add(section_id)
-
-            # Check if section has an index page
-            index_page = getattr(section, "index_page", None)
-            if index_page is not None and getattr(index_page, "virtual", False) is not True:
-                # Only check filesystem for real (non-virtual) pages.
-                # Virtual pages (autodoc, section-indexes) have synthetic
-                # source paths that intentionally don't exist on disk.
-                index_path = getattr(index_page, "source_path", None)
-                if index_path is not None and isinstance(index_path, Path):
-                    try:
-                        if index_path.exists():
-                            sources.append(index_path)
-                        elif index_path not in self._warned_cascade_paths:
-                            self._warned_cascade_paths.add(index_path)
-                            logger.warning(
-                                "cascade_source_missing",
-                                path=str(index_path),
-                                hint=f"Expected _index.md at {index_path} — add it or check the content hierarchy",
-                            )
-                    except OSError:
-                        if index_path not in self._warned_cascade_paths:
-                            self._warned_cascade_paths.add(index_path)
-                            logger.warning(
-                                "cascade_source_inaccessible",
-                                path=str(index_path),
-                                hint="File system error — check permissions on the content directory",
-                            )
-
-            # Move to parent section
-            parent = getattr(section, "parent", None)
-            # Break if parent is the same object (self-reference) or not a real section
-            if parent is section or parent is None:
-                break
-            section = parent
-            depth += 1
-
-        # Diagnostic logging for cascade source discovery
-        page_path = self._get_page_key(page)
-        if sources:
-            logger.debug(
-                "cascade_sources_found",
-                page_path=str(page_path),
-                source_count=len(sources),
-                sources=[str(s) for s in sources],
-            )
-        else:
-            # Log when NO cascade sources found - this might indicate a problem
-            initial_section = get_page_section(page)
-            logger.debug(
-                "no_cascade_sources",
-                page_path=str(page_path),
-                has_section=initial_section is not None,
-                section_name=getattr(initial_section, "name", None) if initial_section else None,
-                section_has_index=getattr(initial_section, "index_page", None) is not None
-                if initial_section
-                else False,
-            )
-
-        return sources
+        return get_cascade_sources(self, page)
 
     def _template_names_for_page(self, page: PageLike) -> set[str]:
-        """Return known template names for a page from metadata and render effects."""
-        names: set[str] = set()
-        metadata = getattr(page, "metadata", {})
-        template_attr = getattr(page, "template", None)
-        if isinstance(template_attr, str) and template_attr:
-            names.add(template_attr)
-        elif isinstance(metadata, Mapping) and isinstance(metadata.get("template"), str):
-            names.add(metadata["template"])
-        elif isinstance(metadata, Mapping):
-            page_type = metadata.get("type", "page")
-            if page_type == "section" or metadata.get("is_section"):
-                names.add("list.html")
-            elif page_type == "page":
-                names.add("page.html")
-            else:
-                names.add("single.html")
-
-        for dep in self._render_dependencies_for_page(page):
-            if isinstance(dep, str) and self._looks_like_template_name(dep):
-                names.add(dep)
-
-        return names
+        return template_names_for_page(self, page)
 
     def _looks_like_template_name(self, value: str) -> bool:
-        """Return True for dependency keys that look like template filenames."""
-        return Path(value).suffix.lower() in _TEMPLATE_SUFFIXES
+        return looks_like_template_name(value)
 
     def _resolve_template_path(self, template_name: str) -> Path | None:
-        """Resolve a template name against render-visible template directories."""
-        from bengal.rendering.template_engine.environment import resolve_template_dirs
-
-        site_like = cast("SiteLike", self.site)
-        for template_dir in resolve_template_dirs(site_like):
-            candidate = template_dir / template_name
-            try:
-                if candidate.exists():
-                    return candidate
-            except OSError:
-                continue
-        return None
+        return resolve_template_path(self, template_name)
 
     def _add_template_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
-        """Add primary and render-observed template files to page provenance."""
-        from bengal.rendering.template_engine.environment import (
-            resolve_template_dirs,
-            template_name_for_path,
-        )
-
-        site_like = cast("SiteLike", self.site)
-        template_dirs = resolve_template_dirs(site_like)
-        template_paths: dict[str, Path] = {}
-
-        for template_name in self._template_names_for_page(page):
-            resolved = self._resolve_template_path(template_name)
-            if resolved is not None:
-                template_paths[template_name] = resolved
-
-        for dep in self._render_dependencies_for_page(page):
-            if isinstance(dep, Path) and dep.suffix.lower() in _TEMPLATE_SUFFIXES:
-                try:
-                    if dep.exists():
-                        template_paths[template_name_for_path(dep, template_dirs)] = dep
-                except OSError:
-                    continue
-
-        for template_name, template_path in sorted(template_paths.items()):
-            try:
-                provenance = provenance.with_input(
-                    "template",
-                    CacheKey(template_name),
-                    self._get_file_hash(template_path),
-                )
-            except OSError:
-                continue
-        return provenance
+        return add_template_inputs(self, provenance, page)
 
     def _render_dependencies_for_page(self, page: PageLike) -> tuple[Path | str, ...]:
-        """Return render-time dependencies recorded for a page, if any."""
-        from bengal.effects.render_integration import BuildEffectTracer
-
-        effects = BuildEffectTracer.get_instance().tracer.effects
-        effect_count = len(effects)
-        with self._session_lock:
-            cached = self._render_dependency_cache
-        if cached is not None and cached[0] == effect_count:
-            return cached[1].get(self._get_page_key(page), ())
-
-        dependencies_by_source: dict[CacheKey, list[Path | str]] = {}
-        for effect in effects:
-            if effect.operation != "render_page":
-                continue
-            source = effect.metadata.get("source_path")
-            if not source:
-                continue
-            try:
-                source_key = content_key(Path(source), self.site.root_path)
-            except OSError, TypeError, ValueError:
-                source_key = CacheKey(str(source))
-            dependencies_by_source.setdefault(source_key, []).extend(effect.depends_on)
-
-        frozen = {key: tuple(values) for key, values in dependencies_by_source.items()}
-        with self._session_lock:
-            self._render_dependency_cache = (effect_count, frozen)
-        return frozen.get(self._get_page_key(page), ())
+        return render_dependencies_for_page(self, page)
 
     def _resolve_data_dependency(self, dependency: Path) -> Path | None:
-        """Resolve a render dependency if it points into the site's data directory."""
-        candidate = dependency if dependency.is_absolute() else self.site.root_path / dependency
-        try:
-            rel = candidate.resolve().relative_to((self.site.root_path / "data").resolve())
-        except OSError, ValueError:
-            return None
-        if candidate.suffix.lower() not in _DATA_SUFFIXES or ".." in rel.parts:
-            return None
-        try:
-            if candidate.exists():
-                return candidate
-        except OSError:
-            return None
-        return None
+        return resolve_data_dependency(self, dependency)
 
     def _add_data_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
-        """Add data files observed during page rendering to page provenance."""
-        data_paths: set[Path] = set()
-        for dep in self._render_dependencies_for_page(page):
-            if isinstance(dep, Path):
-                resolved = self._resolve_data_dependency(dep)
-                if resolved is not None:
-                    data_paths.add(resolved)
-
-        for data_path in sorted(data_paths):
-            try:
-                provenance = provenance.with_input(
-                    "data",
-                    content_key(data_path, self.site.root_path),
-                    self._get_file_hash(data_path),
-                )
-            except OSError:
-                continue
-        return provenance
+        return add_data_inputs(self, provenance, page)
 
     def _compute_provenance_fast(self, page: PageLike) -> Provenance | None:
         """
@@ -937,183 +701,19 @@ class ProvenanceFilter:
         return content_key(page.source_path, self.site.root_path)
 
     def _extract_input_paths_for_mtime(self, record: ProvenanceRecord) -> list[str]:
-        """
-        Extract file paths from provenance record for mtime short-circuit.
-
-        Returns paths that resolve to existing files. Skips config, taxonomy, virtual.
-        """
-        result: list[str] = []
-        for inp in record.provenance.inputs:
-            if inp.input_type in ("content", "autodoc_source", "cli_source", "data"):
-                path_str = str(inp.path)
-            elif inp.input_type.startswith("cascade_"):
-                path_str = str(inp.path).replace("cascade:", "", 1)
-            elif inp.input_type == "template":
-                template_path = self._resolve_template_path(str(inp.path))
-                if template_path is None:
-                    continue
-                path_str = str(template_path)
-            else:
-                continue  # Skip config, taxonomy, virtual
-
-            # Resolve to file - try site root first, then parent
-            for base in (self.site.root_path, self.site.root_path.parent):
-                full_path = base / path_str
-                try:
-                    if full_path.exists():
-                        # Return path relative to site root for consistency
-                        try:
-                            rel = str(full_path.relative_to(self.site.root_path))
-                        except ValueError:
-                            rel = path_str
-                        result.append(rel)
-                        break
-                except OSError:
-                    continue
-        return result
+        return extract_input_paths_for_mtime(self, record)
 
     def _is_forced_by_dependency(self, asset: Asset, forced: set[Path]) -> bool:
-        """
-        True if any path in forced is a dependency of this asset (e.g. @import'd CSS).
-
-        When notebook.css (imported by style.css) changes, the watcher reports
-        notebook.css in forced_changed. The style.css asset has source_path to
-        style.css, so the direct check fails. We must reprocess style.css when
-        any file under its directory changes, since bundle_css() inlines @imports.
-        """
-        if not forced:
-            return False
-        asset_key = content_key(asset.source_path, self.site.root_path)
-        forced_keys = {content_key(p.resolve(), self.site.root_path) for p in forced}
-        if asset_key in forced_keys:
-            return True  # Direct match
-        if not asset.is_css_entry_point():
-            return False
-        try:
-            asset_dir = asset.source_path.parent.resolve()
-            for p in forced:
-                try:
-                    p.resolve().relative_to(asset_dir)
-                    return True  # p is under asset's directory (e.g. layouts/notebook.css)
-                except ValueError, OSError:
-                    continue
-        except OSError:
-            pass
-        return False
+        return is_forced_by_dependency(self, asset, forced)
 
     def _is_asset_changed(self, asset: Asset) -> bool:
-        """
-        Check if an asset has changed based on content hash.
-
-        OPTIMIZATION: Uses mtime+size check first to avoid hashing unchanged files.
-
-        Thread Safety:
-            Uses local variables for hash comparisons. Asset hash dict
-            updates are safe because each asset has a unique key.
-        """
-        try:
-            if not asset.source_path.exists():
-                return True
-        except OSError:
-            return True  # File system error - treat as changed
-
-        asset_path = self._get_asset_key(asset)
-        stored = self._asset_hashes.get(asset_path)
-
-        try:
-            stat = asset.source_path.stat()
-            current_mtime = stat.st_mtime
-            current_size = stat.st_size
-        except OSError:
-            return True  # File error - treat as changed
-
-        # Short-circuit: mtime+size match stored → unchanged
-        if (
-            stored is not None
-            and isinstance(stored, dict)
-            and (
-                stored.get("mtime_ns") == stat.st_mtime_ns
-                if "mtime_ns" in stored
-                else stored.get("mtime") == current_mtime
-            )
-            and stored.get("size") == current_size
-        ):
-            return False
-
-        # Compute hash (necessary when no short-circuit)
-        try:
-            current_hash = self._get_file_hash(asset.source_path)
-        except OSError:
-            return True  # File error - treat as changed
-
-        cached_hash: ContentHash | None = None
-        if stored is not None:
-            cached_hash = stored.get("hash") if isinstance(stored, dict) else stored
-
-        if stored is None:
-            # First time seeing this asset
-            self._asset_hashes[asset_path] = {
-                "hash": current_hash,
-                "mtime": current_mtime,
-                "mtime_ns": stat.st_mtime_ns,
-                "size": current_size,
-            }
-            return True
-
-        if cached_hash != current_hash:
-            # Asset content changed
-            self._asset_hashes[asset_path] = {
-                "hash": current_hash,
-                "mtime": current_mtime,
-                "mtime_ns": stat.st_mtime_ns,
-                "size": current_size,
-            }
-            return True
-
-        # Content same but mtime/size changed (e.g. touch) - update stored metadata
-        if isinstance(stored, dict):
-            self._asset_hashes[asset_path] = {
-                "hash": current_hash,
-                "mtime": current_mtime,
-                "mtime_ns": stat.st_mtime_ns,
-                "size": current_size,
-            }
-        else:
-            # Legacy format: upgrade to structured
-            self._asset_hashes[asset_path] = {
-                "hash": current_hash,
-                "mtime": current_mtime,
-                "mtime_ns": stat.st_mtime_ns,
-                "size": current_size,
-            }
-        return False
+        return is_asset_changed(self, asset)
 
     def _get_asset_key(self, asset: Asset) -> CacheKey:
-        """Get canonical asset key for cache lookups."""
-        return content_key(asset.source_path, self.site.root_path)
+        return get_asset_key(self, asset)
 
     def _record_asset_hash(self, asset: Asset) -> None:
-        """
-        Record an asset's hash without checking if changed.
-
-        Used during full builds to populate the asset hash cache for
-        subsequent incremental builds. Without this, the first incremental
-        build after a full build would see all assets as "changed".
-        """
-        try:
-            if not asset.source_path.exists():
-                return
-            stat = asset.source_path.stat()
-            current_hash = self._get_file_hash(asset.source_path)
-            asset_key = self._get_asset_key(asset)
-            self._asset_hashes[asset_key] = {
-                "hash": current_hash,
-                "mtime": stat.st_mtime,
-                "mtime_ns": stat.st_mtime_ns,
-                "size": stat.st_size,
-            }
-        except OSError:
-            pass  # Skip assets that can't be hashed
+        record_asset_hash(self, asset)
 
     def _collect_affected(
         self,
@@ -1121,14 +721,7 @@ class ProvenanceFilter:
         affected_tags: set[str],
         affected_sections: set[str],
     ) -> None:
-        """Collect tags and sections affected by a changed page."""
-        # Collect tags
-        if hasattr(page, "tags") and page.tags:
-            affected_tags.update(page.tags)
-
-        # Collect section
-        if (section := get_page_section(page)) and hasattr(section, "path"):
-            affected_sections.add(str(section.path))
+        collect_affected(page, affected_tags, affected_sections)
 
     def stats(self) -> dict[str, Any]:
         """Get cache statistics."""
