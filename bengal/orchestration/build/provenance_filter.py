@@ -1,656 +1,223 @@
 """
 Provenance-based incremental filtering for builds.
 
-Replaces the old IncrementalFilterEngine with content-addressed provenance.
-Provides 30x faster incremental builds with correct invalidation.
-
-Dependency Gap Fixes (RFC: rfc-incremental-build-dependency-gaps):
-    - Data file changes now trigger dependent page rebuilds
-    - Taxonomy term pages rebuild when member post metadata changes
-    - Template changes now trigger dependent page rebuilds
+Phase wrapper around ``bengal.build.provenance``. Invalidation helpers live
+with the engine so cache and orchestration do not grow parallel copies.
 """
 
 from __future__ import annotations
 
 import os
 import time
-from contextlib import suppress
-from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from bengal.assets.manifest import inspect_asset_outputs
-from bengal.build.contracts.keys import CacheKey, content_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
-from bengal.build.provenance.filter import ProvenanceFilterResult
+from bengal.build.provenance.artifacts import (
+    collect_output_signals,
+    repair_missing_page_outputs,
+)
+from bengal.build.provenance.artifacts import (
+    missing_postprocess_artifacts as _missing_postprocess_artifacts,
+)
+from bengal.build.provenance.artifacts import (
+    output_dir_empty as _output_dir_empty,
+)
+from bengal.build.provenance.artifacts import (
+    search_index_repairable as _search_index_repairable,
+)
+from bengal.build.provenance.invalidation import (
+    apply_taxonomy_cascade,
+)
+from bengal.build.provenance.invalidation import (
+    detect_changed_data_files as _detect_changed_data_files,
+)
+from bengal.build.provenance.invalidation import (
+    detect_changed_templates as _detect_changed_templates,
+)
+from bengal.build.provenance.invalidation import (
+    expand_forced_changed as _expand_forced_changed,
+)
+from bengal.build.provenance.lookups import (
+    get_pages_for_data_file as _get_pages_for_data_file,
+)
+from bengal.build.provenance.lookups import (
+    get_pages_for_template as _get_pages_for_template,
+)
+from bengal.build.provenance.lookups import (
+    get_taxonomy_term_pages_for_member as _get_taxonomy_term_pages_for_member,
+)
 from bengal.orchestration.build.results import (
     FilterResult,
     IncrementalDecision,
     RebuildReasonCode,
     SkipReasonCode,
 )
-from bengal.rendering.template_engine.environment import (
-    iter_template_files,
-    resolve_template_dirs,
-    template_name_for_path,
-)
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from pathlib import Path
 
-    from bengal.build.contracts import DependencyReadIndex
-    from bengal.protocols import SiteLike
-
-logger = get_logger(__name__)
-
-
-if TYPE_CHECKING:
+    from bengal.build.provenance.filter import ProvenanceFilterResult
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
+    from bengal.protocols import SiteLike
     from bengal.protocols.core import PageLike
 
+logger = get_logger(__name__)
 
-_DEFAULT_SITE_WIDE_OUTPUT_FORMATS = (
-    "index_json",
-    "llm_full",
-    "llms_txt",
-    "changelog",
-    "agent_manifest",
-)
-_OUTPUT_FORMAT_ARTIFACTS = {
-    "index_json": "index.json",
-    "llm_full": "llm-full.txt",
-    "llms_txt": "llms.txt",
-    "changelog": "changelog.json",
-    "agent_manifest": "agent.json",
-}
-_I18N_OUTPUT_FORMATS = frozenset({"index_json", "changelog", "agent_manifest"})
-
-
-def _site_output_path(site: SiteLike, filename: str, *, uses_i18n_output_path: bool) -> Path:
-    """Return root or i18n-prefixed site-wide output path for a filename."""
-    if not uses_i18n_output_path:
-        return site.output_dir / filename
-
-    i18n = site.config.get("i18n", {}) or {}
-    if i18n.get("strategy") == "prefix":
-        default_lang = i18n.get("default_language", "en")
-        current_lang = getattr(site, "current_language", None) or default_lang
-        default_in_subdir = bool(i18n.get("default_in_subdir", False))
-        if default_in_subdir or current_lang != default_lang:
-            return site.output_dir / current_lang / filename
-    return site.output_dir / filename
+__all__ = [
+    "RebuildReasonCode",
+    "_detect_changed_data_files",
+    "_detect_changed_templates",
+    "_expand_forced_changed",
+    "_get_pages_for_data_file",
+    "_get_pages_for_template",
+    "_get_taxonomy_term_pages_for_member",
+    "_missing_postprocess_artifacts",
+    "_output_dir_empty",
+    "_search_index_repairable",
+    "phase_incremental_filter_provenance",
+    "record_all_page_builds",
+    "record_page_build",
+    "save_provenance_cache",
+]
 
 
-def _configured_site_wide_output_formats(site: SiteLike) -> tuple[str, ...]:
-    """Return output-format site-wide entries postprocess would generate."""
-    config = site.config.get("output_formats", {})
-    if config is False:
-        return ()
-    if config is True or not isinstance(config, dict):
-        return _DEFAULT_SITE_WIDE_OUTPUT_FORMATS
-    if config.get("enabled", True) is False:
-        return ()
-
-    if "site_wide" in config:
-        site_wide = config.get("site_wide") or []
-        return tuple(str(item) for item in site_wide)
-
-    simple_site_keys = {"site_json", "site_llm"}
-    if any(key in config for key in simple_site_keys):
-        formats: list[str] = []
-        if config.get("site_json", False):
-            formats.append("index_json")
-        if config.get("site_llm", False):
-            formats.append("llm_full")
-        return tuple(formats)
-
-    return _DEFAULT_SITE_WIDE_OUTPUT_FORMATS
-
-
-def _missing_postprocess_artifacts(site: SiteLike) -> tuple[Path, ...]:
-    """Return missing site-wide artifacts regenerated by incremental postprocess."""
-    expected: list[Path] = []
-
-    for output_format in _configured_site_wide_output_formats(site):
-        filename = _OUTPUT_FORMAT_ARTIFACTS.get(output_format)
-        if filename is not None:
-            expected.append(
-                _site_output_path(
-                    site,
-                    filename,
-                    uses_i18n_output_path=output_format in _I18N_OUTPUT_FORMATS,
-                )
-            )
-
-    if site.config.get("generate_sitemap", True):
-        expected.append(site.output_dir / "sitemap.xml")
-
-    content_signals = site.config.get("content_signals", {})
-    if not isinstance(content_signals, dict) or content_signals.get("enabled", True):
-        expected.append(site.output_dir / "robots.txt")
-
-    # RSS feed is gated by config (generate_rss, default True). RSSGenerator writes
-    # output_dir/rss.xml (or output_dir/<lang>/rss.xml under the i18n prefix strategy),
-    # so reuse the i18n-aware path helper to match its target exactly.
-    if site.config.get("generate_rss", True):
-        expected.append(_site_output_path(site, "rss.xml", uses_i18n_output_path=True))
-
-    # search-index.json (prebuilt Lunr index) lives alongside index.json. It can only
-    # be regenerated when (a) the search backend is enabled + prebuilt, (b) index_json
-    # is a configured site-wide output format, and (c) the optional `lunr` package is
-    # importable. Without the lunr guard a warm build would perpetually believe an
-    # un-creatable file is missing and never reach the no-op fast path.
-    if _search_index_repairable(site):
-        expected.append(_site_output_path(site, "search-index.json", uses_i18n_output_path=True))
-
-    missing: list[Path] = []
-    seen: set[Path] = set()
-    for path in expected:
-        if path in seen:
-            continue
-        seen.add(path)
-        try:
-            if not path.exists():
-                missing.append(path)
-        except OSError:
-            missing.append(path)
-    return tuple(missing)
-
-
-def _search_index_repairable(site: SiteLike) -> bool:
-    """Return whether a missing search-index.json could actually be regenerated.
-
-    Mirrors the gates in ``OutputFormatsGenerator``: the search backend must be
-    enabled with prebuilt artifacts, ``index_json`` must be a configured site-wide
-    output format (search-index.json is written alongside index.json), and the
-    optional ``lunr`` package must be importable. Imports are kept function-local
-    to avoid new module-level import cycles (see project memory on circular imports).
-    """
-    if "index_json" not in _configured_site_wide_output_formats(site):
-        return False
-
-    from bengal.postprocess.search_backends import resolve_search_backend_config
-
-    search_config = resolve_search_backend_config(site.config.get("search", {}))
-    if not search_config.enabled or not search_config.prebuilt_enabled:
-        return False
-
-    import importlib.util
-
-    return importlib.util.find_spec("lunr") is not None
-
-
-def _output_dir_empty(output_dir: Path) -> bool:
-    """Return True when the output directory is missing, inaccessible, or empty."""
-    if not output_dir.exists():
-        return True
-    try:
-        next(output_dir.iterdir())
-    except StopIteration:
-        return True
-    except OSError:
-        return True
-    return False
-
-
-def _page_output_counts(pages: Sequence[PageLike]) -> tuple[int, int]:
-    """Return ``(checked, missing)`` for page HTML outputs."""
-    checked = 0
-    missing = 0
-    for page in pages:
-        output_path = getattr(page, "output_path", None)
-        if output_path is None:
-            continue
-        checked += 1
-        try:
-            if not Path(output_path).exists():
-                missing += 1
-        except OSError:
-            missing += 1
-    return checked, missing
-
-
-def _has_page_provenance(
+def _recover_empty_page_discovery(
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    cache: BuildCache,
     provenance_cache: ProvenanceCache,
     provenance_filter: ProvenanceFilter,
-    pages: Sequence[PageLike],
-) -> bool:
-    """Return whether any discovered page has a stored provenance entry."""
-    for page in pages:
-        page_key = provenance_filter._get_page_key(page)
-        if provenance_cache.get_stored_hash(page_key) is not None:
-            return True
-    return False
-
-
-def _detect_changed_data_files(
-    cache: BuildCache,
-    site: SiteLike,
-) -> set[Path]:
-    """
-    Detect data files that have changed since last build.
-
-    Compares current data file hashes against stored fingerprints.
-
-    Args:
-        cache: BuildCache with stored fingerprints
-        site: Site instance to find data directory
-
-    Returns:
-        Set of changed data file paths
-    """
-    changed: set[Path] = set()
-    data_dir = site.root_path / "data"
-
-    if not data_dir.exists():
-        return changed
-
-    # Scan data directory for YAML/JSON files
-    for ext in ("*.yaml", "*.yml", "*.json", "*.toml"):
-        for data_file in data_dir.glob(f"**/{ext}"):
-            try:
-                if cache.is_changed(data_file):
-                    changed.add(data_file)
-            except OSError:
-                changed.add(data_file)
-
-    if changed:
-        logger.debug(
-            "data_files_changed",
-            count=len(changed),
-            files=[str(f.name) for f in changed],
-        )
-
-    return changed
-
-
-def _detect_changed_templates(
-    cache: BuildCache,
-    site: SiteLike,
-) -> set[Path]:
-    """
-    Detect template files that have changed since last build.
-
-    Compares current template file hashes against stored fingerprints,
-    then stores current fingerprints for ALL scanned templates so that
-    the next incremental build can detect changes.
-
-    Args:
-        cache: BuildCache with stored fingerprints
-        site: Site instance to find templates directory
-
-    Returns:
-        Set of changed template file paths
-    """
-    changed: set[Path] = set()
-    for tpl_file in iter_template_files(site):
-        try:
-            file_changed = cache.is_changed(tpl_file)
-        except OSError:
-            # File error - treat as changed, skip fingerprint update
-            changed.add(tpl_file)
-            continue
-
-        if file_changed:
-            changed.add(tpl_file)
-            # Store current fingerprint so the next incremental build can use
-            # the mtime/size fast path. Unchanged files already have a valid
-            # fingerprint, and cache.is_changed() refreshes touch-only files.
-            try:
-                stat = tpl_file.stat()
-                current_hash = hash_file(tpl_file)
-                cache.set_file_fingerprint(
-                    tpl_file,
-                    {
-                        "mtime": stat.st_mtime,
-                        "size": stat.st_size,
-                        "hash": current_hash,
-                    },
-                )
-            except OSError as e:
-                logger.debug(
-                    "template_fingerprint_update_failed",
-                    file=str(tpl_file),
-                    error=str(e),
-                )
-
-    if changed:
-        logger.debug(
-            "templates_changed",
-            count=len(changed),
-            files=[str(f.name) for f in changed],
-        )
-
-    return changed
-
-
-def _get_pages_for_data_file(
-    cache: BuildCache,
-    data_file: Path,
-    dependency_index: DependencyReadIndex | None = None,
-) -> set[Path]:
-    """
-    Find pages that depend on a data file.
-
-    Queries the EffectTracer (loaded from effects.json) for pages whose
-    rendering recorded a dependency on the given data file.  Falls back
-    to the BuildCache dependency graph when no tracer is available.
-
-    Args:
-        cache: BuildCache with dependency tracking
-        data_file: Path to the data file
-
-    Returns:
-        Set of page source paths that depend on this data file
-    """
-    pages: set[Path] = set()
-    index_pages = _get_pages_from_dependency_index(
-        dependency_index,
-        ("data",),
-        _dependency_key_candidates(cache, data_file),
+    incremental: bool,
+    build_start: float,
+) -> list[PageLike] | None:
+    """Re-run discovery when filtering sees zero pages. Returns pages or None on failure."""
+    site = orchestrator.site
+    orchestrator.logger.warning(
+        "no_pages_discovered_for_filtering_attempting_recovery",
+        total_pages=len(site.pages),
+        incremental=incremental,
+        suggestion="Re-running discovery with full discovery to recover",
     )
-    if index_pages:
-        logger.debug(
-            "dependency_index_data_hit",
-            data_file=str(data_file),
-            affected_pages=len(index_pages),
-        )
-        return index_pages
+    from bengal.orchestration.build import initialization
 
-    # Primary: query EffectTracer for data file dependencies.
-    # During rendering, TrackedData records data file access via
-    # record_data_file_access() → EffectContext.data_files → Effect.depends_on.
-    # The tracer is loaded from effects.json on incremental builds.
-    # Note: we check for tracer effects (not bet.enabled) because enabled
-    # controls recording of new effects, not reading persisted ones.
-    from bengal.effects.render_integration import BuildEffectTracer
-
-    bet = BuildEffectTracer.get_instance()
-    tracer = bet.tracer
-    if tracer.effects:
-        for effect in tracer.effects:
-            if effect.operation != "render_page":
-                continue
-            if data_file not in effect.depends_on:
-                continue
-            # Extract the page's source path from metadata rather than
-            # scanning depends_on for .md files, which would incorrectly
-            # include cascade sources (_index.md parents).
-            source = effect.metadata.get("source_path")
-            if source:
-                pages.add(Path(source))
-
-    # Fallback: check BuildCache dependency graph (for backward compat)
-    if not pages:
-        dep_key = cache._cache_key(data_file)
-        for page_str, deps in cache.dependencies.items():
-            if dep_key in deps:
-                pages.add(Path(page_str))
-
-    return pages
-
-
-def _get_pages_for_template(
-    cache: BuildCache,
-    template_path: Path,
-    dependency_index: DependencyReadIndex | None = None,
-) -> set[Path]:
-    """
-    Find pages that use a template.
-
-    Queries the cache's reverse dependency graph for pages that depend
-    on the given template.
-
-    Args:
-        cache: BuildCache with reverse dependency tracking
-        template_path: Path to the template file
-
-    Returns:
-        Set of page source paths that use this template
-    """
-    pages: set[Path] = set()
-    index_pages = _get_pages_from_dependency_index(
-        dependency_index,
-        ("template",),
-        _dependency_key_candidates(cache, template_path),
+    initialization.phase_discovery(
+        orchestrator,
+        cli,
+        incremental=False,
+        build_context=None,
+        build_cache=cache,
     )
-    if index_pages:
-        logger.debug(
-            "dependency_index_template_hit",
-            template=str(template_path),
-            affected_pages=len(index_pages),
+    pages_list = list(site.pages)
+    if not pages_list:
+        orchestrator.logger.error(
+            "no_pages_discovered_after_recovery",
+            total_pages=len(site.pages),
+            content_dir=str(site.root_path / "content"),
+            suggestion="Check content directory exists and contains markdown files",
         )
-        return index_pages
-
-    template_key = cache._cache_key(template_path)
-
-    # Check reverse dependencies
-    dependents = cache.reverse_dependencies.get(template_key, set())
-    for page_str in dependents:
-        pages.add(Path(page_str))
-
-    # Also check forward dependencies (for completeness)
-    for page_str, deps in cache.dependencies.items():
-        if template_key in deps:
-            pages.add(Path(page_str))
-
-    return pages
-
-
-def _dependency_key_candidates(cache: BuildCache, path: Path) -> tuple[str, ...]:
-    """Return stable key candidates for dependency-index lookups."""
-    candidates: list[str] = []
-    with suppress(OSError, ValueError):
-        candidates.append(str(cache._cache_key(path)))
-    candidates.append(path.as_posix())
-    candidates.append(path.name)
-    return tuple(dict.fromkeys(candidates))
-
-
-def _get_pages_from_dependency_index(
-    dependency_index: DependencyReadIndex | None,
-    dependency_kinds: tuple[str, ...],
-    dependency_keys: tuple[str, ...],
-) -> set[Path]:
-    """Return affected page paths from the read index, or empty for fallback."""
-    if dependency_index is None or dependency_index.is_empty:
-        return set()
-
-    pages: set[Path] = set()
-    for dependency_kind in dependency_kinds:
-        for dependency_key in dependency_keys:
-            pages.update(
-                Path(page_key)
-                for page_key in dependency_index.affected_page_keys(dependency_kind, dependency_key)
-            )
-    return pages
-
-
-def _get_taxonomy_term_pages_for_member(
-    cache: BuildCache,
-    member_path: Path,
-    site: SiteLike,
-) -> set[Path]:
-    """
-    Find taxonomy term pages that list a member page.
-
-    When a member page's metadata changes (title, date, summary),
-    the taxonomy term pages listing it need to be rebuilt.
-
-    Args:
-        cache: BuildCache with taxonomy tracking
-        member_path: Path to the member page that changed
-        site: Site instance to find taxonomy term pages
-
-    Returns:
-        Set of taxonomy term page paths to rebuild
-    """
-    term_pages: set[Path] = set()
-    member_key = cache._cache_key(member_path)
-
-    # Get tags for this member page from cache
-    tags = cache.taxonomy_index.page_tags.get(member_key, set())
-
-    for tag in tags:
-        # Find the virtual taxonomy term page for this tag
-        # Taxonomy term pages are virtual (no source file), but we need
-        # to identify them so they get rebuilt
-        # The key format matches what track_taxonomy() uses
-        tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
-        term_page_key = f"_generated/tags/{tag_key}"
-
-        # Add the term page path (virtual)
-        # For virtual pages, we use a synthetic path
-        term_pages.add(Path(term_page_key))
-
-    return term_pages
-
-
-def _expand_forced_changed(
-    forced_changed: set[Path],
-    cache: BuildCache,
-    site: SiteLike,
-    pages: Sequence[PageLike],
-    dependency_index: DependencyReadIndex | None = None,
-) -> tuple[set[Path], dict[str, list[str]]]:
-    """
-    Expand forced_changed set to include dependency-triggered rebuilds.
-
-    This is the core integration for RFC: rfc-incremental-build-dependency-gaps.
-
-    Gap 1: Data file changes → dependent pages
-    Gap 2: Member page changes → taxonomy term pages
-    Gap 3: Template changes → dependent pages
-
-    Args:
-        forced_changed: Initial set of changed paths (from file watcher or content changes)
-        cache: BuildCache with dependency tracking
-        site: Site instance
-        pages: List of all pages (for taxonomy lookup)
-
-    Returns:
-        Tuple of (expanded_forced_changed, reasons) where reasons maps
-        page paths to lists of why they were added
-    """
-    expanded = set(forced_changed)
-    reasons: dict[str, list[str]] = {}
-
-    # Gap 1: Detect data file changes
-    changed_data_files = _detect_changed_data_files(cache, site)
-    for data_file in changed_data_files:
-        affected_pages = _get_pages_for_data_file(cache, data_file, dependency_index)
-        for page_path in affected_pages:
-            if page_path not in expanded:
-                expanded.add(page_path)
-                reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
-
-    # Gap 3: Detect template changes
-    # Use per-page template dependency tracking when available.
-    # Falls back to rebuilding ALL pages when no dependency data exists
-    # (first build or cache miss) to ensure correctness.
-    changed_templates = _detect_changed_templates(cache, site)
-    if changed_templates:
-        # Resolve template names relative to template dirs (matches determine_template() format)
-        template_dirs = resolve_template_dirs(site)
-
-        template_names_str = ", ".join(
-            template_name_for_path(t, template_dirs) for t in changed_templates
+        cli.error("Build failed: No pages discovered after recovery")
+        cli.detail(
+            f"Expected pages in {site.root_path / 'content'}",
+            indent=1,
         )
-        index_template_hits: dict[str, set[Path]] = {}
-        for changed_template in changed_templates:
-            template_name = template_name_for_path(changed_template, template_dirs)
-            affected = _get_pages_from_dependency_index(
-                dependency_index,
-                ("template",),
-                (*_dependency_key_candidates(cache, changed_template), template_name),
-            )
-            if not affected:
-                index_template_hits = {}
+        orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
+        return None
+
+    orchestrator.logger.info(
+        "recovery_succeeded",
+        pages_found=len(pages_list),
+        reason="Full discovery recovered pages",
+    )
+    cli.success(f"✓ Recovery succeeded: Found {len(pages_list)} pages")
+
+    provenance_cache._ensure_loaded()
+    cache_matches = True
+    if provenance_cache._index:
+        for page in pages_list:
+            page_key = provenance_filter._get_page_key(page)
+            if page_key not in provenance_cache._index:
+                cache_matches = False
                 break
-            index_template_hits[template_name] = affected
-
-        if index_template_hits:
-            for template_name, affected_paths in index_template_hits.items():
-                logger.debug(
-                    "dependency_index_template_hit",
-                    template=template_name,
-                    affected_pages=len(affected_paths),
-                )
-                for page_path in affected_paths:
-                    if page_path not in expanded:
-                        expanded.add(page_path)
-                        reasons.setdefault(str(page_path), []).append(
-                            f"template_changed:{template_name}"
-                        )
-        elif cache.template_dependencies:
-            # Selective rebuild: only rebuild pages that depend on changed templates
-            needs_full_rebuild = False
-            for changed_template in changed_templates:
-                template_name = template_name_for_path(changed_template, template_dirs)
-                affected_paths = cache.get_pages_for_template(template_name)
-                if affected_paths:
-                    for page_path_str in affected_paths:
-                        page_path = Path(page_path_str)
-                        if page_path not in expanded:
-                            expanded.add(page_path)
-                            reasons.setdefault(str(page_path), []).append(
-                                f"template_changed:{template_name}"
-                            )
-                else:
-                    # No dependency data for this template (first build or cache miss)
-                    # Fall back to full rebuild for safety
-                    needs_full_rebuild = True
+            try:
+                provenance = provenance_filter._compute_provenance(page)
+                stored_hash = provenance_cache._index[page_key]
+                if provenance.combined_hash != stored_hash:
+                    cache_matches = False
                     break
-            if needs_full_rebuild:
-                logger.info(
-                    "template_dependency_partial_miss",
-                    changed_templates=template_names_str,
-                    reason="Some changed templates have no dependency data — rebuilding all pages",
-                )
-                for page in pages:
-                    if page.source_path not in expanded:
-                        expanded.add(page.source_path)
-                        reasons.setdefault(str(page.source_path), []).append(
-                            f"template_changed:{template_names_str}"
-                        )
-        else:
-            # No template dependency data yet — fall back to rebuilding ALL pages
-            logger.info(
-                "template_dependency_full_miss",
-                changed_templates=template_names_str,
-                reason="No template dependency data cached — rebuilding all pages (first build after cache clear)",
-            )
-            for page in pages:
-                if page.source_path not in expanded:
-                    expanded.add(page.source_path)
-                    reasons.setdefault(str(page.source_path), []).append(
-                        f"template_changed:{template_names_str}"
-                    )
+            except Exception:
+                cache_matches = False
+                break
 
-    # Gap 2: For content pages that changed, find taxonomy term pages
-    # Check which changed pages have tags - their taxonomy term pages need rebuilding
-    content_changes = [p for p in forced_changed if p.suffix == ".md"]
-    for content_path in content_changes:
-        term_pages = _get_taxonomy_term_pages_for_member(cache, content_path, site)
-        for term_path in term_pages:
-            if term_path not in expanded:
-                expanded.add(term_path)
-                reasons.setdefault(str(term_path), []).append(f"member_changed:{content_path.name}")
-
-    if len(expanded) > len(forced_changed):
-        logger.info(
-            "dependency_triggered_rebuilds",
-            original_count=len(forced_changed),
-            expanded_count=len(expanded),
-            data_file_triggered=len(changed_data_files),
-            template_triggered=len(changed_templates),
-            taxonomy_triggered=len(content_changes),
+    if not cache_matches or not provenance_cache._index:
+        orchestrator.logger.debug(
+            "provenance_cache_cleared_after_recovery",
+            reason="Cache entries don't match recovered pages",
+            pages_found=len(pages_list),
         )
+        cli.detail(
+            "Clearing provenance cache - entries don't match recovered pages",
+            indent=1,
+        )
+        provenance_cache.cache_dir.mkdir(parents=True, exist_ok=True)
+        index_path = provenance_cache.cache_dir / "index.json"
+        if index_path.exists():
+            index_path.unlink()
+        provenance_cache._index = {}
+        provenance_cache._loaded = False
+        asset_hash_path = provenance_cache.cache_dir / "asset_hashes.json"
+        if asset_hash_path.exists():
+            asset_hash_path.unlink()
+        provenance_filter._asset_hashes = {}
+    else:
+        orchestrator.logger.debug(
+            "provenance_cache_preserved_after_recovery",
+            reason="Cache entries match recovered pages",
+            pages_found=len(pages_list),
+        )
+        cli.detail(
+            "Provenance cache matches - pages should be cache hits",
+            indent=1,
+        )
+    return pages_list
 
-    return expanded, reasons
+
+def _record_rebuild_reasons(
+    decision: IncrementalDecision,
+    result: ProvenanceFilterResult,
+    dependency_reasons: dict[str, list[str]],
+) -> None:
+    """Populate IncrementalDecision rebuild reasons from dependency expansion."""
+    for page in result.pages_to_build:
+        page_key = str(page.source_path)
+        if page_key in dependency_reasons:
+            for reason in dependency_reasons[page_key]:
+                if reason.startswith("data_file:"):
+                    decision.add_rebuild_reason(
+                        page_key,
+                        RebuildReasonCode.DATA_FILE_CHANGED,
+                        {"trigger": reason},
+                    )
+                elif reason.startswith("template:"):
+                    decision.add_rebuild_reason(
+                        page_key,
+                        RebuildReasonCode.TEMPLATE_CHANGED,
+                        {"trigger": reason},
+                    )
+                elif reason.startswith("member_changed:"):
+                    decision.add_rebuild_reason(
+                        page_key,
+                        RebuildReasonCode.TAXONOMY_CASCADE,
+                        {"trigger": reason},
+                    )
+        else:
+            decision.add_rebuild_reason(
+                page_key,
+                RebuildReasonCode.CONTENT_CHANGED,
+                {"provenance": "content_hash_mismatch"},
+            )
 
 
 def phase_incremental_filter_provenance(
@@ -668,41 +235,20 @@ def phase_incremental_filter_provenance(
 
     Uses content-addressed provenance tracking for correct cache invalidation.
     30x faster than the old IncrementalFilterEngine approach.
-
-    Args:
-        orchestrator: Build orchestrator instance
-        cli: CLI output for user messages
-        cache: Build cache (legacy, used for compatibility)
-        incremental: Whether this is an incremental build
-        verbose: Whether to show verbose output
-        build_start: Build start time for duration calculation
-        changed_sources: Paths to treat as changed (from file watcher)
-        nav_changed_sources: Navigation-affecting changes
-
-    Returns:
-        FilterResult with pages_to_build, assets_to_process, etc.
-        Returns None if build should be skipped (no changes detected)
     """
     with orchestrator.logger.phase("incremental_filtering_provenance", enabled=incremental):
         site = orchestrator.site
         site_like = cast("SiteLike", site)
 
-        # Initialize provenance cache
         provenance_cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
         provenance_filter = ProvenanceFilter(site, provenance_cache)
 
-        # Combine changed sources from file watcher
         forced_changed: set[Path] = set()
         if changed_sources:
             forced_changed.update(changed_sources)
         if nav_changed_sources:
             forced_changed.update(nav_changed_sources)
 
-        # RFC: rfc-incremental-build-dependency-gaps
-        # Expand forced_changed to include dependency-triggered rebuilds:
-        # - Data file changes → dependent pages
-        # - Template changes → dependent pages
-        # - Content changes → taxonomy term pages
         pages_list = list(site.pages)
         forced_changed, dependency_reasons = _expand_forced_changed(
             forced_changed,
@@ -712,35 +258,11 @@ def phase_incremental_filter_provenance(
             provenance_cache.get_dependency_index(),
         )
 
-        # Filter pages and assets
         filter_start = time.time()
         assets_list = list(site.assets)
+        signals = collect_output_signals(site_like, pages_list, provenance_cache, provenance_filter)
 
-        # COLD BUILD: If output or provenance is missing, skip verification entirely.
-        # We know the answer (build everything). Provenance will be computed during
-        # record_build after rendering - no need for the 20+ second filter pass.
-        #
-        # Font/theme setup may create files in public/ before this phase, so an output
-        # directory that is merely non-empty is not proof that page HTML can be reused.
-        output_dir = site.output_dir
-        output_html_missing = _output_dir_empty(output_dir)
-        asset_integrity = inspect_asset_outputs(output_dir)
-        output_assets_missing = not asset_integrity.is_complete
-        page_outputs_checked, page_outputs_missing = _page_output_counts(pages_list)
-        all_page_outputs_missing = (
-            page_outputs_checked > 0 and page_outputs_missing == page_outputs_checked
-        )
-        no_page_provenance = not _has_page_provenance(
-            provenance_cache,
-            provenance_filter,
-            pages_list,
-        )
-        if (
-            output_html_missing
-            or output_assets_missing
-            or all_page_outputs_missing
-            or no_page_provenance
-        ) and pages_list:
+        if signals.is_cold and pages_list:
             result = provenance_filter.filter(
                 pages=pages_list,
                 assets=assets_list,
@@ -751,8 +273,6 @@ def phase_incremental_filter_provenance(
             orchestrator.stats.cache_hits = 0
             orchestrator.stats.cache_misses = len(result.pages_to_build)
 
-            # RFC: rfc-incremental-build-observability - populate incremental_decision
-            # for --explain/--dry-run even on cold builds (output missing)
             explain = getattr(orchestrator.options, "explain", False)
             dry_run = getattr(orchestrator.options, "dry_run", False)
             if explain or dry_run:
@@ -767,10 +287,10 @@ def phase_incremental_filter_provenance(
                         RebuildReasonCode.FULL_REBUILD,
                         {
                             "cold_build": True,
-                            "output_missing": output_html_missing
-                            or output_assets_missing
-                            or all_page_outputs_missing,
-                            "no_page_provenance": no_page_provenance,
+                            "output_missing": signals.html_missing
+                            or signals.assets_missing
+                            or signals.all_page_outputs_missing,
+                            "no_page_provenance": signals.no_page_provenance,
                         },
                     )
                 orchestrator.stats.incremental_decision = decision
@@ -783,18 +303,19 @@ def phase_incremental_filter_provenance(
                 f"Filter time: {filter_time_ms:.1f}ms (cold/no-cache build, skipped verification)",
                 indent=1,
             )
+            integrity = signals.asset_integrity
             orchestrator.logger.info(
                 "provenance_verification_skipped_cold_build",
                 pages=len(result.pages_to_build),
                 assets=len(result.assets_to_process),
-                output_html_missing=output_html_missing,
-                output_assets_missing=output_assets_missing,
-                page_outputs_checked=page_outputs_checked,
-                page_outputs_missing=page_outputs_missing,
-                no_page_provenance=no_page_provenance,
-                asset_manifest_present=asset_integrity.manifest_present,
-                asset_manifest_entries=asset_integrity.total_entries,
-                missing_asset_outputs=asset_integrity.missing_count,
+                output_html_missing=signals.html_missing,
+                output_assets_missing=signals.assets_missing,
+                page_outputs_checked=signals.page_outputs_checked,
+                page_outputs_missing=signals.page_outputs_missing,
+                no_page_provenance=signals.no_page_provenance,
+                asset_manifest_present=integrity.manifest_present,
+                asset_manifest_entries=integrity.total_entries,
+                missing_asset_outputs=integrity.missing_count,
             )
             return FilterResult(
                 pages_to_build=result.pages_to_build,
@@ -804,110 +325,20 @@ def phase_incremental_filter_provenance(
                 affected_sections=result.affected_sections,
             )
 
-        # CRITICAL: If no pages were discovered, attempt recovery
-        # This should never happen in a normal build - discovery should always find pages
-        # But we can recover by re-running discovery with full discovery (bypasses cache issues)
         if not pages_list:
-            orchestrator.logger.warning(
-                "no_pages_discovered_for_filtering_attempting_recovery",
-                total_pages=len(site.pages),
-                incremental=incremental,
-                suggestion="Re-running discovery with full discovery to recover",
-            )
-            # Force full discovery (incremental=False) to bypass any cache issues
-            # This ensures we find pages even if the page discovery cache is broken
-            from bengal.orchestration.build import initialization
-
-            initialization.phase_discovery(
+            recovered = _recover_empty_page_discovery(
                 orchestrator,
                 cli,
-                incremental=False,  # Force full discovery to recover
-                build_context=None,
-                build_cache=cache,  # Pass cache for autodoc dependency registration
+                cache,
+                provenance_cache,
+                provenance_filter,
+                incremental,
+                build_start,
             )
-            pages_list = list(site.pages)
-            if not pages_list:
-                # Still no pages after recovery - this is a real error
-                orchestrator.logger.error(
-                    "no_pages_discovered_after_recovery",
-                    total_pages=len(site.pages),
-                    content_dir=str(site.root_path / "content"),
-                    suggestion="Check content directory exists and contains markdown files",
-                )
-                cli.error("Build failed: No pages discovered after recovery")
-                cli.detail(
-                    f"Expected pages in {site.root_path / 'content'}",
-                    indent=1,
-                )
-                orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
-                return None  # Return None to signal build failure
-
-            # Recovery succeeded - log success
-            orchestrator.logger.info(
-                "recovery_succeeded",
-                pages_found=len(pages_list),
-                reason="Full discovery recovered pages",
-            )
-            cli.success(f"✓ Recovery succeeded: Found {len(pages_list)} pages")
-
-            # Check if provenance cache entries match ALL recovered pages.
-            # If they match, we can keep the cache (no need to rebuild).
-            # If they don't match, clear cache to force rebuild.
-            # NOTE: We check every page, not a sample — a 10-page sample
-            # could miss stale entries for pages 11+, producing wrong output.
-            provenance_cache._ensure_loaded()
-            cache_matches = True
-            if provenance_cache._index:
-                for page in pages_list:
-                    page_key = provenance_filter._get_page_key(page)
-                    if page_key not in provenance_cache._index:
-                        cache_matches = False
-                        break
-                    # Compute provenance to check if it matches
-                    try:
-                        provenance = provenance_filter._compute_provenance(page)
-                        stored_hash = provenance_cache._index[page_key]
-                        if provenance.combined_hash != stored_hash:
-                            cache_matches = False
-                            break
-                    except Exception:
-                        # If provenance computation fails, assume mismatch
-                        cache_matches = False
-                        break
-
-            if not cache_matches or not provenance_cache._index:
-                # Cache doesn't match or is empty - clear it to force rebuild
-                orchestrator.logger.debug(
-                    "provenance_cache_cleared_after_recovery",
-                    reason="Cache entries don't match recovered pages",
-                    pages_found=len(pages_list),
-                )
-                cli.detail(
-                    "Clearing provenance cache - entries don't match recovered pages",
-                    indent=1,
-                )
-                provenance_cache.cache_dir.mkdir(parents=True, exist_ok=True)
-                index_path = provenance_cache.cache_dir / "index.json"
-                if index_path.exists():
-                    index_path.unlink()
-                provenance_cache._index = {}
-                provenance_cache._loaded = False
-                # Also clear asset hashes to be safe
-                asset_hash_path = provenance_cache.cache_dir / "asset_hashes.json"
-                if asset_hash_path.exists():
-                    asset_hash_path.unlink()
-                provenance_filter._asset_hashes = {}
-            else:
-                # Cache matches - keep it, pages should be cache hits
-                orchestrator.logger.debug(
-                    "provenance_cache_preserved_after_recovery",
-                    reason="Cache entries match recovered pages",
-                    pages_found=len(pages_list),
-                )
-                cli.detail(
-                    "Provenance cache matches - pages should be cache hits",
-                    indent=1,
-                )
+            if recovered is None:
+                return None
+            pages_list = recovered
+            assets_list = list(site.assets)
 
         result = provenance_filter.filter(
             pages=pages_list,
@@ -917,80 +348,8 @@ def phase_incremental_filter_provenance(
         )
         filter_time_ms = (time.time() - filter_start) * 1000
 
-        # RFC: rfc-incremental-build-dependency-gaps - Gap 2: Taxonomy cascade
-        # When content pages change, their taxonomy term pages need rebuilding.
-        # Find taxonomy term pages that list any of the affected tags.
-        if result.affected_tags and incremental:
-            taxonomy_pages_to_add: list[PageLike] = []
-            pages_to_build_sources = {p.source_path for p in result.pages_to_build}
+        result = apply_taxonomy_cascade(result, pages_list, incremental, dependency_reasons)
 
-            for page in pages_list:
-                # Check if this is a taxonomy term page
-                is_taxonomy = getattr(page, "virtual", False) and (
-                    page.metadata.get("_taxonomy_term")
-                    or page.metadata.get("tag")
-                    or "/tags/" in str(page.source_path)
-                    or "/categories/" in str(page.source_path)
-                )
-
-                if not is_taxonomy:
-                    continue
-
-                # Get the tag/term this page represents
-                term = (
-                    page.metadata.get("_taxonomy_term")
-                    or page.metadata.get("tag")
-                    or page.metadata.get("title", "").lower()
-                )
-
-                if (
-                    term
-                    and str(term).lower() in {t.lower() for t in result.affected_tags}
-                    and page.source_path not in pages_to_build_sources
-                ):
-                    # This taxonomy page lists a tag that was affected
-                    taxonomy_pages_to_add.append(page)
-                    dependency_reasons.setdefault(str(page.source_path), []).append(
-                        f"taxonomy_cascade:tag={term}"
-                    )
-
-            if taxonomy_pages_to_add:
-                # Create new result with taxonomy pages added
-                new_pages_to_build = list(result.pages_to_build) + taxonomy_pages_to_add
-                new_pages_skipped = [
-                    p for p in result.pages_skipped if p not in taxonomy_pages_to_add
-                ]
-                result = ProvenanceFilterResult(
-                    pages_to_build=new_pages_to_build,
-                    assets_to_process=result.assets_to_process,
-                    pages_skipped=new_pages_skipped,
-                    total_pages=result.total_pages,
-                    cache_hits=len(new_pages_skipped),
-                    cache_misses=len(new_pages_to_build),
-                    affected_tags=result.affected_tags,
-                    affected_sections=result.affected_sections,
-                    changed_page_paths=result.changed_page_paths,
-                )
-
-                logger.info(
-                    "taxonomy_cascade_triggered",
-                    affected_tags=list(result.affected_tags),
-                    taxonomy_pages_added=len(taxonomy_pages_to_add),
-                )
-
-        # Cascade snapshot sanity check.
-        #
-        # The cascade snapshot is built during Phase 2 (discovery) by
-        # _apply_cascades() → site.build_cascade_snapshot().  It should
-        # ALWAYS be populated by the time we reach filtering.  If it's
-        # empty despite sections having cascade data, that signals a
-        # discovery bug — log a warning so we can diagnose it.
-        #
-        # Previously this code conditionally rebuilt the snapshot when
-        # _index.md files changed, but that is now handled correctly by
-        # discovery itself: changed _index.md files are loaded fresh
-        # (not from cache) because their fingerprint won't match, so the
-        # snapshot built during discovery already contains the fresh data.
         if site.sections and len(site.cascade) == 0:
             logger.warning(
                 "cascade_snapshot_empty_after_discovery",
@@ -998,45 +357,12 @@ def phase_incremental_filter_provenance(
                 hint="discovery may not have built the cascade snapshot correctly",
             )
 
-        # Initialize decision tracker for observability
         decision = IncrementalDecision(
             pages_to_build=result.pages_to_build,
             pages_skipped_count=result.cache_hits,
         )
+        _record_rebuild_reasons(decision, result, dependency_reasons)
 
-        # Track rebuild reasons
-        for page in result.pages_to_build:
-            page_key = str(page.source_path)
-
-            # Check if this page was triggered by a dependency change
-            if page_key in dependency_reasons:
-                for reason in dependency_reasons[page_key]:
-                    if reason.startswith("data_file:"):
-                        decision.add_rebuild_reason(
-                            page_key,
-                            RebuildReasonCode.DATA_FILE_CHANGED,
-                            {"trigger": reason},
-                        )
-                    elif reason.startswith("template:"):
-                        decision.add_rebuild_reason(
-                            page_key,
-                            RebuildReasonCode.TEMPLATE_CHANGED,
-                            {"trigger": reason},
-                        )
-                    elif reason.startswith("member_changed:"):
-                        decision.add_rebuild_reason(
-                            page_key,
-                            RebuildReasonCode.TAXONOMY_CASCADE,
-                            {"trigger": reason},
-                        )
-            else:
-                decision.add_rebuild_reason(
-                    page_key,
-                    RebuildReasonCode.CONTENT_CHANGED,
-                    {"provenance": "content_hash_mismatch"},
-                )
-
-        # Check for fingerprint cascade (CSS/JS changes)
         fingerprint_assets = [
             asset
             for asset in result.assets_to_process
@@ -1044,8 +370,6 @@ def phase_incremental_filter_provenance(
         ]
 
         if fingerprint_assets and not result.pages_to_build:
-            # Assets changed but no content changes - rebuild all pages
-            # (fingerprinted URLs embedded in HTML will change)
             asset_names = [a.source_path.name for a in fingerprint_assets]
             logger.info(
                 "fingerprint_assets_forcing_full_rebuild",
@@ -1055,118 +379,79 @@ def phase_incremental_filter_provenance(
             result = provenance_filter.filter(
                 pages=list(site.pages),
                 assets=list(site.assets),
-                incremental=False,  # Force full rebuild
+                incremental=False,
             )
             decision.fingerprint_changes = True
             decision.asset_changes = [a.source_path.name for a in fingerprint_assets]
-
             orchestrator.logger.info(
                 "fingerprint_assets_changed_forcing_page_rebuild",
                 assets_changed=len(fingerprint_assets),
                 pages_to_rebuild=len(result.pages_to_build),
             )
 
-        # Check if output directory is missing
-        output_dir = site.output_dir
-        output_html_missing = _output_dir_empty(output_dir)
-        asset_integrity = inspect_asset_outputs(output_dir)
-        output_assets_missing = not asset_integrity.is_complete
-
-        if (output_html_missing or output_assets_missing) and site.pages:
-            # Output was cleaned but cache is warm - force full rebuild
+        late_signals = collect_output_signals(
+            site_like, list(site.pages), provenance_cache, provenance_filter
+        )
+        if (late_signals.html_missing or late_signals.assets_missing) and site.pages:
             result = provenance_filter.filter(
                 pages=list(site.pages),
                 assets=list(site.assets),
                 incremental=False,
             )
-
             for page in result.pages_to_build:
                 decision.add_rebuild_reason(
                     str(page.source_path),
                     RebuildReasonCode.OUTPUT_MISSING,
                     {
-                        "html_missing": output_html_missing,
-                        "assets_missing": output_assets_missing,
+                        "html_missing": late_signals.html_missing,
+                        "assets_missing": late_signals.assets_missing,
                     },
                 )
-
+            integrity = late_signals.asset_integrity
             orchestrator.logger.info(
                 "output_missing_forcing_full_rebuild",
                 pages_count=len(result.pages_to_build),
-                html_missing=output_html_missing,
-                assets_missing=output_assets_missing,
-                asset_manifest_present=asset_integrity.manifest_present,
-                asset_manifest_entries=asset_integrity.total_entries,
-                missing_asset_outputs=asset_integrity.missing_count,
-                missing_asset_output_samples=list(asset_integrity.missing_outputs),
+                html_missing=late_signals.html_missing,
+                assets_missing=late_signals.assets_missing,
+                asset_manifest_present=integrity.manifest_present,
+                asset_manifest_entries=integrity.total_entries,
+                missing_asset_outputs=integrity.missing_count,
+                missing_asset_output_samples=list(integrity.missing_outputs),
             )
 
-        # If specific outputs are missing, rebuild those pages even if provenance is fresh.
-        if incremental and result.pages_skipped and cache and hasattr(cache, "output_sources"):
-            skipped_by_source = {
-                content_key(page.source_path, site.root_path): page for page in result.pages_skipped
-            }
-            missing_pages: list = []
-
-            for rel_output, source_str in (cache.output_sources or {}).items():
-                page = skipped_by_source.get(CacheKey(str(source_str)))
-                if not page:
-                    continue
-                output_path = site.output_dir / rel_output
-                page.output_path = page.output_path or output_path
-                if not output_path.exists():
-                    missing_pages.append(page)
-            if missing_pages:
-                pages_to_build = list(result.pages_to_build) + missing_pages
-                pages_skipped = [p for p in result.pages_skipped if p not in missing_pages]
-                result = ProvenanceFilterResult(
-                    pages_to_build=pages_to_build,
-                    assets_to_process=result.assets_to_process,
-                    pages_skipped=pages_skipped,
-                    total_pages=result.total_pages,
-                    cache_hits=len(pages_skipped),
-                    cache_misses=len(pages_to_build),
-                    affected_tags=result.affected_tags,
-                    affected_sections=result.affected_sections,
-                    changed_page_paths=result.changed_page_paths,
+        if incremental:
+            result, missing_pages = repair_missing_page_outputs(result, cache, site)
+            for page in missing_pages:
+                decision.add_rebuild_reason(
+                    str(page.source_path),
+                    RebuildReasonCode.OUTPUT_MISSING,
+                    {"output_path": str(page.output_path)},
                 )
-                for page in missing_pages:
-                    decision.add_rebuild_reason(
-                        str(page.source_path),
-                        RebuildReasonCode.OUTPUT_MISSING,
-                        {"output_path": str(page.output_path)},
-                    )
 
-        # Ensure decision reflects the final result after any adjustments.
         decision.pages_to_build = result.pages_to_build
         decision.pages_skipped_count = result.cache_hits
 
-        # Check for skip condition
-        missing_postprocess_artifacts = (
-            _missing_postprocess_artifacts(site_like) if result.is_skip else ()
-        )
-        if result.is_skip and not missing_postprocess_artifacts:
+        missing_postprocess = _missing_postprocess_artifacts(site_like) if result.is_skip else ()
+        if result.is_skip and not missing_postprocess:
             cli.success("✓ No changes detected - build skipped")
             cli.detail(
                 f"Cached: {len(site.pages)} pages, {len(site.assets)} assets",
                 indent=1,
             )
             cli.detail(f"Provenance check: {filter_time_ms:.1f}ms", indent=1)
-
             orchestrator.logger.info(
                 "no_changes_detected_provenance",
                 cached_pages=len(site.pages),
                 cached_assets=len(site.assets),
                 filter_time_ms=filter_time_ms,
             )
-
             orchestrator.stats.total_pages = len(site.pages)
             orchestrator.stats.total_assets = len(site.assets)
             orchestrator.stats.total_sections = len(site.sections)
             orchestrator.stats.cache_hits = result.cache_hits
             orchestrator.stats.cache_misses = result.cache_misses
             if result.cache_hits > 0:
-                avg_time_per_page = 50  # Estimated ms per page render
+                avg_time_per_page = 50
                 orchestrator.stats.time_saved_ms = result.cache_hits * avg_time_per_page * 0.8
             if verbose:
                 for page in result.pages_skipped:
@@ -1178,34 +463,31 @@ def phase_incremental_filter_provenance(
             orchestrator.stats.skipped = True
             orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
             return None
-        if missing_postprocess_artifacts:
+        if missing_postprocess:
             artifact_samples = [
                 str(path.relative_to(site.output_dir))
                 if path.is_relative_to(site.output_dir)
                 else str(path)
-                for path in missing_postprocess_artifacts[:5]
+                for path in missing_postprocess[:5]
             ]
             cli.detail(
                 "Post-process artifacts missing; regenerating "
-                f"{len(missing_postprocess_artifacts)} file"
-                f"{'s' if len(missing_postprocess_artifacts) != 1 else ''}",
+                f"{len(missing_postprocess)} file"
+                f"{'s' if len(missing_postprocess) != 1 else ''}",
                 indent=1,
             )
             orchestrator.logger.info(
                 "postprocess_artifacts_missing_forcing_postprocess",
-                missing_count=len(missing_postprocess_artifacts),
+                missing_count=len(missing_postprocess),
                 missing_samples=artifact_samples,
             )
 
-        # Update stats
         orchestrator.stats.cache_hits = result.cache_hits
         orchestrator.stats.cache_misses = result.cache_misses
-
         if result.cache_hits > 0:
-            avg_time_per_page = 50  # Estimated ms per page render
+            avg_time_per_page = 50
             orchestrator.stats.time_saved_ms = result.cache_hits * avg_time_per_page * 0.8
 
-        # Log results
         log_kwargs: dict[str, object] = {
             "pages_to_build": len(result.pages_to_build),
             "assets_to_process": len(result.assets_to_process),
@@ -1213,13 +495,12 @@ def phase_incremental_filter_provenance(
             "cache_hit_rate": f"{result.hit_rate:.1f}%",
             "filter_time_ms": filter_time_ms,
         }
-        if missing_postprocess_artifacts:
-            log_kwargs["missing_postprocess_artifacts"] = len(missing_postprocess_artifacts)
+        if missing_postprocess:
+            log_kwargs["missing_postprocess_artifacts"] = len(missing_postprocess)
         if provenance_filter._mtime_short_circuit_hits > 0:
             log_kwargs["mtime_short_circuit_hits"] = provenance_filter._mtime_short_circuit_hits
         orchestrator.logger.info("incremental_work_identified_provenance", **log_kwargs)
 
-        # Verbose output
         if verbose:
             for page in result.pages_skipped:
                 decision.skip_reasons[str(page.source_path)] = SkipReasonCode.NO_CHANGES
@@ -1229,21 +510,17 @@ def phase_incremental_filter_provenance(
             decision.log_details(orchestrator.logger)
 
         orchestrator.stats.incremental_decision = decision
+        orchestrator._provenance_filter = provenance_filter
 
-        # CLI output
         pages_msg = (
             f"{len(result.pages_to_build)} page{'s' if len(result.pages_to_build) != 1 else ''}"
         )
         assets_msg = f"{len(result.assets_to_process)} asset{'s' if len(result.assets_to_process) != 1 else ''}"
         skipped_msg = f"{result.cache_hits} cached"
-
         cli.info(f"  Provenance build: {pages_msg}, {assets_msg} (skipped {skipped_msg})")
         cli.detail(
             f"Filter time: {filter_time_ms:.1f}ms ({result.hit_rate:.1f}% hit rate)", indent=1
         )
-
-        # Store provenance filter for later use (recording builds)
-        orchestrator._provenance_filter = provenance_filter
 
         return FilterResult(
             pages_to_build=result.pages_to_build,
@@ -1255,11 +532,7 @@ def phase_incremental_filter_provenance(
 
 
 def record_page_build(orchestrator: BuildOrchestrator, page) -> None:
-    """
-    Record provenance after a page is built.
-
-    Call this after rendering each page to update the provenance cache.
-    """
+    """Record provenance after a page is built."""
     if hasattr(orchestrator, "_provenance_filter"):
         orchestrator._provenance_filter.record_build(page)
 
@@ -1270,12 +543,7 @@ def record_all_page_builds(
     *,
     parallel: bool = True,
 ) -> None:
-    """
-    Record provenance for all built pages.
-
-    Call this after all pages have been rendered to update the provenance cache.
-    Uses parallel workers when page count is large and parallel=True.
-    """
+    """Record provenance for all built pages."""
     if not hasattr(orchestrator, "_provenance_filter"):
         return
     pf = orchestrator._provenance_filter
@@ -1283,8 +551,6 @@ def record_all_page_builds(
         return
 
     record_entries = []
-
-    # Parallelize when many pages (full rebuild) - provenance computation is I/O bound
     use_parallel = parallel and len(pages) > 50
     if use_parallel:
         max_workers = min(32, (os.cpu_count() or 1) + 4)
@@ -1312,10 +578,6 @@ def record_all_page_builds(
 
 
 def save_provenance_cache(orchestrator: BuildOrchestrator) -> None:
-    """
-    Save the provenance cache after build completes.
-
-    Call this at the end of the build to persist provenance data.
-    """
+    """Save the provenance cache after build completes."""
     if hasattr(orchestrator, "_provenance_filter") and orchestrator._provenance_filter is not None:
         orchestrator._provenance_filter.save()

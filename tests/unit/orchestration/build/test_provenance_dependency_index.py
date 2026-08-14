@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from bengal.build.contracts import DependencyIndexEntry, DependencyReadIndex
+from bengal.build.provenance import invalidation as provenance_invalidation
 from bengal.cache import BuildCache
 from bengal.orchestration.build import provenance_filter
 
@@ -30,7 +31,7 @@ def test_expand_forced_changed_uses_dependency_index_for_data_file(
             )
         ]
     )
-    monkeypatch.setattr(provenance_filter, "iter_template_files", lambda _site: ())
+    monkeypatch.setattr(provenance_invalidation, "iter_template_files", lambda _site: ())
 
     expanded, reasons = provenance_filter._expand_forced_changed(set(), cache, site, [], index)
 
@@ -79,8 +80,12 @@ def test_expand_forced_changed_uses_dependency_index_for_templates(
             )
         ]
     )
-    monkeypatch.setattr(provenance_filter, "iter_template_files", lambda _site: (template_file,))
-    monkeypatch.setattr(provenance_filter, "resolve_template_dirs", lambda _site: [template_dir])
+    monkeypatch.setattr(
+        provenance_invalidation, "iter_template_files", lambda _site: (template_file,)
+    )
+    monkeypatch.setattr(
+        provenance_invalidation, "resolve_template_dirs", lambda _site: [template_dir]
+    )
 
     expanded, reasons = provenance_filter._expand_forced_changed(set(), cache, site, pages, index)
 
