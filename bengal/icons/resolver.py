@@ -209,6 +209,32 @@ def _get_fallback_path() -> Path:
     return Path(bengal_file).parent / "themes" / "default" / "assets" / "icons"
 
 
+def _store_icon_or_return_winner(cache: dict[str, str], name: str, content: str) -> str:
+    """Store icon content, returning any concurrent winner already present."""
+    with _icon_lock:
+        existing = cache.get(name)
+        if existing is not None:
+            return existing
+        cache[name] = content
+        return content
+
+
+def _store_not_found_or_return_winner(
+    cache: dict[str, str],
+    not_found: set[str],
+    name: str,
+) -> str | None:
+    """Record a miss, returning any concurrent winner already present."""
+    with _icon_lock:
+        existing = cache.get(name)
+        if existing is not None:
+            return existing
+        if name in not_found:
+            return None
+        not_found.add(name)
+        return None
+
+
 def load_icon(name: str, *, site: SiteConfig | None = None) -> str | None:
     """
     Load icon from first matching path in search chain.
@@ -219,7 +245,9 @@ def load_icon(name: str, *, site: SiteConfig | None = None) -> str | None:
 
     Security: Validates icon name to prevent path traversal attacks.
 
-    Thread-safe: Cache reads/writes protected by lock.
+    Thread-safe: Cache reads/writes protected by lock. After disk I/O the lock
+    is re-acquired and any existing cache entry is returned so a concurrent
+    loader cannot overwrite a winner.
 
     Args:
         name: Icon name (without .svg extension)
@@ -259,9 +287,7 @@ def load_icon(name: str, *, site: SiteConfig | None = None) -> str | None:
         if icon_path.exists():
             try:
                 content = icon_path.read_text(encoding="utf-8")
-                with _icon_lock:
-                    _icon_cache[name] = content
-                return content
+                return _store_icon_or_return_winner(_icon_cache, name, content)
             except OSError as e:
                 logger.debug(
                     "icon_read_error",
@@ -276,9 +302,7 @@ def load_icon(name: str, *, site: SiteConfig | None = None) -> str | None:
         icon=name,
         search_paths=[str(p) for p in search_paths],
     )
-    with _icon_lock:
-        _not_found_cache.add(name)
-    return None
+    return _store_not_found_or_return_winner(_icon_cache, _not_found_cache, name)
 
 
 def _load_icon_from_state(name: str, state: _IconResolverState) -> str | None:
@@ -295,9 +319,7 @@ def _load_icon_from_state(name: str, state: _IconResolverState) -> str | None:
         if icon_path.exists():
             try:
                 content = icon_path.read_text(encoding="utf-8")
-                with _icon_lock:
-                    state.icon_cache[name] = content
-                return content
+                return _store_icon_or_return_winner(state.icon_cache, name, content)
             except OSError as e:
                 logger.debug(
                     "icon_read_error",
@@ -312,9 +334,7 @@ def _load_icon_from_state(name: str, state: _IconResolverState) -> str | None:
         icon=name,
         search_paths=[str(p) for p in search_paths],
     )
-    with _icon_lock:
-        state.not_found_cache.add(name)
-    return None
+    return _store_not_found_or_return_winner(state.icon_cache, state.not_found_cache, name)
 
 
 def get_search_paths() -> list[Path]:
