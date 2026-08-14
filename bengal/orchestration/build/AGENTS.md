@@ -6,7 +6,7 @@ Build phases exist as Bengal's hardcoded lifecycle contract. You protect the
 order, inputs, outputs, plugin hook timing, and artifact side effects that make
 `bengal build`, `serve`, and preview predictable.
 
-Related: root `../../../AGENTS.md`, `../AGENTS.md`, `bengal/orchestration/build/__init__.py`, `tests/unit/orchestration/build/`.
+Related: root `../../../AGENTS.md`, `../AGENTS.md`, `bengal/orchestration/build/__init__.py`, `bengal/orchestration/build/runner.py`, `tests/unit/orchestration/build/`.
 Cross-cutting concerns: Public Contracts and Release Risk apply to all build
 phase changes.
 
@@ -34,7 +34,7 @@ contracts against hidden work, silent fallbacks, and phase proliferation.
 
 When build phases change, check:
 
-- `bengal/orchestration/build/__init__.py` and phase modules.
+- `bengal/orchestration/build/__init__.py`, `runner.py`, and phase modules.
 - `bengal/plugins/integration.py` and `bengal/protocols/build.py`.
 - `bengal/core/output/`, output collectors, and postprocess handoffs.
 - `tests/unit/orchestration/build/`, integration build tests, dev-server tests.
