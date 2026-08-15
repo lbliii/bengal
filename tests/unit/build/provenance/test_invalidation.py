@@ -12,6 +12,9 @@ from bengal.build.provenance.lookups import (
     FALLBACK_TEMPLATE_DEPS_MISSING,
     consult_dependency_index,
     dependency_key_candidates,
+    get_pages_for_data_file,
+    get_pages_for_template,
+    index_is_complete,
 )
 from bengal.cache import BuildCache
 from bengal.utils.observability.logger import reset_loggers
@@ -283,6 +286,114 @@ def _info_fallback_reasons() -> list[str]:
             if isinstance(reason, str):
                 reasons.append(reason)
     return reasons
+
+
+def test_index_is_complete_requires_non_empty_index() -> None:
+    assert index_is_complete(None) is False
+    assert index_is_complete(DependencyReadIndex()) is False
+    assert index_is_complete(_index(("data", "data/team.yaml", "content/about.md"))) is True
+
+
+def test_complete_index_data_miss_skips_page_scan(tmp_path: Path) -> None:
+    """A complete index miss must not walk EffectTracer or the cache graph."""
+    data_file = tmp_path / "data" / "team.yaml"
+    content_file = tmp_path / "content" / "about.md"
+    data_file.parent.mkdir()
+    content_file.parent.mkdir()
+    data_file.write_text("team: docs\n")
+    content_file.write_text("# About\n")
+    cache = BuildCache(site_root=tmp_path)
+    cache.add_dependency(content_file, data_file)
+    index = _index(("data", "data/other.yaml", "content/other.md"))
+
+    pages = get_pages_for_data_file(cache, data_file, index)
+
+    assert pages == set()
+
+
+def test_complete_index_template_miss_skips_cache_graph(tmp_path: Path) -> None:
+    """A complete index miss must not walk reverse/forward template deps."""
+    template = tmp_path / "templates" / "page.html"
+    template.parent.mkdir()
+    template.write_text("{{ page.title }}\n")
+    cache = BuildCache(site_root=tmp_path)
+    template_key = cache._cache_key(template)
+    cache.reverse_dependencies[template_key] = {"content/about.md"}
+    cache.dependencies["content/about.md"] = {template_key}
+    index = _index(("template", "other.html", "content/other.md"))
+
+    pages = get_pages_for_template(cache, template, index)
+
+    assert pages == set()
+
+
+def test_expand_trusts_complete_index_on_data_miss(tmp_path: Path, monkeypatch) -> None:
+    """Complete index + data miss must not fall back to the cache-graph scan."""
+    data_file = tmp_path / "data" / "team.yaml"
+    content_file = tmp_path / "content" / "about.md"
+    data_file.parent.mkdir()
+    content_file.parent.mkdir()
+    data_file.write_text("team: docs\n")
+    content_file.write_text("# About\n")
+    cache = BuildCache(site_root=tmp_path)
+    cache.add_dependency(content_file, data_file)
+    site = SimpleNamespace(root_path=tmp_path)
+    index = _index(("data", "data/other.yaml", "content/other.md"))
+
+    from bengal.build.provenance import invalidation as inv
+
+    monkeypatch.setattr(inv, "detect_changed_templates", lambda *_a, **_k: set())
+
+    expanded, reasons = expand_forced_changed(set(), cache, site, [], index)
+
+    assert Path("content/about.md") not in expanded
+    assert "content/about.md" not in reasons
+
+
+def test_expand_trusts_complete_index_on_template_miss(tmp_path: Path, monkeypatch) -> None:
+    """Complete index + template miss must not full-rebuild every page."""
+    template = tmp_path / "templates" / "page.html"
+    template.parent.mkdir()
+    template.write_text("{{ page.title }}\n")
+    cache = BuildCache(site_root=tmp_path)
+    site = SimpleNamespace(root_path=tmp_path)
+    pages = [
+        SimpleNamespace(source_path=Path("content/about.md")),
+        SimpleNamespace(source_path=Path("content/other.md")),
+    ]
+    index = _index(("template", "other.html", "content/docs.md"))
+
+    from bengal.build.provenance import invalidation as inv
+
+    monkeypatch.setattr(inv, "detect_changed_data_files", lambda *_a, **_k: set())
+    monkeypatch.setattr(inv, "detect_changed_templates", lambda *_a, **_k: {template})
+    monkeypatch.setattr(inv, "iter_template_files", lambda _site: (template,))
+    monkeypatch.setattr(inv, "resolve_template_dirs", lambda _site: [template.parent])
+
+    expanded, reasons = expand_forced_changed(set(), cache, site, pages, index)
+
+    assert Path("content/about.md") not in expanded
+    assert Path("content/other.md") not in expanded
+    assert reasons == {}
+
+
+def test_template_cache_graph_fallback_logs_index_incomplete(tmp_path: Path) -> None:
+    """Missing index still walks the cache graph and emits ``index_incomplete``."""
+    reset_loggers()
+    template = tmp_path / "templates" / "page.html"
+    template.parent.mkdir()
+    template.write_text("{{ page.title }}\n")
+    cache = BuildCache(site_root=tmp_path)
+    template_key = cache._cache_key(template)
+    cache.reverse_dependencies[template_key] = {"content/about.md"}
+
+    try:
+        pages = get_pages_for_template(cache, template, DependencyReadIndex())
+
+        assert pages == {Path("content/about.md")}
+        assert FALLBACK_INDEX_INCOMPLETE in _info_fallback_reasons()
+    finally:
+        reset_loggers()
 
 
 def test_data_scan_fallback_logs_index_incomplete(tmp_path: Path, monkeypatch) -> None:
