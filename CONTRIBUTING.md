@@ -118,7 +118,7 @@ bengal/
 │   ├── core/           # Passive data models (no I/O, no logging)
 │   ├── orchestration/  # Build coordination and operations
 │   ├── rendering/      # Template and content rendering
-│   ├── discovery/      # Content/asset discovery
+│   ├── content/        # Content/asset discovery and sources
 │   ├── cache/          # Caching infrastructure
 │   ├── health/         # Validation and checks
 │   └── cli/            # Command-line interface
