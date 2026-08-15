@@ -17,6 +17,10 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Stable tokens for live-filter fallback INFO logs. Do not paraphrase.
+FALLBACK_INDEX_INCOMPLETE = "index_incomplete"
+FALLBACK_TEMPLATE_DEPS_MISSING = "template_deps_missing"
+
 INDEX_DEPENDENCY_KINDS: tuple[str, ...] = (
     "generated",
     "track",
@@ -24,6 +28,11 @@ INDEX_DEPENDENCY_KINDS: tuple[str, ...] = (
     "template",
     "data",
 )
+
+
+def log_incremental_fallback(reason: str, **context: object) -> None:
+    """INFO-log a live-filter fallback. ``reason`` is a stable token."""
+    logger.info("incremental_fallback", reason=reason, **context)
 
 
 def dependency_key_candidates(cache: BuildCache, path: Path) -> tuple[str, ...]:
@@ -144,6 +153,12 @@ def get_pages_for_data_file(
             affected_pages=len(index_pages),
         )
         return index_pages
+
+    log_incremental_fallback(
+        FALLBACK_INDEX_INCOMPLETE,
+        kind="data",
+        path=str(data_file),
+    )
 
     # Primary: query EffectTracer for data file dependencies.
     # During rendering, TrackedData records data file access via

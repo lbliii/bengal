@@ -11,11 +11,14 @@ from typing import TYPE_CHECKING
 
 from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.build.provenance.lookups import (
+    FALLBACK_INDEX_INCOMPLETE,
+    FALLBACK_TEMPLATE_DEPS_MISSING,
     consult_dependency_index,
     dependency_key_candidates,
     get_pages_for_data_file,
     get_pages_from_dependency_index,
     get_taxonomy_term_pages_for_member,
+    log_incremental_fallback,
 )
 from bengal.rendering.template_engine.environment import (
     iter_template_files,
@@ -267,6 +270,11 @@ def expand_forced_changed(
                 )
         elif unresolved_templates and cache.template_dependencies:
             # Selective rebuild: only rebuild pages that depend on changed templates
+            log_incremental_fallback(
+                FALLBACK_INDEX_INCOMPLETE,
+                kind="template",
+                changed_templates=template_names_str,
+            )
             needs_full_rebuild = False
             for changed_template in unresolved_templates:
                 template_name = template_name_for_path(changed_template, template_dirs)
@@ -286,8 +294,11 @@ def expand_forced_changed(
             if needs_full_rebuild:
                 logger.info(
                     "template_dependency_partial_miss",
+                    reason=FALLBACK_TEMPLATE_DEPS_MISSING,
                     changed_templates=template_names_str,
-                    reason="Some changed templates have no dependency data — rebuilding all pages",
+                    detail=(
+                        "Some changed templates have no dependency data — rebuilding all pages"
+                    ),
                 )
                 _add_expanded_pages(
                     expanded,
@@ -299,8 +310,12 @@ def expand_forced_changed(
             # No template dependency data yet — fall back to rebuilding ALL pages
             logger.info(
                 "template_dependency_full_miss",
+                reason=FALLBACK_TEMPLATE_DEPS_MISSING,
                 changed_templates=template_names_str,
-                reason="No template dependency data cached — rebuilding all pages (first build after cache clear)",
+                detail=(
+                    "No template dependency data cached — rebuilding all pages "
+                    "(first build after cache clear)"
+                ),
             )
             _add_expanded_pages(
                 expanded,

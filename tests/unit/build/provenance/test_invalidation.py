@@ -8,10 +8,13 @@ from types import SimpleNamespace
 from bengal.build.contracts import DependencyIndexEntry, DependencyReadIndex
 from bengal.build.provenance.invalidation import expand_forced_changed
 from bengal.build.provenance.lookups import (
+    FALLBACK_INDEX_INCOMPLETE,
+    FALLBACK_TEMPLATE_DEPS_MISSING,
     consult_dependency_index,
     dependency_key_candidates,
 )
 from bengal.cache import BuildCache
+from bengal.utils.observability.logger import reset_loggers
 
 
 def _index(*entries: tuple[str, str, str]) -> DependencyReadIndex:
@@ -259,3 +262,87 @@ def test_expand_generated_miss_does_not_invent_a_scan(tmp_path: Path, monkeypatc
 
     assert expanded == {generated}
     assert reasons == {}
+
+
+def _info_fallback_reasons() -> list[str]:
+    """Collect stable ``reason`` tokens from live-filter INFO logs."""
+    from bengal.utils.observability.logger import _loggers
+
+    reasons: list[str] = []
+    for name in (
+        "bengal.build.provenance.lookups",
+        "bengal.build.provenance.invalidation",
+    ):
+        logger = _loggers.get(name)
+        if logger is None:
+            continue
+        for event in logger.get_events():
+            if event.level != "INFO":
+                continue
+            reason = event.context.get("reason")
+            if isinstance(reason, str):
+                reasons.append(reason)
+    return reasons
+
+
+def test_data_scan_fallback_logs_index_incomplete(tmp_path: Path, monkeypatch) -> None:
+    """Index miss on a data file logs ``index_incomplete`` before the scan."""
+    from bengal.effects.render_integration import BuildEffectTracer
+
+    reset_loggers()
+    BuildEffectTracer.reset()
+    data_file = tmp_path / "data" / "team.yaml"
+    content_file = tmp_path / "content" / "about.md"
+    data_file.parent.mkdir()
+    content_file.parent.mkdir()
+    data_file.write_text("team: docs\n")
+    content_file.write_text("# About\n")
+    cache = BuildCache(site_root=tmp_path)
+    cache.add_dependency(content_file, data_file)
+    site = SimpleNamespace(root_path=tmp_path)
+
+    from bengal.build.provenance import invalidation as inv
+
+    monkeypatch.setattr(inv, "detect_changed_templates", lambda *_a, **_k: set())
+
+    try:
+        expanded, reasons = expand_forced_changed(set(), cache, site, [], DependencyReadIndex())
+
+        assert Path("content/about.md") in expanded
+        assert reasons["content/about.md"] == ["data_file:team.yaml"]
+        assert FALLBACK_INDEX_INCOMPLETE in _info_fallback_reasons()
+    finally:
+        reset_loggers()
+
+
+def test_template_full_rebuild_fallback_logs_template_deps_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Missing template dependency data logs ``template_deps_missing``."""
+    reset_loggers()
+    template = tmp_path / "templates" / "page.html"
+    template.parent.mkdir()
+    template.write_text("{{ page.title }}\n")
+    cache = BuildCache(site_root=tmp_path)
+    site = SimpleNamespace(root_path=tmp_path)
+    pages = [
+        SimpleNamespace(source_path=Path("content/about.md")),
+        SimpleNamespace(source_path=Path("content/other.md")),
+    ]
+
+    from bengal.build.provenance import invalidation as inv
+
+    monkeypatch.setattr(inv, "detect_changed_data_files", lambda *_a, **_k: set())
+    monkeypatch.setattr(inv, "detect_changed_templates", lambda *_a, **_k: {template})
+    monkeypatch.setattr(inv, "iter_template_files", lambda _site: (template,))
+    monkeypatch.setattr(inv, "resolve_template_dirs", lambda _site: [template.parent])
+
+    try:
+        expanded, reasons = expand_forced_changed(set(), cache, site, pages, DependencyReadIndex())
+
+        assert Path("content/about.md") in expanded
+        assert Path("content/other.md") in expanded
+        assert "template_changed:page.html" in reasons["content/about.md"]
+        assert FALLBACK_TEMPLATE_DEPS_MISSING in _info_fallback_reasons()
+    finally:
+        reset_loggers()
