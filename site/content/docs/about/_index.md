@@ -35,7 +35,7 @@ compiled C extensions in the critical path. `pip install bengal` and go.
 | **Sub-second rebuilds** | Provenance-based incremental builds with content-addressed hashing |
 | **Python-native workflows** | Jupyter rendering, autodoc for Python/CLI/OpenAPI, `pip install` and go |
 | **Batteries included** | Sitemap, RSS, social cards, search indexes, broken link detection, validation |
-| **Extensible** | Pluggable engines, theme inheritance, swizzling, 6 wired plugin extension points (content sources, health validators, and shortcodes are registered and planned) |
+| **Extensible** | Pluggable engines, theme inheritance, swizzling. Six ready plugin extension points: directives, roles, template functions, template filters, template tests, and build phase hooks. Content sources, health validators, and shortcodes are pending. |
 
 ## Use Cases
 
