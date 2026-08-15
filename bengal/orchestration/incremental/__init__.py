@@ -2,17 +2,21 @@
 Incremental build system for Bengal SSG.
 
 This package provides incremental build orchestration:
-- IncrementalOrchestrator: Main orchestrator for incremental builds
-- EffectBasedDetector: Unified change detector (RFC: Snapshot-Enabled v2)
+- IncrementalOrchestrator: Cache and tracer setup for incremental builds
+- EffectBasedDetector: Constructed by initialize(); not the live invalidator
 - CacheManager: Cache initialization and persistence
 - cleanup_deleted_files: Deleted file cleanup
+
+The live invalidator is ``phase_incremental_filter_provenance`` in
+``bengal.orchestration.build.provenance_filter``, called from
+``bengal.orchestration.build.mid_flow``. Production builds do not call
+``find_work_early()``.
 
 Usage:
     from bengal.orchestration.incremental import IncrementalOrchestrator
 
     orchestrator = IncrementalOrchestrator(site)
-    cache, tracker = orchestrator.initialize(enabled=True)
-    pages, assets, summary = orchestrator.find_work_early()
+    cache = orchestrator.initialize(enabled=True)
 
 Related Modules:
 - bengal.effects: Effect system for dependency tracking
