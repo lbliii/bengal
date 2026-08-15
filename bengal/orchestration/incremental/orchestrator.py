@@ -119,10 +119,6 @@ class IncrementalOrchestrator:
         self.coordinator = self._cache_manager.coordinator
         # Expose EffectTracer for dependency tracking
         self.effect_tracer = self._cache_manager.effect_tracer
-        # Create unified detector from effect tracer
-        self._detector = create_detector_from_build(
-            self.site, dependency_index=self._live_dependency_index()
-        )
         return self.cache
 
     def _live_dependency_index(self) -> DependencyReadIndex:
