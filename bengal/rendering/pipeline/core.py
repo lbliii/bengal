@@ -384,7 +384,8 @@ class RenderingPipeline:
         if not page.output_path:
             page.output_path = determine_output_path(page, self.site)
 
-        template = determine_template(page)
+        plan = self.build_context.build_plan if self.build_context is not None else None
+        template = determine_template(page, build_plan=plan)
         parser_version = self._get_parser_version()
 
         # Determine cache bypass using centralized helper
