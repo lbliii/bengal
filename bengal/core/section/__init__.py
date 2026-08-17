@@ -315,7 +315,7 @@ class Section:
         return icon(self)
 
     @cached_property
-    def sorted_subsections(self) -> list[Section]:
+    def sorted_subsections(self) -> tuple[Section, ...]:
         """Get subsections sorted by weight, then title."""
         from .hierarchy import sorted_subsections
 
@@ -334,21 +334,21 @@ class Section:
         return walk(self)
 
     @cached_property
-    def regular_pages(self) -> list[PageLike]:
+    def regular_pages(self) -> tuple[PageLike, ...]:
         """Get content pages in this section, excluding index pages."""
         from .queries import regular_pages
 
         return regular_pages(self)
 
     @cached_property
-    def sorted_pages(self) -> list[PageLike]:
+    def sorted_pages(self) -> tuple[PageLike, ...]:
         """Get pages sorted by weight, then title."""
         from .queries import sorted_pages
 
         return sorted_pages(self)
 
     @cached_property
-    def regular_pages_recursive(self) -> list[PageLike]:
+    def regular_pages_recursive(self) -> tuple[PageLike, ...]:
         """Get all regular pages recursively, including from subsections."""
         from .queries import regular_pages_recursive
 
@@ -449,7 +449,7 @@ class Section:
         return apply_version_path_transform(self, url)
 
     @cached_property
-    def content_pages(self) -> list[PageLike]:
+    def content_pages(self) -> tuple[PageLike, ...]:
         """Get content pages for template listings."""
         from bengal.rendering.section_ergonomics import content_pages
 

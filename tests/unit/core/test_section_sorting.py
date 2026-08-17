@@ -60,7 +60,7 @@ class TestSectionSortedPagesProperty:
         )
         docs.add_page(first)
 
-        assert root.regular_pages_recursive == [first]
+        assert root.regular_pages_recursive == (first,)
 
         second = _page(
             source_path=tmp_path / "docs/second.md",
@@ -69,7 +69,7 @@ class TestSectionSortedPagesProperty:
         )
         docs.add_page(second)
 
-        assert root.regular_pages_recursive == [first, second]
+        assert root.regular_pages_recursive == (first, second)
 
     def test_sorted_pages_no_weights(self, tmp_path):
         """Pages without weights default to weight=0 and sort by title."""
@@ -189,12 +189,12 @@ class TestSectionSortedPagesProperty:
         assert sorted_pages[2] == page1
 
     def test_sorted_pages_empty_section(self, tmp_path):
-        """Empty section returns empty list."""
+        """Empty section returns an empty tuple."""
         section = Section(name="docs", path=tmp_path / "docs")
 
         sorted_pages = section.sorted_pages
 
-        assert sorted_pages == []
+        assert sorted_pages == ()
 
     def test_sorted_pages_single_page(self, tmp_path):
         """Section with single page returns that page."""
@@ -209,7 +209,7 @@ class TestSectionSortedPagesProperty:
 
         sorted_pages = section.sorted_pages
 
-        assert sorted_pages == [page]
+        assert sorted_pages == (page,)
 
     def test_sorted_pages_negative_weights(self, tmp_path):
         """Negative weights are supported and sort before positive."""
@@ -254,7 +254,7 @@ class TestSectionSortedSubsectionsProperty:
         )
         root.add_subsection(first)
 
-        assert root.sorted_subsections == [first]
+        assert root.sorted_subsections == (first,)
 
         second = Section(
             name="second",
@@ -263,7 +263,7 @@ class TestSectionSortedSubsectionsProperty:
         )
         root.add_subsection(second)
 
-        assert root.sorted_subsections == [second, first]
+        assert root.sorted_subsections == (second, first)
 
     def test_sorted_subsections_basic(self, tmp_path):
         """Subsections are sorted by weight (ascending)."""
@@ -316,7 +316,7 @@ class TestSectionSortedSubsectionsProperty:
 
         sorted_subs = section.sorted_subsections
 
-        assert sorted_subs == []
+        assert sorted_subs == ()
 
     def test_sorted_subsections_uses_section_title_property(self, tmp_path):
         """Sorting uses Section.title property which handles missing title."""
@@ -361,7 +361,7 @@ class TestSectionSortedSubsectionsProperty:
 
         section.subsections = [missing, string, malformed, numeric]
 
-        assert section.sorted_subsections == [numeric, string, malformed, missing]
+        assert section.sorted_subsections == (numeric, string, malformed, missing)
 
 
 class TestSectionSortChildrenByWeight:
