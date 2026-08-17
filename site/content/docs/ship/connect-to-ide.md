@@ -28,7 +28,7 @@ The button uses Cursor's [MCP install deeplinks](https://cursor.com/docs/context
 
 ## Prerequisites
 
-You must host a **Streamable HTTP MCP server** that serves your documentation. Bengal generates the button and deeplink — it does **not** provide the MCP server.
+You must host a **Streamable HTTP MCP server** that serves your published documentation. Bengal generates the button and deeplink — it does **not** provide that hosted MCP server.
 
 The MCP server should:
 
@@ -53,7 +53,7 @@ Use the full URL to your MCP endpoint. Bengal strips trailing slashes automatica
 
 ## Hosting an MCP Server
 
-Bengal does not ship an MCP server. You have several options:
+Bengal does not ship the hosted docs HTTP MCP server that the Connect to IDE button needs. For the CLI stdio MCP used while authoring a site (`bengal --mcp`), see [Use with agents](/docs/ship/use-with-agents/). You have several options for a published-site MCP:
 
 | Approach | Description |
 |----------|-------------|
@@ -78,6 +78,7 @@ enabled = false
 
 ## See Also
 
+- [Use with agents](/docs/ship/use-with-agents/) — CLI stdio MCP (`bengal --mcp`) while authoring a site
 - [SEO & Discovery](../seo/) — Machine discovery, content signals, and related features
 - [Output Formats](../output-formats/) — JSON, LLM text, and other machine-readable outputs
 - [Cursor MCP Install Links](https://cursor.com/docs/context/mcp/install-links) — Deeplink format reference

@@ -24,7 +24,7 @@ aliases:
 
 # Writing Plugins
 
-Plugins extend Bengal with custom directives, template functions, content sources, validators, and build lifecycle hooks — all through a single `register()` method. The plugin system uses Python entry points for automatic discovery and a builder→immutable pattern for thread safety.
+Plugins extend Bengal with custom directives, template functions, content sources, validators, and build lifecycle hooks — all through a single `register()` method. The plugin system uses Python entry points for automatic discovery and a builder→immutable pattern for thread safety. Python `bengal.plugins` entry points are not the CLI MCP or agent pack used while authoring a site; see [Use with agents](/docs/ship/use-with-agents/).
 
 ## Quick Start
 

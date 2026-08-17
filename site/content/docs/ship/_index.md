@@ -69,6 +69,7 @@ flowchart LR
 | Configure my site | [Configuration](./configuration/) |
 | Improve metadata, sitemap, feeds, and social sharing | [SEO & Discovery](./seo.md) |
 | Add "Connect to IDE" button for Cursor MCP | [Connect to IDE](./connect-to-ide.md) |
+| Use CLI MCP while authoring a site | [Use with agents](/docs/ship/use-with-agents/) |
 | Build OSS vs Enterprise variants | [Multi-Variant Builds](./configuration/variants) |
 | Build for production | [CLI Reference](/cli/) |
 | Speed up builds | [Performance](./performance/) |
