@@ -266,3 +266,39 @@ def test_docs_tree_has_no_bengal_project_command():
     assert not offenders, "`bengal project` is not a registered command group:\n" + "\n".join(
         offenders
     )
+
+
+USE_WITH_AGENTS = DOCS_TREE / "ship" / "use-with-agents.md"
+_USE_WITH_AGENTS_ROOT_FLAGS = frozenset(
+    {
+        "--mcp",
+        "--mcp-install",
+        "--mcp-uninstall",
+        "--llms-txt",
+    }
+)
+
+
+def test_use_with_agents_page_documents_cli_mcp_flags():
+    """Public use-with-agents snippets must be real root flags or registered commands."""
+    registered = _registered_invocation_keys()
+    commands = _markdown_command_args(USE_WITH_AGENTS)
+
+    assert USE_WITH_AGENTS.is_file()
+    assert commands, "use-with-agents.md should include Bengal command snippets"
+
+    unresolved: set[str] = set()
+    documented_flags: set[str] = set()
+    for args in commands:
+        if args[0].startswith("-"):
+            documented_flags.add(args[0])
+            if args[0] not in _USE_WITH_AGENTS_ROOT_FLAGS:
+                unresolved.add(" ".join(args))
+            continue
+        if _case_command_key(args, registered) is None:
+            unresolved.add(" ".join(args))
+
+    assert not unresolved, "use-with-agents.md references unregistered CLI tokens: " + ", ".join(
+        sorted(unresolved)
+    )
+    assert documented_flags >= _USE_WITH_AGENTS_ROOT_FLAGS
