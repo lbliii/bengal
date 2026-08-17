@@ -107,22 +107,34 @@ def determine_output_path(page: PageLike, site: SiteLike) -> Path:
     return URLStrategy.compute_regular_page_output_path(page, site)
 
 
-def determine_template(page: PageLike) -> str:
+def determine_template(page: PageLike, *, build_plan: Any | None = None) -> str:
     """
     Determine which template will be used for this page.
 
     Template resolution order:
-    1. page.template attribute
-    2. page.metadata['template']
-    3. Default based on page type
+    1. PagePlan.template_name when build_plan contains this page (cache key)
+    2. page.template attribute
+    3. page.metadata['template']
+    4. Default based on page type
+
+    ``build_plan`` is duck-typed (``.pages`` of objects with ``source_path`` and
+    ``template_name``) so this module does not import orchestration or snapshots
+    at runtime. Callers that omit the plan keep the leftover metadata/type path.
 
     Args:
         page: Page object
+        build_plan: Optional frozen BuildPlan (or duck-typed equivalent)
 
     Returns:
         Template name (e.g., 'single.html', 'page.html')
 
     """
+    if build_plan is not None:
+        source = str(page.source_path)
+        for page_plan in getattr(build_plan, "pages", ()):
+            if page_plan.source_path == source:
+                return page_plan.template_name
+
     # Check page-specific template first
     if hasattr(page, "template") and page.template:
         return page.template
