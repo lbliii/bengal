@@ -72,12 +72,17 @@ class TestOrchestratorInitialization:
         assert orch._detector is None
 
     def test_initialize_creates_cache_and_effect_tracer(self, mock_site):
-        """initialize() should create cache and effect tracer."""
+        """initialize() should create cache and effect tracer, not the detector."""
         orch = IncrementalOrchestrator(mock_site)
-        cache = orch.initialize(enabled=False)
+        with patch(
+            "bengal.orchestration.incremental.orchestrator.create_detector_from_build"
+        ) as mock_create:
+            cache = orch.initialize(enabled=False)
 
+        mock_create.assert_not_called()
         assert cache is not None
         assert orch.cache is cache
+        assert orch._detector is None
 
 
 class TestFindWorkEarly:
@@ -162,8 +167,17 @@ class TestChangeDetectorDelegation:
     """Test that orchestrator properly delegates to EffectBasedDetector."""
 
     def test_change_detector_lazily_initialized(self, orchestrator, mock_site):
-        """EffectBasedDetector should be initialized during initialize()."""
-        # Detector is created during initialize(), not lazily
+        """EffectBasedDetector is constructed on first find_work_early, not initialize()."""
+        assert orchestrator._detector is None
+
+        orchestrator.cache.should_bypass = Mock(return_value=False)
+        orchestrator.cache.is_changed = Mock(return_value=False)
+
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
+            orchestrator.find_work_early()
+
         assert orchestrator._detector is not None
 
     def test_change_detector_reused(self, orchestrator, mock_site):

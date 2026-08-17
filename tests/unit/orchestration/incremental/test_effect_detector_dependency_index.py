@@ -106,13 +106,25 @@ def test_create_detector_from_build_forwards_dependency_index() -> None:
     assert detector.dependency_index is index
 
 
-def test_initialize_passes_live_dependency_index(tmp_path: Path) -> None:
-    """initialize() loads the provenance cache index into the detector."""
+def test_initialize_does_not_construct_detector(tmp_path: Path) -> None:
+    """initialize() must not construct EffectBasedDetector (#748 Option 1)."""
     index = _sample_index()
     site = _site_with_provenance_index(tmp_path, index)
     orchestrator = IncrementalOrchestrator(site)
 
     orchestrator.initialize(enabled=False)
+
+    assert orchestrator._detector is None
+
+
+def test_detect_changes_passes_live_dependency_index(tmp_path: Path) -> None:
+    """First _detect_changes loads the provenance cache index into the detector."""
+    index = _sample_index()
+    site = _site_with_provenance_index(tmp_path, index)
+    orchestrator = IncrementalOrchestrator(site)
+    orchestrator.initialize(enabled=False)
+
+    orchestrator._detect_changes(set())
 
     assert orchestrator._detector is not None
     live = orchestrator._detector.dependency_index
@@ -122,11 +134,12 @@ def test_initialize_passes_live_dependency_index(tmp_path: Path) -> None:
 
 
 def test_detect_changes_refresh_reuses_live_dependency_index(tmp_path: Path) -> None:
-    """Detector refresh after initialize reuses the same live index object."""
+    """Detector refresh after first lazy init reuses the same live index object."""
     index = _sample_index()
     site = _site_with_provenance_index(tmp_path, index)
     orchestrator = IncrementalOrchestrator(site)
     orchestrator.initialize(enabled=False)
+    orchestrator._detect_changes(set())
     live = orchestrator._detector.dependency_index
     orchestrator._detector = None
 
