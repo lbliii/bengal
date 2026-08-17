@@ -16,23 +16,23 @@ from bengal.rendering.rendered_output import get_rendered_html
 class SectionErgonomicsTarget(Protocol):
     """Structural Section surface needed by template ergonomic helpers."""
 
-    sorted_pages: list[Any]
-    regular_pages_recursive: list[Any]
+    sorted_pages: tuple[Any, ...]
+    regular_pages_recursive: tuple[Any, ...]
     subsections: list[Any]
     metadata: dict[str, Any]
     title: str
     hierarchy: list[str]
     index_page: Any | None
-    sorted_subsections: list[Any]
+    sorted_subsections: tuple[Any, ...]
 
     def get_all_pages(self, recursive: bool = True) -> list[Any]:
         """Return pages in this section."""
         ...
 
 
-def content_pages(section: SectionErgonomicsTarget) -> list[Any]:
+def content_pages(section: SectionErgonomicsTarget) -> tuple[Any, ...]:
     """Get content pages for template listings."""
-    return section.sorted_pages
+    return tuple(section.sorted_pages)
 
 
 def icon(section: SectionErgonomicsTarget) -> str | None:

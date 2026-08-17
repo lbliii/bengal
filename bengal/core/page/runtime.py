@@ -736,7 +736,7 @@ class RuntimePage:
         return get_primary_author(self.metadata)
 
     @cached_property
-    def authors(self) -> list[Author]:
+    def authors(self) -> tuple[Author, ...]:
         from bengal.core.page.computed import get_all_authors
 
         return get_all_authors(self.metadata)

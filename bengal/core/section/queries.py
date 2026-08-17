@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
 
 
-def regular_pages(section: Section) -> list[PageLike]:
+def regular_pages(section: Section) -> tuple[PageLike, ...]:
     """
     Get content pages in this section, excluding index.
 
@@ -47,17 +47,17 @@ def regular_pages(section: Section) -> list[PageLike]:
     Returns same pages as sorted_pages (which already excludes index).
 
     Returns:
-        List of content Page objects sorted by weight (excludes index)
+        Tuple of content Page objects sorted by weight (excludes index)
 
     Example:
         {% for page in section.regular_pages %}
           <article>{{ page.title }}</article>
         {% endfor %}
     """
-    return list(section.sorted_pages)
+    return tuple(section.sorted_pages)
 
 
-def sorted_pages(section: Section) -> list[PageLike]:
+def sorted_pages(section: Section) -> tuple[PageLike, ...]:
     """
     Get pages sorted by weight (ascending), then by title.
 
@@ -67,7 +67,7 @@ def sorted_pages(section: Section) -> list[PageLike]:
     alphabetically by title.
 
     Returns:
-        List of pages sorted by weight, then title
+        Tuple of pages sorted by weight, then title
 
     Example:
         {% for page in section.sorted_pages %}
@@ -79,15 +79,15 @@ def sorted_pages(section: Section) -> list[PageLike]:
         return page.source_path.stem in ("_index", "index")
 
     non_index = [page for page in section.pages if not is_index_page(page)]
-    return sorted_by_weight(non_index)
+    return tuple(sorted_by_weight(non_index))
 
 
-def regular_pages_recursive(section: Section) -> list[PageLike]:
+def regular_pages_recursive(section: Section) -> tuple[PageLike, ...]:
     """
     Get all regular pages recursively, including from subsections.
 
     Returns:
-        List of all descendant regular pages
+        Tuple of all descendant regular pages
 
     Example:
         <p>Total pages: {{ section.regular_pages_recursive | length }}</p>
@@ -95,7 +95,7 @@ def regular_pages_recursive(section: Section) -> list[PageLike]:
     result = list(section.regular_pages)
     for subsection in section.subsections:
         result.extend(subsection.regular_pages_recursive)
-    return result
+    return tuple(result)
 
 
 def add_page(section: Section, page: PageLike) -> None:

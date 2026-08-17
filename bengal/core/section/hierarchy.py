@@ -58,11 +58,11 @@ def get_icon(section: Section) -> str | None:
     return icon(section)
 
 
-def sorted_subsections(section: Section) -> list[Section]:
+def sorted_subsections(section: Section) -> tuple[Section, ...]:
     """Get subsections sorted by weight ascending, then title."""
     from bengal.core.utils.sorting import sorted_by_weight
 
-    return sorted_by_weight(section.subsections)
+    return tuple(sorted_by_weight(section.subsections))
 
 
 def add_subsection(section: Section, child: Section) -> None:

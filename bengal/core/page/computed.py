@@ -10,7 +10,7 @@ Key Functions:
 - compute_age_days: Days since publication
 - compute_age_months: Months since publication
 - get_primary_author: Primary Author object
-- get_all_authors: List of all Author objects
+- get_all_authors: Tuple of all Author objects
 - get_series_info: Series object for multi-part content
 - get_series_neighbor: Navigate between pages in a series
 
@@ -144,17 +144,17 @@ def get_primary_author(metadata: Mapping[str, Any]) -> Author | None:
     return None
 
 
-def get_all_authors(metadata: Mapping[str, Any]) -> list[Author]:
-    """Get all authors as list of Author objects.
+def get_all_authors(metadata: Mapping[str, Any]) -> tuple[Author, ...]:
+    """Get all authors as a tuple of Author objects.
 
     Parses both 'author' and 'authors' frontmatter fields, combining them
-    into a single deduplicated list. Handles string and dict formats.
+    into a single deduplicated tuple. Handles string and dict formats.
 
     Args:
         metadata: Page metadata dict
 
     Returns:
-        List of Author objects (empty list if no authors)
+        Tuple of Author objects (empty tuple if no authors)
     """
     from bengal.core.author import Author
 
@@ -178,7 +178,7 @@ def get_all_authors(metadata: Mapping[str, Any]) -> list[Author]:
                 result.append(author)
                 seen_names.add(author.name)
 
-    return result
+    return tuple(result)
 
 
 def get_series_info(metadata: Mapping[str, Any]) -> Series | None:

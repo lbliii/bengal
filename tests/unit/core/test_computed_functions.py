@@ -261,7 +261,7 @@ class TestGetAllAuthors:
     """Tests for get_all_authors free function."""
 
     def test_no_authors_returns_empty(self):
-        assert get_all_authors({}) == []
+        assert get_all_authors({}) == ()
 
     def test_single_author_string(self):
         authors = get_all_authors({"author": "Jane Smith"})
@@ -318,7 +318,7 @@ class TestGetAllAuthors:
         assert names == ["Jane Smith", "Bob Jones"]
 
     def test_empty_authors_list(self):
-        assert get_all_authors({"authors": []}) == []
+        assert get_all_authors({"authors": []}) == ()
 
     def test_authors_not_a_list_ignored(self):
         """Non-list 'authors' is ignored, only 'author' is processed."""

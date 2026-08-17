@@ -345,7 +345,7 @@ class SectionLike(Protocol):
     def index_page(self, value: PageLike | None) -> None: ...
 
     @property
-    def sorted_pages(self) -> list[PageLike]:
+    def sorted_pages(self) -> tuple[PageLike, ...]:
         """Pages sorted by weight/date for navigation."""
         ...
 
@@ -372,7 +372,7 @@ class SectionLike(Protocol):
         ...
 
     @property
-    def regular_pages(self) -> list[PageLike]:
+    def regular_pages(self) -> tuple[PageLike, ...]:
         """Non-index pages in this section."""
         ...
 
