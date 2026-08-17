@@ -13,17 +13,18 @@ Asset types tracked:
 
 Implementation note
 -------------------
-``extract_assets_from_html`` is a hand-rolled single-pass scanner rather than a
-``html.parser.HTMLParser`` subclass. On real builds this fallback runs on EVERY
-page (block/fragment caching means the render-time ``AssetTracker`` is usually
-empty), and the stdlib parser's per-tag method dispatch and incremental buffer
-made it the single largest render cost (~24% of a cold build). The scanner
-produces a byte-identical asset set to the old parser — it deliberately
-replicates the parser's quirks (HTML-entity unescaping in attribute values,
-comment and ``<script>``/``<style>`` CDATA skipping, whitespace-tolerant close
-tags, last-wins duplicate attributes, and the empty-srcset-candidate abort) so
-the per-page incremental dependency map is unchanged. ``AssetExtractorParser``
-is retained below as the reference oracle that the parity test compares against.
+``extract_assets_from_html`` is the live asset-dependency path: a hand-rolled
+single-pass scanner rather than a ``html.parser.HTMLParser`` subclass. On real
+builds this scanner runs on EVERY page (block/fragment caching means the
+render-time ``AssetTracker`` is usually empty), and the stdlib parser's per-tag
+method dispatch and incremental buffer made it the single largest render cost
+(~24% of a cold build). The scanner produces a byte-identical asset set to the
+old parser — it deliberately replicates the parser's quirks (HTML-entity
+unescaping in attribute values, comment and ``<script>``/``<style>`` CDATA
+skipping, whitespace-tolerant close tags, last-wins duplicate attributes, and
+the empty-srcset-candidate abort) so the per-page incremental dependency map is
+unchanged. ``AssetExtractorParser`` is retained below as the reference oracle
+that the parity test compares against.
 
 The scanner is stateless and free-threading-safe: only module-level immutable
 regexes are shared; every call uses a fresh local set.
