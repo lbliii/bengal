@@ -1,0 +1,7 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bengal-agent",
+  "description": "Author skills and the Bengal CLI MCP server for people writing a Bengal site.",
+  "license": "MIT",
+  "repository": "https://github.com/lbliii/bengal"
+}
