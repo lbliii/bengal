@@ -283,34 +283,7 @@ class CacheManager:
             else:
                 self.cache.taxonomy_index.update_tags(page_key, set())
 
-        # Record per-page template dependencies for selective template invalidation.
-        # Uses determine_template() to resolve the primary template, then queries
-        # the engine for the full dependency chain (extends/includes).
-        from bengal.rendering.pipeline.output import determine_template
-
-        for page in pages_built:
-            try:
-                primary_template = determine_template(page)
-                # Start with the primary template
-                template_names: set[str] = {primary_template}
-
-                # Try to get the full dependency chain from the engine
-                try:
-                    from bengal.rendering.template_engine import get_engine
-
-                    engine = get_engine(self.site)
-                    if hasattr(engine, "_env"):
-                        tpl = engine._env.get_template(primary_template)
-                        if hasattr(tpl, "dependencies"):
-                            deps = tpl.dependencies()
-                            for key in ("extends", "includes", "embeds", "imports"):
-                                template_names.update(deps.get(key, []))
-                except Exception:
-                    logger.debug("template_deps_engine_query_failed", page=str(page.source_path))
-
-                self.cache.record_page_templates(str(page.source_path), frozenset(template_names))
-            except Exception:
-                logger.debug("template_deps_resolution_failed", page=str(page.source_path))
+        self._record_page_template_deps(pages_built, build_context)
 
         # Update all asset hashes
         for asset in assets_processed:
@@ -384,6 +357,46 @@ class CacheManager:
             return self.cache.save(cache_path)
         finally:
             self.cache.page_artifacts = page_artifacts
+
+    def _record_page_template_deps(
+        self,
+        pages_built: Sequence[PageLike],
+        build_context: Any | None,
+    ) -> None:
+        """Record primary template (+ engine chain) for incremental invalidation.
+
+        Uses ``PagePlan.template_name`` as the cache key when
+        ``build_context.build_plan`` contains this page. Leftover
+        ``determine_template(page)`` still runs when there is no plan.
+        """
+        if not self.cache:
+            return
+
+        from bengal.rendering.pipeline.output import determine_template
+
+        plan = getattr(build_context, "build_plan", None) if build_context is not None else None
+
+        for page in pages_built:
+            try:
+                primary_template = determine_template(page, build_plan=plan)
+                template_names: set[str] = {primary_template}
+
+                try:
+                    from bengal.rendering.template_engine import get_engine
+
+                    engine = get_engine(self.site)
+                    if hasattr(engine, "_env"):
+                        tpl = engine._env.get_template(primary_template)
+                        if hasattr(tpl, "dependencies"):
+                            deps = tpl.dependencies()
+                            for key in ("extends", "includes", "embeds", "imports"):
+                                template_names.update(deps.get(key, []))
+                except Exception:
+                    logger.debug("template_deps_engine_query_failed", page=str(page.source_path))
+
+                self.cache.record_page_templates(str(page.source_path), frozenset(template_names))
+            except Exception:
+                logger.debug("template_deps_resolution_failed", page=str(page.source_path))
 
     def _store_page_artifacts(self, build_context: Any | None) -> None:
         """Persist post-render page artifacts accumulated during rendering."""
