@@ -18,6 +18,7 @@ from bengal.build.provenance.lookups import (
     get_pages_for_data_file,
     get_pages_from_dependency_index,
     get_taxonomy_term_pages_for_member,
+    index_is_complete,
     log_incremental_fallback,
 )
 from bengal.rendering.template_engine.environment import (
@@ -174,8 +175,10 @@ def expand_forced_changed(
     This is the core integration for RFC: rfc-incremental-build-dependency-gaps.
 
     Queries ``DependencyReadIndex`` for generated/track/asset/template/data
-    hits before fallback scans. A hit skips the scan for that kind; a miss
-    keeps the existing EffectTracer / cache-graph / full-rebuild path.
+    hits. When the index is present and complete, page-finding scans for
+    those kinds do not run; a miss means no dependents. When the index is
+    missing, empty, or corrupt, emit a named ``fallback_reason`` and use
+    the EffectTracer / cache-graph / full-rebuild path.
 
     Gap 1: Data file changes → dependent pages
     Gap 2: Member page changes → taxonomy term pages
@@ -209,8 +212,8 @@ def expand_forced_changed(
             prefix = _INDEX_REASON_PREFIX[kind]
             _add_expanded_pages(expanded, reasons, index_pages, f"{prefix}:{path.name}")
 
-    # Gap 1: Detect data file changes. Skip the page-finding scan when the
-    # index already resolved this file from forced_changed.
+    # Gap 1: Detect data file changes. Page-finding uses the index when
+    # complete; otherwise get_pages_for_data_file emits index_incomplete.
     changed_data_files = detect_changed_data_files(cache, site)
     for data_file in changed_data_files:
         data_keys = dependency_key_candidates(cache, data_file)
@@ -242,30 +245,26 @@ def expand_forced_changed(
                 continue
             unresolved_templates.append(changed_template)
 
-        index_template_hits: dict[str, set[Path]] = {}
-        for changed_template in unresolved_templates:
-            template_name = template_name_for_path(changed_template, template_dirs)
-            affected = get_pages_from_dependency_index(
-                dependency_index,
-                ("template",),
-                (*dependency_key_candidates(cache, changed_template), template_name),
-            )
-            if not affected:
-                index_template_hits = {}
-                break
-            index_template_hits[template_name] = affected
-
-        if unresolved_templates and index_template_hits:
-            for template_name, affected_paths in index_template_hits.items():
+        if unresolved_templates and index_is_complete(dependency_index):
+            # Trust the index: hits expand pages; misses mean no dependents.
+            for changed_template in unresolved_templates:
+                template_name = template_name_for_path(changed_template, template_dirs)
+                affected = get_pages_from_dependency_index(
+                    dependency_index,
+                    ("template",),
+                    (*dependency_key_candidates(cache, changed_template), template_name),
+                )
+                if not affected:
+                    continue
                 logger.debug(
                     "dependency_index_template_hit",
                     template=template_name,
-                    affected_pages=len(affected_paths),
+                    affected_pages=len(affected),
                 )
                 _add_expanded_pages(
                     expanded,
                     reasons,
-                    affected_paths,
+                    affected,
                     f"template_changed:{template_name}",
                 )
         elif unresolved_templates and cache.template_dependencies:

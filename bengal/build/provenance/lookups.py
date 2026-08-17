@@ -35,6 +35,15 @@ def log_incremental_fallback(reason: str, **context: object) -> None:
     logger.info("incremental_fallback", reason=reason, **context)
 
 
+def index_is_complete(dependency_index: DependencyReadIndex | None) -> bool:
+    """True when the persisted index is present and non-empty.
+
+    Missing, corrupt, and version-mismatched payloads load as an empty
+    ``DependencyReadIndex``. A fast miss is only valid when this is True.
+    """
+    return dependency_index is not None and not dependency_index.is_empty
+
+
 def dependency_key_candidates(cache: BuildCache, path: Path) -> tuple[str, ...]:
     """Return stable key candidates for dependency-index lookups."""
     candidates: list[str] = []
@@ -129,9 +138,12 @@ def get_pages_for_data_file(
     """
     Find pages that depend on a data file.
 
-    Queries the EffectTracer (loaded from effects.json) for pages whose
-    rendering recorded a dependency on the given data file.  Falls back
-    to the BuildCache dependency graph when no tracer is available.
+    When the dependency index is present and complete, return only index
+    hits. A miss is a proven no-dependent result — EffectTracer and
+    cache-graph scans do not run.
+
+    When the index is missing, empty, or corrupt, emit ``index_incomplete``
+    and fall back to EffectTracer then the BuildCache dependency graph.
 
     Args:
         cache: BuildCache with dependency tracking
@@ -146,12 +158,13 @@ def get_pages_for_data_file(
         ("data",),
         dependency_key_candidates(cache, data_file),
     )
-    if index_pages:
-        logger.debug(
-            "dependency_index_data_hit",
-            data_file=str(data_file),
-            affected_pages=len(index_pages),
-        )
+    if index_is_complete(dependency_index):
+        if index_pages:
+            logger.debug(
+                "dependency_index_data_hit",
+                data_file=str(data_file),
+                affected_pages=len(index_pages),
+            )
         return index_pages
 
     log_incremental_fallback(
@@ -237,8 +250,12 @@ def get_pages_for_template(
     """
     Find pages that use a template.
 
-    Queries the cache's reverse dependency graph for pages that depend
-    on the given template.
+    When the dependency index is present and complete, return only index
+    hits. A miss is a proven no-dependent result — the cache-graph scan
+    does not run.
+
+    When the index is missing, empty, or corrupt, emit ``index_incomplete``
+    and query the cache reverse/forward dependency graph.
 
     Args:
         cache: BuildCache with reverse dependency tracking
@@ -253,13 +270,20 @@ def get_pages_for_template(
         ("template",),
         dependency_key_candidates(cache, template_path),
     )
-    if index_pages:
-        logger.debug(
-            "dependency_index_template_hit",
-            template=str(template_path),
-            affected_pages=len(index_pages),
-        )
+    if index_is_complete(dependency_index):
+        if index_pages:
+            logger.debug(
+                "dependency_index_template_hit",
+                template=str(template_path),
+                affected_pages=len(index_pages),
+            )
         return index_pages
+
+    log_incremental_fallback(
+        FALLBACK_INDEX_INCOMPLETE,
+        kind="template",
+        path=str(template_path),
+    )
 
     template_key = cache._cache_key(template_path)
 

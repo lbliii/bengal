@@ -678,6 +678,31 @@ members:
             "incomplete-index miss should still rebuild via fallback scan"
         )
 
+    def test_corrupt_index_still_rebuilds_via_fallback(
+        self, site_with_data_tracking: WarmBuildTestSite
+    ) -> None:
+        """A corrupt dependency index must not skip the existing fallback scan."""
+        site_with_data_tracking.full_build()
+        index_path = site_with_data_tracking.cache_dir / "provenance" / "dependency-index.json"
+        assert index_path.exists()
+        index_path.write_text("{not-json", encoding="utf-8")
+
+        site_with_data_tracking.modify_file(
+            "data/team.yaml",
+            """
+members:
+  - name: Alice
+    role: Senior Developer
+  - name: Bob
+    role: Designer
+""",
+        )
+        site_with_data_tracking.wait_for_fs()
+        stats = site_with_data_tracking.incremental_build()
+
+        site_with_data_tracking.assert_output_contains("about/index.html", "Senior Developer")
+        assert stats.cache_misses >= 1, "corrupt-index miss should still rebuild via fallback scan"
+
 
 def _index_entries_of_kind(site: WarmBuildTestSite, kind: str) -> list[dict]:
     index_path = site.cache_dir / "provenance" / "dependency-index.json"
