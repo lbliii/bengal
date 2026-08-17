@@ -132,3 +132,5 @@ content_signals:
 ```
 
 See [Output Formats](../output-formats/) for the full configuration reference and [SEO & Discovery](../seo/) for the broader discovery strategy.
+
+While authoring a site, agents can use Bengal's CLI MCP instead of a published-site HTTP server. See [Use with agents](/docs/ship/use-with-agents/).
