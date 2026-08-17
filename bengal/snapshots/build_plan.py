@@ -8,6 +8,10 @@ exists.
 
 from dataclasses import dataclass
 from types import MappingProxyType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bengal.snapshots.types import PageSnapshot, SectionSnapshot, SiteSnapshot
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,3 +76,56 @@ class IncrementalPlan:
     affected_pages: tuple[str, ...]
     affected_outputs: tuple[str, ...]
     fallback_reasons: tuple[str, ...]
+
+
+def assemble_build_plan(
+    snapshot: SiteSnapshot,
+    *,
+    config_hash: str,
+    content_snapshot_id: str,
+) -> BuildPlan:
+    """Map a frozen ``SiteSnapshot`` into a frozen ``BuildPlan``.
+
+    Construction-only: WaveScheduler still takes ``self.site``. Callers pass
+    ``config_hash`` and ``content_snapshot_id``; this function does not hash.
+    ``generated_outputs`` is empty until a later slice fills it.
+    """
+    graph = snapshot.schedule.template_dependency_graph
+    template_dependencies = MappingProxyType(
+        {name: tuple(sorted(graph[name])) for name in sorted(graph)}
+    )
+    return BuildPlan(
+        config_hash=config_hash,
+        content_snapshot_id=content_snapshot_id,
+        pages=tuple(_page_plan(page) for page in snapshot.pages),
+        sections=tuple(_section_plan(section) for section in snapshot.sections),
+        template_dependencies=template_dependencies,
+        generated_outputs=(),
+    )
+
+
+def _page_plan(page: PageSnapshot) -> PagePlan:
+    return PagePlan(
+        source_path=str(page.source_path),
+        href=page.href,
+        template_name=page.template_name,
+        section_path=_section_path(page.section),
+    )
+
+
+def _section_path(section: SectionSnapshot | None) -> str | None:
+    if section is None:
+        return None
+    if section.path is not None:
+        return str(section.path)
+    if section.href:
+        return section.href
+    return None
+
+
+def _section_plan(section: SectionSnapshot) -> SectionPlan:
+    return SectionPlan(
+        path=str(section.path or section.href),
+        title=section.title,
+        page_hrefs=tuple(page.href for page in section.pages),
+    )
