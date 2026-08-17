@@ -213,6 +213,10 @@ class WaveScheduler:
             content_snapshot_id=str(self.snapshot.snapshot_time),
         )
         self.build_plan = plan
+        if self.build_context is not None:
+            self.build_context.build_plan = plan
+        # Named leftover: workers still get site=self.site.
+        logger.info("render_uses_mutable_site")
         plan_by_source = {page_plan.source_path: page_plan for page_plan in plan.pages}
 
         page_template_map: dict[PageLike, str] = {}
