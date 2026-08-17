@@ -5,13 +5,18 @@ Each function applies one category of plugin extensions to the appropriate
 Bengal subsystem (directive builder, template environment, etc.).
 
 Currently wired:
+- Directives — via apply_plugin_directives from the Patitas directive registry
+- Roles — via apply_plugin_roles from the Patitas role registry
 - Template extensions (functions, filters, tests) — via register_all() in
   bengal.rendering.template_functions
 - Phase hooks — via BuildOrchestrator lifecycle phase groups
 
-Scaffolding for future subsystem integration:
-- Directives and roles — pending directive/role builder plugin hooks
-- Content sources — pending content source registry plugin hooks
+Unwired scaffolding (registered on the frozen registry, not called from
+discovery or any other production path):
+- apply_plugin_content_sources — keep defined; do not wire callers yet
+
+Health validators and shortcodes have frozen-registry fields but no apply_*
+production injection helpers yet.
 
 """
 
@@ -60,7 +65,11 @@ def apply_plugin_template_extensions(frozen: FrozenPluginRegistry, env: Any, sit
 def apply_plugin_content_sources(
     frozen: FrozenPluginRegistry, source_registry: dict[str, type]
 ) -> None:
-    """Register plugin content sources."""
+    """Unwired scaffolding: copy plugin content sources into a registry dict.
+
+    Plugins may register content sources on the frozen registry. Discovery
+    does not call this helper; keep it unwired until a later wiring saga.
+    """
     source_registry.update(dict(frozen.content_sources))
 
 
