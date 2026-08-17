@@ -1,7 +1,8 @@
-"""Frozen build-plan records for a later scheduler handoff.
+"""Frozen build-plan records consumed by WaveScheduler template grouping.
 
 RFC: ``plan/rfc-snapshot-build-plan-handoff.md`` (Proposed Records, migration
-shape step 1). These types are construction-only: nothing consumes them yet.
+shape step 2: one hot path). ``WaveScheduler._render_template_first`` groups
+pages by ``PagePlan.template_name``. Render still uses mutable ``self.site``.
 ``plugin_context`` / ``PluginBuildContext`` are omitted until a public protocol
 exists.
 """
@@ -86,8 +87,9 @@ def assemble_build_plan(
 ) -> BuildPlan:
     """Map a frozen ``SiteSnapshot`` into a frozen ``BuildPlan``.
 
-    Construction-only: WaveScheduler still takes ``self.site``. Callers pass
-    ``config_hash`` and ``content_snapshot_id``; this function does not hash.
+    ``WaveScheduler`` groups ``template_first`` pages from ``PagePlan.template_name``
+    and still renders via ``self.site``. Callers pass ``config_hash`` and
+    ``content_snapshot_id``; this function does not hash.
     ``generated_outputs`` is empty until a later slice fills it.
     """
     graph = snapshot.schedule.template_dependency_graph

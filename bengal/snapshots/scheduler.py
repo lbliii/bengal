@@ -92,6 +92,7 @@ class WaveScheduler:
         self._strategy = strategy
         self._progress_manager = progress_manager
         self._block_cache = block_cache
+        self.build_plan = None
         self.snapshot_handoff = create_render_snapshot_handoff(snapshot, site.pages)
 
         # Create mapping from snapshot pages to actual pages
@@ -203,10 +204,28 @@ class WaveScheduler:
         )
         template_engine = create_engine(self.site, profile=profile_templates)
 
-        # Resolve template names once for all pages (used for precompilation and grouping)
-        page_template_map: dict[PageLike, str] = {
-            p: resolve_template_name(p) for p in pages_to_render
-        }
+        # Group from BuildPlan (RFC handoff step 2). Render still uses self.site.
+        from bengal.snapshots.build_plan import assemble_build_plan
+
+        plan = assemble_build_plan(
+            self.snapshot,
+            config_hash="unhashed",
+            content_snapshot_id=str(self.snapshot.snapshot_time),
+        )
+        self.build_plan = plan
+        plan_by_source = {page_plan.source_path: page_plan for page_plan in plan.pages}
+
+        page_template_map: dict[PageLike, str] = {}
+        for page in pages_to_render:
+            page_plan = plan_by_source.get(str(page.source_path))
+            if page_plan is not None:
+                page_template_map[page] = page_plan.template_name
+            else:
+                logger.info(
+                    "build_plan_missing_page",
+                    source_path=str(page.source_path),
+                )
+                page_template_map[page] = resolve_template_name(page)
 
         # Precompile templates used by pages we're about to render
         # This warms Kida's bytecode cache before parallel rendering begins
