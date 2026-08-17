@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
     from bengal.services.data import DataService
     from bengal.services.query import QueryService
+    from bengal.snapshots.build_plan import BuildPlan
     from bengal.snapshots.types import SiteSnapshot
     from bengal.utils.concurrency.executor import CancellationToken
     from bengal.utils.observability.cli_progress import LiveProgressManager
@@ -225,6 +226,10 @@ class BuildContext:
 
     # Snapshot for lock-free parallel rendering (RFC: rfc-bengal-snapshot-engine)
     snapshot: SiteSnapshot | None = None
+
+    # Frozen BuildPlan stashed by WaveScheduler template_first (RFC handoff).
+    # Render still uses mutable site; pipeline does not read the plan yet.
+    build_plan: BuildPlan | None = None
 
     # Asset manifest context for postprocess (404, search templates use asset_url)
     # Set during phase_render bootstrap, reused in postprocess (Plan: asset-manifest-context-refactor)
