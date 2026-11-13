@@ -126,11 +126,20 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     ) -> str:
         return _locale_date(date, format, lang)
 
+    def direction() -> str:
+        """Return 'rtl' or 'ltr' for the current language.
+
+        Uses site default language since this adapter has no page context.
+
+        """
+        return _direction(site, None)
+
     env.globals.update(
         {
             "languages": languages,
             "alternate_links": alternate_links,
             "locale_date": locale_date,
+            "direction": direction,
         }
     )
 
