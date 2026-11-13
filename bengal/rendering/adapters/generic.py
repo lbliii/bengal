@@ -30,6 +30,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (
         _current_lang,
+        _direction,
         _languages,
         _make_nt,
         _make_t,
@@ -97,6 +98,15 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
 
         return resolve_asset_url(path, site, None)
 
+    def direction() -> str:
+        """Return 'rtl' or 'ltr' for the current language.
+
+        Note: This generic adapter cannot access page context.
+        Uses site default language.
+
+        """
+        return _direction(site, None)
+
     # Register functions - check if env has globals attribute
     if hasattr(env, "globals"):
         env.globals.update(
@@ -105,6 +115,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
                 "nt": nt,
                 "current_lang": current_lang,
                 "languages": languages,
+                "direction": direction,
                 "tag_url": tag_url,
                 "asset_url": asset_url,
             }
